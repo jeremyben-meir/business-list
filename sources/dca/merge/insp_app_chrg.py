@@ -13,7 +13,8 @@ def reorder(df):
     return df
 
 def nat_check(nat):
-    return nat == np.datetime64('NaT') or pd.isnull(nat)
+    # return nat == np.datetime64('NaT') or pd.isnull(nat)
+    return pd.isnull(nat)
 
 def min_time(time1,time2):
     if nat_check(time1) and nat_check(time2):
@@ -171,6 +172,8 @@ def flatten_and_elim_nan(row):
     return my_row
 
 def geo_combine(df, setting):
+    # df = df.sort_values(by=['BBL'], ascending=False)
+
     main_iterator = df[(df["BBL Latest"]=="") & (df["BBL"] == "")]
     main_iterator = main_iterator[main_iterator.apply(lambda df_row: len(df_row["Building Number"])>df_row["Building Number"].count('') and len(df_row["Street"])>df_row["Street"].count(''), axis= 1)]
     iterator = df if setting else main_iterator
@@ -181,17 +184,27 @@ def geo_combine(df, setting):
     for index, row in iterator.iterrows():
 
         progress = progress.display()
-        # if progress.meter>20:
+        # if progress.meter>100:
         #     print('fuck it im out')
         #     break
 
         if index not in indexes_dropped:
             group = df.loc[((df["BBL"] == row["BBL"]) & (df["BBL"] != "")) | ((df["BBL Latest"] == row["BBL Latest"]) & (df["BBL Latest"]!="")) ] if setting else iterator[iterator.apply(lambda df_row: df_row["Building Number"][0]==row["Building Number"][0] and df_row["Street"][0] == row["Street"][0], axis= 1)]
-
+            # print(row)
+            # print()
+            # print(group)
             for index1, row1 in group.iterrows():
-                if index != index1 and (phones_to_match(row["Contact Phone"],row1["Contact Phone"]) or names_to_match(row["Business Name"],row1["Business Name"]) > 90):
+                if index != index1 and (phones_to_match(row["Contact Phone"],row1["Contact Phone"]) or names_to_match(row["Business Name"],row1["Business Name"]) > 80):
+                    # if phones_to_match(row["Contact Phone"],row1["Contact Phone"]):
+                    #     print("PHONE MATCH")
+                    # if names_to_match(row["Business Name"],row1["Business Name"]) > 90:
+                    #     print("NAME MATCH")
+                    # print()
+                    # print(row1)
+
                     for colname in ["Business Name","Contact Phone","Record ID","Industry","Building Number","Street","Street 2","Unit Type","Unit","Description","City","State","Zip","Active Vehicles"]:
                         df.at[index, colname] = df.loc[index, colname] + row1[colname]
+                        
 
                     df.at[index, "First Temp Op Letter Issued"] = min_time(df.loc[index, "First Temp Op Letter Issued"], row1["First Temp Op Letter Issued"])
                     df.at[index, "Last Temp Op Letter Issued"] = max_time(df.loc[index, "Last Temp Op Letter Issued"], row1["Last Temp Op Letter Issued"])
@@ -247,13 +260,9 @@ def load_source_files():
     pickle.dump(df_0, open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-1.p", "wb" ))
     return df_0
 
-def process_0():
-    df_1 = load_source_files()
+def process_0(df_1):
 
     print(df_1.dtypes)
-
-
-    df_1 = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-1.p", "rb" ))
     group_0 = df_1.groupby(['Record ID','Building Number', 'Street']).agg({'License Type': 'max','Business Name':"//$L$//".join,'First Temp Op Letter Issued': 'min','Last Temp Op Letter Issued': 'max','Last Temp Op Letter Expiration': 'max', 'Industry': lambda x: x.iloc[0], 'Street 2':lambda x: x.iloc[0], 'Unit Type':lambda x: x.iloc[0],'Unit':lambda x: x.iloc[0],'Description':lambda x: x.iloc[0], 'City':lambda x: x.iloc[0], 'State':lambda x: x.iloc[0], 'Zip':lambda x: x.iloc[0], 'Contact Phone':"//$L$//".join,'Active Vehicles':"//$L$//".join,'BBL':'max','BBL Latest':'max','Date of First Application': 'min','Date of Last Application':'max','Date of First Close': 'min','Date of Last Close':'max','Date of First OOB': 'min','Date of Last OOB':'max','Date of First Inspection': 'min','Date of Last Inspection':'max','Date of First Charge': 'min','Date of Last Charge':'max'})#
     df_1 = pd.DataFrame(group_0).reset_index()
     
@@ -276,9 +285,7 @@ def process_0():
 
     return df_1
     
-def process_1():
-    df_2 = process_0()
-    df_2 = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-2.p", "rb" ))
+def process_1(df_2):
 
     df_2["FIRST"] = df_2[['First Temp Op Letter Issued', 'Date of First Application', 'Date of First Inspection', 'Date of First Charge']].min(axis=1)
 
@@ -292,9 +299,7 @@ def process_1():
     pickle.dump(df_2, open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-3.p", "wb" ))
     return df_2
 
-def process_2():
-    df_3 = process_1()
-    df_3 = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-3.p", "rb" ))
+def process_2(df_3):
 
     df_3 = df_3.apply(lambda row: flatten_and_elim_nan(row), axis=1)
 
@@ -310,14 +315,7 @@ def process_2():
     pickle.dump(df_3, open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-4.p", "wb" ))
     return df_3
 
-def process_3():
-    # df_4 = process_2()
-
-    df_4 = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-4.p", "rb" ))
-
-    # df_4= pd.read_csv(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/gamestop.csv")
-    # cleaned_file_path = LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/gs1.csv"
-    # df_4.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_NONNUMERIC)
+def process_3(df_4):
 
     df_4["Business Name"] = df_4["Business Name"].apply(lambda x: get_unique_and_flatten(x))
     df_4["Contact Phone"] = df_4["Contact Phone"].apply(lambda x: get_unique_and_flatten(x))
@@ -342,9 +340,6 @@ def process_3():
 
     df_4 = geo_combine(df_4, setting=True)
 
-    # cleaned_file_path = LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/gs2.csv"
-    # df_4.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_NONNUMERIC)
-
     df_4["First Temp Op Letter Issued"] = pd.to_datetime(df_4["First Temp Op Letter Issued"].astype("datetime64[D]")).dt.date
     df_4["Last Temp Op Letter Issued"] = pd.to_datetime(df_4["Last Temp Op Letter Issued"].astype("datetime64[D]")).dt.date
     df_4["Last Temp Op Letter Expiration"] = pd.to_datetime(df_4["Last Temp Op Letter Expiration"].astype("datetime64[D]")).dt.date
@@ -364,9 +359,21 @@ def process_3():
     return df_4
 
 def begin_process():
-    # df_5 = process_3()
+    # df_1 = load_source_files()
+    # print("load done")
+    # df_1 = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-1.p", "rb" ))
+    # df_2 = process_0(df_1)
+    # print("process 0 done")
+    # df_2 = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-2.p", "rb" ))
+    # df_3 = process_1(df_2)
+    # print("process 1 done")
+    # df_3 = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-3.p", "rb" ))
+    # df_4 = process_2(df_3)
+    # print("process 2 done")
+    df_4 = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-4.p", "rb" ))
+    df_5 = process_3(df_4)
+    print("process 3 done")
     df_5 = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-5.p", "rb" ))
-
     # df_5[df_5['LLID'].isin(df_5[df_5.duplicated(subset=['LLID'])]['LLID'].tolist())].to_csv("berding.csv",index=False)
 
     df_5 = geo_combine(df_5, setting=False)

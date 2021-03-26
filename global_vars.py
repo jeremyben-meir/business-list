@@ -15,6 +15,7 @@ import math
 import pickle
 import datetime
 import psutil
+import os
 from sys import platform
 
 def getFileHeader(given_path, method = 'r'):
@@ -113,7 +114,7 @@ nyc_city = ['QUEENS VILL','ROCKAWAY','ROOSEVELT ISL','ROOSEVELT ISLAND','ROOSEVE
 
 if platform == "darwin":
     # MAC OS X
-    LOCAL_LOCUS_PATH = "/Users/jeremyben-meir/Dropbox/locus/"
+    LOCAL_LOCUS_PATH = os.path.expanduser("~") + "/Dropbox/locus/"
     LOCAL_WEBDRIVER_PATH = "/usr/local/bin/chromedriver"
 elif platform == "linux":
 	# LINUX

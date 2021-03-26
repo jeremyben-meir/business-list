@@ -64,7 +64,7 @@ def iterate_iacf(iacf_index, iacf_row,iacf_df,lr_df,lr_df_bbl,lr_df_nobbl):
     statuses = []
 
     for rec in list(set(record_ids)):
-        if "DCA" in rec and rec in lr_df.index:
+        if "DCA" in rec and rec in lr_df.index.tolist():
             try:
                 business_names+=lr_df.loc[rec, "Business Name"]
                 phone_numbers.append(lr_df.loc[rec, "Contact Phone Number"])
@@ -75,7 +75,7 @@ def iterate_iacf(iacf_index, iacf_row,iacf_df,lr_df,lr_df_bbl,lr_df_nobbl):
                 industries+=lr_df.loc[rec, "Industry"]
                 statuses.append(lr_df.loc[rec, "License Status"])
             except:
-                pass
+                print("Error")
             lr_df=lr_df.drop(rec)
             indexes_used.append(rec)
 
@@ -172,6 +172,8 @@ def begin_threads(thread_num, package):
     lr_df = pickle.load(open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/lob_revocations.p","rb"))
     iacf_df = pickle.load(open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/final-df.p", "rb"))
 
+    #lr_df = lr_df.sample( n=500 )
+
     lr_df = lr_df.set_index('DCA License Number')
     lr_df = lr_df.sort_values("License Creation Date")
 
@@ -184,7 +186,6 @@ def begin_threads(thread_num, package):
     iacf_df=iacf_df.sort_values("LBID")
 
     print(iacf_df[iacf_df.duplicated(subset=['LLID'])])
-
 
     lr_df["Address Street Name"] = lr_df["Address Street Name"].astype(str)
     lr_df["Address Building"] = lr_df["Address Building"].astype(str)
@@ -212,7 +213,6 @@ def begin_threads(thread_num, package):
             total_len += len(iacf_df_segments[-1])
         
         print("TOTAL LENGTH: " + str(total_len))
-        print(len(chunks))
 
         thread_list = []
 
@@ -253,5 +253,5 @@ def begin_threads(thread_num, package):
     final_lr_df.to_csv(LOCAL_LOCUS_PATH+"data/whole/dca_files/lr_residual.csv",index=True,quoting = csv.QUOTE_ALL)
 
 if __name__ == "__main__":
-    begin_threads(thread_num = 4,package=True)
+    begin_threads(thread_num = 4, package=True)
     # begin_threads(thread_num = 26,package=True)
