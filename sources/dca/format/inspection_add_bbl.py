@@ -4,56 +4,47 @@ from global_vars import *
 
 #######FUNCTION DEFINITIONS#########
 
-def add_rows(row):
-    my_row = row
+global counter
+counter = 0
 
-    my_row["Date of First Close"] = my_row["Inspection Date"] if my_row["Inspection Result"] == "Closed" else np.nan
-    my_row["Date of Last Close"] = my_row["Inspection Date"] if my_row["Inspection Result"] == "Closed" else np.nan
-    my_row["Date of First OOB"] = my_row["Inspection Date"] if my_row["Inspection Result"] == "Out of Business" else np.nan
-    my_row["Date of Last OOB"] = my_row["Inspection Date"] if my_row["Inspection Result"] == "Out of Business" else np.nan
-    my_row["Date of First Inspection"] = my_row["Inspection Date"] if my_row["Inspection Result"] != "Closed" and my_row["Inspection Result"] != "Out of Business" else np.nan
-    my_row["Date of Last Inspection"] = my_row["Inspection Date"] if my_row["Inspection Result"] != "Closed" and my_row["Inspection Result"] != "Out of Business" else np.nan
-
-    return my_row
-
-def add_bbl(row,correct_nyc_city,nyc_city):
-    global meter,prior,limit
-    meter,prior = progress_meter(meter=meter, limit=limit, prior=prior)
-
-    my_row = row
-    year = str(row['Inspection Date'].year)[-1]
-    last = ('3' if int(year) <= 3 else '5' if int(year) <= 5 else year)
-
-    my_row['City'] = correct_nyc_city[nyc_city.index(row['City'])] if row['City'] != "" else ""
-
-    entry = (str(my_row['Building Number']) + " " + str(my_row['Street']) + " " + str(my_row['City']) if not my_row['Zip'].isdigit() else str(my_row['Building Number']) + " " + str(my_row['Street']) + " " + str(my_row['Zip']))
+def add_bbl(row,totlen):
+    # stopwords = ['FL', 'STORE', 'BSMT','RM','UNIT','STE','APT','APT#','FRNT','#','MEZZANINE','LOBBY','GROUND','FLOOR','SUITE','LEVEL']
+    # stopwords1 = ["1ST FLOOR", "1ST FL","2ND FLOOR", "2ND FL","3RD FLOOR", "3RD FL","4TH FLOOR", "4TH FL","5TH FLOOR", "5TH FL","6TH FLOOR", "6TH FL","7TH FLOOR", "7TH FL","8TH FLOOR", "8TH FL","9TH FLOOR", "9TH FL","10TH FLOOR", "10TH FL"]       
+    global counter
+    inject = row['Building Number'] + " " + row['Street'] + " " + row['Zip']
     try:
-        response = requests.get("http://localhost:808"+last+"/geoclient/v2/search.json?input="+ entry)
+        response = requests.get("https://api.cityofnewyork.us/geoclient/v1/search.json?input="+ inject +"&app_id=d4aa601d&app_key=f75348e4baa7754836afb55dc9b6363d")
         decoded = response.content.decode("utf-8")
         json_loaded = json.loads(decoded)
-        my_row["BBL"]=json_loaded['results'][0]['response']['bbl']
+        row["BBL"]=json_loaded['results'][0]['response']['bbl']
+        # print("BBL " + str(json_loaded['results'][0]['response']['bbl']))
     except:
-        my_row["BBL"]=""
+        # print(inject)
+        row["BBL"]=""
 
-    try:
-        response = requests.get("http://localhost:8089/geoclient/v2/search.json?input="+ entry)
-        decoded = response.content.decode("utf-8")
-        json_loaded = json.loads(decoded)
-        my_row["BBL Latest"]=json_loaded['results'][0]['response']['bbl']
-    except:
-        my_row["BBL Latest"]=""
-    
-    my_row = add_rows(my_row)
+    counter+=1
+    # print(counter/totlben)
+    if round(counter/totlen,4)>round((counter-4)/totlen,2):
+        print(str(round(100*counter/totlen,2)) + "%")
+    return row
 
-    return my_row
 
 def process_0():
-    inspection_17file_path = LOCAL_LOCUS_PATH + "data/whole/dca_files/source/DCA_Inspections_17.csv"
-    inspection_19file_path = LOCAL_LOCUS_PATH + "data/whole/dca_files/source/DCA_Inspections_19.csv"
+    inspection_10_17file_path = LOCAL_LOCUS_PATH + "data/whole/dca_files/source/DCA_Inspections_10-17.csv"
+    inspection_14_21file_path = LOCAL_LOCUS_PATH + "data/whole/dca_files/source/DCA_Inspections_14-21.csv"
 
-    df_inspection_17 = pd.read_csv(inspection_17file_path)
-    df_inspection_19 = pd.read_csv(inspection_19file_path)
-    df_inspection = pd.concat([df_inspection_17,df_inspection_19], ignore_index=True)
+    df_inspection_10_17 = pd.read_csv(inspection_10_17file_path)
+    df_inspection_14_21 = pd.read_csv(inspection_14_21file_path)
+
+    col_10_17 = ['REC_ID','CERT_NBR','BIZ_NAME','INSP_DT','INSP_RSLT','INDUSTRY','BORO','BLDG_NBR','STREET','STREET2','UNIT_TYP','UNIT','DESCR','CITY','STATE','ZIP','X_COORD','Y_COORD']
+    col_14_21 = ['Record ID','Certificate Number','Business Name','Inspection Date','Inspection Result','Industry','Borough','Building Number','Street','Street 2','Unit Type','Unit','Description','City','State','Zip','Longitude','Latitude']
+    df_inspection_10_17.columns = col_14_21
+    # for x in range(0,len(col_10_17)):
+    #     print({col_10_17[x]:col_14_21[x]})
+    #     df_inspection_10_17.rename(columns={col_10_17[x]:col_14_21[x]}, errors="raise", axis='columns')
+    # print(df_inspection_10_17)
+
+    df_inspection = pd.concat([df_inspection_10_17,df_inspection_14_21], ignore_index=True)
 
     business_indicators_noninformative = ["Business Padlocked", "Unable to Locate", "Unable to Complete Inspection", "Unable to Seize Vehicle"]
 
@@ -62,6 +53,9 @@ def process_0():
     df_inspection["Inspection Date"] = df_inspection["Inspection Date"].astype('datetime64[D]')
     df_inspection['Inspection Date'] = pd.to_datetime(df_inspection['Inspection Date']).dt.date
     df_inspection['Business Name'] = df_inspection['Business Name'].astype(str)
+    df_inspection['Building Number'] = df_inspection['Building Number'].astype(str)
+    df_inspection['Zip'] = df_inspection['Zip'].astype(str)
+    df_inspection['Street'] = df_inspection['Street'].astype(str)
     df_inspection = df_inspection[~df_inspection["Inspection Result"].isin(business_indicators_noninformative)]# apply(lambda x: any([x == k for k in business_indicators_noninformative]))]
     df_inspection = df_inspection[df_inspection["Borough"] != "Outside NYC"]
 
@@ -82,33 +76,30 @@ def process_0():
     pickle.dump(df_inspection, open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-insp-1.p", "wb" ))
     return df_inspection
 
-def process_1():
-    df_0 = process_0()
-    df_0 = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-insp-1.p", "rb" ))
+def process_1(df_1):
+    totlen=len(df_1)
+    df_1 = df_1.apply(lambda row: add_bbl(row, totlen=totlen), axis=1)
 
-    global meter,prior,limit
-    meter = 0
-    prior = 0
-    limit = len(df_0.index)
-    df_0 = df_0.apply (lambda row: add_bbl(row,correct_nyc_city,nyc_city), axis=1)
-
-    pickle.dump(df_0, open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-insp-2.p", "wb" ))
-    return df_0
+    pickle.dump(df_1, open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-insp-2.p", "wb" ))
+    return df_1
 
 def begin_process():
-    # df_final = process_1()
-    df_final = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-insp-2.p", "rb" ))
-    df_final['Event Date'] = df_final['Inspection Date']
+    df_0 = process_0()
+    # df_0 = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-insp-1.p", "rb" ))
+    
+    df_1 = process_1(df_0)
+    # df_1 = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-insp-2.p", "rb" ))
+    df_1['Event Date'] = df_1['Inspection Date']
 
-    del df_final["Certificate Number"]
-    del df_final["Borough"]
-    del df_final["Longitude"]
-    del df_final["Latitude"]
-    del df_final["Inspection Date"]
-    del df_final["Inspection Result"]
+    del df_1["Certificate Number"]
+    del df_1["Borough"]
+    del df_1["Longitude"]
+    del df_1["Latitude"]
+    del df_1["Inspection Date"]
+    del df_1["Inspection Result"]
 
     cleaned_file_path = LOCAL_LOCUS_PATH + "data/whole/dca_files/inspections_updated_0.csv"
-    df_final.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_NONNUMERIC)
+    df_1.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_NONNUMERIC)
         
 if __name__ == '__main__':
     begin_process()
