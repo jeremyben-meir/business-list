@@ -24,7 +24,7 @@ def add_bbl(row,totlen):
 
     counter+=1
     # print(counter/totlben)
-    if round(counter/totlen,4)>round((counter-4)/totlen,2):
+    if round(counter/totlen,4)>round((counter-1)/totlen,4):
         print(str(round(100*counter/totlen,2)) + "%")
     return row
 

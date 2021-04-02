@@ -31,21 +31,22 @@ def add_bbl(row):
 
     entry = (str(row['Address Building']) + " " + str(row['Address Street Name']) + " " + str(row['Address City']) if not row['Address ZIP'].isdigit() else str(row['Address Building']) + " " + str(row['Address Street Name']) + " " + str(row['Address ZIP']))
 
+    # try:
+    #     response = requests.get("http://localhost:808"+last+"/geoclient/v2/search.json?input="+ entry)
+    #     decoded = response.content.decode("utf-8")
+    #     json_loaded = json.loads(decoded)
+    #     row["BBL"]=json_loaded['results'][0]['response']['bbl']
+    # except:
+    #     row["BBL"]=""
+
     try:
-        response = requests.get("http://localhost:808"+last+"/geoclient/v2/search.json?input="+ entry)
+        response = requests.get("https://api.cityofnewyork.us/geoclient/v1/search.json?input="+ entry +"&app_id=d4aa601d&app_key=f75348e4baa7754836afb55dc9b6363d")
         decoded = response.content.decode("utf-8")
         json_loaded = json.loads(decoded)
         row["BBL"]=json_loaded['results'][0]['response']['bbl']
+        #print(json_loaded['results'][0]['response']['bbl'])
     except:
         row["BBL"]=""
-
-    try:
-        response = requests.get("http://localhost:8089/geoclient/v2/search.json?input="+ entry)
-        decoded = response.content.decode("utf-8")
-        json_loaded = json.loads(decoded)
-        row["BBL Latest"]=json_loaded['results'][0]['response']['bbl']
-    except:
-        row["BBL Latest"]=""
 
     return row
 
