@@ -14,8 +14,8 @@ def fix_bbl(row):
     except:
         row['Address City'] = ""
 
-    if (row["BBL Latest"]=="" or row["BBL Latest"]=="nan" or pd.isna(row["BBL Latest"]) or pd.isnull(row["BBL Latest"])):
-        row["BBL Latest"]=row["BBL"]
+    # if (row["BBL Latest"]=="" or row["BBL Latest"]=="nan" or pd.isna(row["BBL Latest"]) or pd.isnull(row["BBL Latest"])):
+    #     row["BBL Latest"]=row["BBL"]
 
     return row
 
@@ -30,14 +30,6 @@ def add_bbl(row):
         row['Address City'] = ""
 
     entry = (str(row['Address Building']) + " " + str(row['Address Street Name']) + " " + str(row['Address City']) if not row['Address ZIP'].isdigit() else str(row['Address Building']) + " " + str(row['Address Street Name']) + " " + str(row['Address ZIP']))
-
-    # try:
-    #     response = requests.get("http://localhost:808"+last+"/geoclient/v2/search.json?input="+ entry)
-    #     decoded = response.content.decode("utf-8")
-    #     json_loaded = json.loads(decoded)
-    #     row["BBL"]=json_loaded['results'][0]['response']['bbl']
-    # except:
-    #     row["BBL"]=""
 
     try:
         response = requests.get("https://api.cityofnewyork.us/geoclient/v1/search.json?input="+ entry +"&app_id=d4aa601d&app_key=f75348e4baa7754836afb55dc9b6363d")
@@ -85,7 +77,7 @@ def format_process():
     merged = merged[merged["Address Borough"] != "Outside NYC"]
 
     merged["BBL"] = merged["BBL"].astype(str)
-    merged["BBL Latest"] = merged["BBL"]
+    # merged["BBL Latest"] = merged["BBL"]
     merged["Address ZIP"] = merged["Address ZIP"].astype(str)
     merged["Address City"] = merged["Address City"].str.upper()
     merged["License Creation Date"] = merged["License Creation Date"].astype('datetime64[D]')

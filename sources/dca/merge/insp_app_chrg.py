@@ -8,6 +8,11 @@ import uuid
 #######FUNCTION DEFINITIONS#########
 
 
+########
+# compare industry -> lower fuzzy match bar?
+# mutually exclusive industries
+
+
 def reorder(df):
     df = df[["LBID","LLID","Business Name","Record ID","Contact Phone","BBL","BBL Latest","Building Number","Street","Street 2","Unit","Unit Type","Description","City","State","Zip","Industry","License Type","Active Vehicles","Moved To","Moved From","First Temp Op Letter Issued","Last Temp Op Letter Issued","Last Temp Op Letter Expiration","Date of First Application","Date of Last Application","Date of First Close","Date of Last Close","Date of First OOB","Date of Last OOB","Date of First Inspection","Date of Last Inspection","Date of First Charge","Date of Last Charge"]]
     return df
@@ -126,6 +131,8 @@ def type_cast(df):
     df["Date of Last Inspection"] = df["Date of Last Inspection"].astype("datetime64[D]")
     df["Date of First Charge"] = df["Date of First Charge"].astype("datetime64[D]")
     df["Date of Last Charge"] = df["Date of Last Charge"].astype("datetime64[D]")
+    df["License Start"] = df["License Start"].astype("datetime64[D]")
+    df["Expiration Date"] = df["Expiration Date"].astype("datetime64[D]")
     return df
 
 def isNaN(string):
@@ -189,18 +196,11 @@ def geo_combine(df, setting):
         #     break
 
         if index not in indexes_dropped:
-            group = df.loc[((df["BBL"] == row["BBL"]) & (df["BBL"] != "")) | ((df["BBL Latest"] == row["BBL Latest"]) & (df["BBL Latest"]!="")) ] if setting else iterator[iterator.apply(lambda df_row: df_row["Building Number"][0]==row["Building Number"][0] and df_row["Street"][0] == row["Street"][0], axis= 1)]
-            # print(row)
-            # print()
-            # print(group)
+            # group = df.loc[((df["BBL"] == row["BBL"]) & (df["BBL"] != "")) | ((df["BBL Latest"] == row["BBL Latest"]) & (df["BBL Latest"]!="")) ] if setting else iterator[iterator.apply(lambda df_row: df_row["Building Number"][0]==row["Building Number"][0] and df_row["Street"][0] == row["Street"][0], axis= 1)]
+            group = df.loc[((df["BBL"] == row["BBL"]) & (df["BBL"] != ""))] if setting else iterator[iterator.apply(lambda df_row: df_row["Building Number"][0]==row["Building Number"][0] and df_row["Street"][0] == row["Street"][0], axis= 1)]
+
             for index1, row1 in group.iterrows():
                 if index != index1 and (phones_to_match(row["Contact Phone"],row1["Contact Phone"]) or names_to_match(row["Business Name"],row1["Business Name"]) > 80):
-                    # if phones_to_match(row["Contact Phone"],row1["Contact Phone"]):
-                    #     print("PHONE MATCH")
-                    # if names_to_match(row["Business Name"],row1["Business Name"]) > 90:
-                    #     print("NAME MATCH")
-                    # print()
-                    # print(row1)
 
                     for colname in ["Business Name","Contact Phone","Record ID","Industry","Building Number","Street","Street 2","Unit Type","Unit","Description","City","State","Zip","Active Vehicles"]:
                         df.at[index, colname] = df.loc[index, colname] + row1[colname]
@@ -266,21 +266,22 @@ def process_0(df_1):
     group_0 = df_1.groupby(['Record ID','Building Number', 'Street']).agg({'License Type': 'max','Business Name':"//$L$//".join,'First Temp Op Letter Issued': 'min','Last Temp Op Letter Issued': 'max','Last Temp Op Letter Expiration': 'max', 'Industry': lambda x: x.iloc[0], 'Street 2':lambda x: x.iloc[0], 'Unit Type':lambda x: x.iloc[0],'Unit':lambda x: x.iloc[0],'Description':lambda x: x.iloc[0], 'City':lambda x: x.iloc[0], 'State':lambda x: x.iloc[0], 'Zip':lambda x: x.iloc[0], 'Contact Phone':"//$L$//".join,'Active Vehicles':"//$L$//".join,'BBL':'max','BBL Latest':'max','Date of First Application': 'min','Date of Last Application':'max','Date of First Close': 'min','Date of Last Close':'max','Date of First OOB': 'min','Date of Last OOB':'max','Date of First Inspection': 'min','Date of Last Inspection':'max','Date of First Charge': 'min','Date of Last Charge':'max'})#
     df_1 = pd.DataFrame(group_0).reset_index()
     
-    df_temp_0 = df_1[df_1["BBL Latest"]==""]###########
-    df_temp_1 = df_1[df_1["BBL Latest"]!=""]
+    df_temp_0 = df_1[df_1["BBL"]==""]###########
+    df_temp_1 = df_1[df_1["BBL"]!=""]
 
-    group_0 = df_temp_1.groupby(['Record ID','BBL Latest']).agg({'License Type': 'max','Business Name':"//$L$//".join,'First Temp Op Letter Issued': 'min','Last Temp Op Letter Issued': 'max','Last Temp Op Letter Expiration': 'max', 'Industry': "//$L$//".join, 'Building Number': "//$L$//".join,'Street':"//$L$//".join,'Street 2':"//$L$//".join, 'Unit Type':"//$L$//".join,'Unit':"//$L$//".join,'Description':"//$L$//".join, 'City':"//$L$//".join, 'State':"//$L$//".join, 'Zip':"//$L$//".join, 'Contact Phone':"//$L$//".join,'Active Vehicles':"//$L$//".join,'BBL':'max','Date of First Application': 'min','Date of Last Application':'max','Date of First Close': 'min','Date of Last Close':'max','Date of First OOB': 'min','Date of Last OOB':'max','Date of First Inspection': 'min','Date of Last Inspection':'max','Date of First Charge': 'min','Date of Last Charge':'max'})#
+    group_0 = df_temp_1.groupby(['Record ID','BBL']).agg({'License Type': 'max','Business Name':"//$L$//".join,'First Temp Op Letter Issued': 'min','Last Temp Op Letter Issued': 'max','Last Temp Op Letter Expiration': 'max', 'Industry': "//$L$//".join, 'Building Number': "//$L$//".join,'Street':"//$L$//".join,'Street 2':"//$L$//".join, 'Unit Type':"//$L$//".join,'Unit':"//$L$//".join,'Description':"//$L$//".join, 'City':"//$L$//".join, 'State':"//$L$//".join, 'Zip':"//$L$//".join, 'Contact Phone':"//$L$//".join,'Active Vehicles':"//$L$//".join,'Date of First Application': 'min','Date of Last Application':'max','Date of First Close': 'min','Date of Last Close':'max','Date of First OOB': 'min','Date of Last OOB':'max','Date of First Inspection': 'min','Date of Last Inspection':'max','Date of First Charge': 'min','Date of Last Charge':'max'})#
     df_temp_1 = pd.DataFrame(group_0).reset_index()
 
-    df_temp_2 = df_temp_1[df_temp_1["BBL"]==""]##########
-    df_temp_3 = df_temp_1[df_temp_1["BBL"]!=""]
+    # df_temp_2 = df_temp_1[df_temp_1["BBL"]==""]##########
+    # df_temp_3 = df_temp_1[df_temp_1["BBL"]!=""]
 
-    group_0 = df_temp_3.groupby(['Record ID','BBL']).agg({'License Type': 'max','Business Name':"//$L$//".join, 'Industry': "//$L$//".join, 'Building Number': "//$L$//".join,'Street':"//$L$//".join,'Street 2':"//$L$//".join, 'Unit Type':"//$L$//".join,'Unit':"//$L$//".join,'Description':"//$L$//".join, 'City':"//$L$//".join, 'State':"//$L$//".join, 'Zip':"//$L$//".join, 'Contact Phone':"//$L$//".join,'Active Vehicles':"//$L$//".join,'BBL Latest':'max','First Temp Op Letter Issued': 'min','Last Temp Op Letter Issued': 'max','Last Temp Op Letter Expiration': 'max','Date of First Application': 'min','Date of Last Application':'max','Date of First Close': 'min','Date of Last Close':'max','Date of First OOB': 'min','Date of Last OOB':'max','Date of First Inspection': 'min','Date of Last Inspection':'max','Date of First Charge': 'min','Date of Last Charge':'max'})#
-    df_temp_3 = pd.DataFrame(group_0).reset_index()
+    # group_0 = df_temp_3.groupby(['Record ID','BBL'])       .agg({'License Type': 'max','Business Name':"//$L$//".join,'First Temp Op Letter Issued': 'min','Last Temp Op Letter Issued': 'max','Last Temp Op Letter Expiration': 'max', 'Industry': "//$L$//".join, 'Building Number': "//$L$//".join,'Street':"//$L$//".join,'Street 2':"//$L$//".join, 'Unit Type':"//$L$//".join,'Unit':"//$L$//".join,'Description':"//$L$//".join, 'City':"//$L$//".join, 'State':"//$L$//".join, 'Zip':"//$L$//".join, 'Contact Phone':"//$L$//".join,'Active Vehicles':"//$L$//".join,'Date of First Application': 'min','Date of Last Application':'max','Date of First Close': 'min','Date of Last Close':'max','Date of First OOB': 'min','Date of Last OOB':'max','Date of First Inspection': 'min','Date of Last Inspection':'max','Date of First Charge': 'min','Date of Last Charge':'max'})#
+    # df_temp_3 = pd.DataFrame(group_0).reset_index()
 
-    df_1 = pd.concat([df_temp_0,df_temp_2,df_temp_3], axis=0, join='outer', ignore_index=False)
+    df_1 = pd.concat([df_temp_0,df_temp_1], axis=0, join='outer', ignore_index=False)
+    print(df_1.columns)
+    print(df_1)
 
- 
     pickle.dump(df_1, open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-2.p", "wb" ))
 
     return df_1

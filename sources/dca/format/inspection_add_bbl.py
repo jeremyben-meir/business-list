@@ -39,10 +39,6 @@ def process_0():
     col_10_17 = ['REC_ID','CERT_NBR','BIZ_NAME','INSP_DT','INSP_RSLT','INDUSTRY','BORO','BLDG_NBR','STREET','STREET2','UNIT_TYP','UNIT','DESCR','CITY','STATE','ZIP','X_COORD','Y_COORD']
     col_14_21 = ['Record ID','Certificate Number','Business Name','Inspection Date','Inspection Result','Industry','Borough','Building Number','Street','Street 2','Unit Type','Unit','Description','City','State','Zip','Longitude','Latitude']
     df_inspection_10_17.columns = col_14_21
-    # for x in range(0,len(col_10_17)):
-    #     print({col_10_17[x]:col_14_21[x]})
-    #     df_inspection_10_17.rename(columns={col_10_17[x]:col_14_21[x]}, errors="raise", axis='columns')
-    # print(df_inspection_10_17)
 
     df_inspection = pd.concat([df_inspection_10_17,df_inspection_14_21], ignore_index=True)
 
@@ -62,7 +58,6 @@ def process_0():
     df_inspection = df_inspection.drop_duplicates(subset=['Borough', 'Business Name', 'Building Number', 'Street'], keep='first')
 
     df_inspection['BBL'] = np.nan
-    df_inspection['BBL Latest'] = np.nan
 
     df_inspection["City"] = df_inspection["City"].astype(str)
     df_inspection["City"] = df_inspection["City"].fillna("")
@@ -72,6 +67,13 @@ def process_0():
     df_inspection["Zip"] = df_inspection["Zip"].fillna("")
     df_inspection["Zip"] = df_inspection["Zip"].apply(lambda x: str(int(float(x))) if x != "" and not math.isnan(float(x)) else "")
     df_inspection = df_inspection[(df_inspection['Zip'] == "") | (df_inspection['Zip'].isin(manhattan_zips + non_manhattan_zips))]
+    
+    del df_inspection["Certificate Number"]
+    del df_inspection["Borough"]
+    del df_inspection["Longitude"]
+    del df_inspection["Latitude"]
+    del df_inspection["Inspection Result"]
+    df_inspection = df_inspection.rename(columns={"Inspection Date": "INSP Date"})
 
     pickle.dump(df_inspection, open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-insp-1.p", "wb" ))
     return df_inspection
@@ -89,14 +91,6 @@ def begin_process():
     
     df_1 = process_1(df_0)
     # df_1 = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-insp-2.p", "rb" ))
-    df_1['Event Date'] = df_1['Inspection Date']
-
-    del df_1["Certificate Number"]
-    del df_1["Borough"]
-    del df_1["Longitude"]
-    del df_1["Latitude"]
-    del df_1["Inspection Date"]
-    del df_1["Inspection Result"]
 
     cleaned_file_path = LOCAL_LOCUS_PATH + "data/whole/dca_files/inspections_updated_0.csv"
     df_1.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_NONNUMERIC)
