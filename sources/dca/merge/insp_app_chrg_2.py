@@ -5,6 +5,8 @@ from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 import uuid
 
+from collections import Counter
+
 #######FUNCTION DEFINITIONS#########
 
 
@@ -42,63 +44,64 @@ def reorder(df):
     df = df[['Record ID', 'Business Name', 'INSP Date', 'Industry', 'Building Number', 'Street', 'Street 2', 'Unit Type', 'Unit','Description', 'City', 'State', 'Zip', 'BBL', 'Application ID','License Type', 'Application or Renewal', 'APP Status','APP Status Date', 'APP Start Date', 'APP End Date','License Start Date', 'License Expiration Date','Temp Op Letter Issued', 'Temp Op Letter Expiration', 'Contact Phone','CHRG Date']]
     return df
 
-def nat_check(nat):
-    # return nat == np.datetime64('NaT') or pd.isnull(nat)
-    return pd.isnull(nat)
+# def nat_check(nat):
+#     # return nat == np.datetime64('NaT') or pd.isnull(nat)
+#     return pd.isnull(nat)
 
-def min_time(time1,time2):
-    if nat_check(time1) and nat_check(time2):
-        return np.datetime64('NaT')
-    elif nat_check(time1):
-        return time2
-    elif nat_check(time2):
-        return time1
-    else:
-        return min(time1,time2)
+# def min_time(time1,time2):
+#     if nat_check(time1) and nat_check(time2):
+#         return np.datetime64('NaT')
+#     elif nat_check(time1):
+#         return time2
+#     elif nat_check(time2):
+#         return time1
+#     else:
+#         return min(time1,time2)
 
-def max_time(time1,time2):
-    if nat_check(time1) and nat_check(time2):
-        return np.datetime64('NaT')
-    elif nat_check(time1):
-        return time2
-    elif nat_check(time2):
-        return time1
-    else:
-        return max(time1,time2)
+# def max_time(time1,time2):
+#     if nat_check(time1) and nat_check(time2):
+#         return np.datetime64('NaT')
+#     elif nat_check(time1):
+#         return time2
+#     elif nat_check(time2):
+#         return time1
+#     else:
+#         return max(time1,time2)
 
 def sub(m):
-    words_ignore = set(["corp", "corp.", 'corporation', "inc", "inc.", "incorporated", "airlines", "llc", "llc.", "laundromat", "laundry", 'deli', 'grocery', 'market', 'wireless', 'auto', 'pharmacy', 'cleaners', 'parking', 'repair', 'electronics','salon', 'smoke','pizza','of','the'])
+    # print(Counter(" ".join(df_1["Business Name"]).split()).most_common(100))
+    words_ignore = set(["corp", "corp.", 'corporation', "inc", "inc.", "incorporated", "airlines", "llc", "llc.", "laundromat", "laundry", 'deli', 'grocery', 'market', 'wireless', 'auto', 'pharmacy', 'cleaners', 'parking', 'repair', 'electronics','salon', 'smoke','pizza','of','the', 'new'])
     return '' if m.group() in words_ignore else m.group()
 
-def namelists_to_match(names_list, names_list_2):
-    max_ratio = 0
-    if len(names_list)>0 and len(names_list_2)>0:
-        for x in names_list:
-            for y in names_list_2:
-                fuzz_ratio = fuzz.WRatio(re.sub(r'\w+', sub, x.lower()),re.sub(r'\w+', sub, y.lower()))
-                max_ratio = (fuzz_ratio if fuzz_ratio > max_ratio else max_ratio)
-    return max_ratio
+# def namelists_to_match(names_list, names_list_2):
+#     max_ratio = 0
+#     if len(names_list)>0 and len(names_list_2)>0:
+#         for x in names_list:
+#             for y in names_list_2:
+#                 fuzz_ratio = fuzz.WRatio(re.sub(r'\w+', sub, x.lower()),re.sub(r'\w+', sub, y.lower()))
+#                 max_ratio = (fuzz_ratio if fuzz_ratio > max_ratio else max_ratio)
+#     return max_ratio
 
-def phonelists_to_match(names_list, names_list_2):
-    if len(names_list)>0 and len(names_list_2)>0:
-        for x in names_list:
-            for y in names_list_2:
-                if x == y:
-                    return True
-    return False
+# def phonelists_to_match(names_list, names_list_2):
+#     if len(names_list)>0 and len(names_list_2)>0:
+#         for x in names_list:
+#             for y in names_list_2:
+#                 if x == y:
+#                     return True
+#     return False
 
 def names_to_match(name0, name1):
     return fuzz.WRatio(re.sub(r'\w+', sub, name0.lower()),re.sub(r'\w+', sub, name1.lower()))
 
 def phones_to_match(phone0, phone1):
-    return phone0 == phone1 and len(phone0)>6
+    return phone0 == 0 and len(phone0)>6 #and len(phone0) >= 10 and phone0 != "nan" and phone0 != "NaN" and not phone0.isna()
 
 def isNaN(string):
     return string != string
 
 def type_cast(df):
-    # df['Record ID'] = df['Record ID'].astype(str)
-    # df['Business Name'] = df['Business Name'].astype(str)
+    df['Record ID'] = df['Record ID'].astype(str)
+    df['Contact Phone'] = df['Contact Phone'].astype(str)
     df['APP Start Date'] = df['APP Start Date'].astype('datetime64[D]')
     df['APP Status Date'] = df['APP Status Date'].astype('datetime64[D]')
     df['APP End Date'] = df['APP End Date'].astype('datetime64[D]')
@@ -120,28 +123,27 @@ def find_sets(index0, row0, group, indexlist):
         
 
 def geo_combine(df, bbl):
-    rowlist = []
+    df = df.reset_index()
+
     mask = (df['BBL'].str.len() == 10) & (df['BBL']!="0000000000")
-    curgrp = df[mask].groupby('BBL') if bbl else df.groupby(['Building Number','Street','City'])
+    curgrp = df[mask].groupby('BBL',as_index=False,group_keys=False) if bbl else df[~mask].groupby(['Building Number','Street','City'])
 
     thislen = len(curgrp) ##PRINT
     counter = 0 ##PRINT
-    for name , group in curgrp:
-        counter += 1 ##PRINT
-        print(float(counter)/thislen) ##PRINT
+    for _ , group in curgrp:
         excludelist = []
-        
         for index0,row0 in group.iterrows():
             indexlist = []
             if index0 not in excludelist:
                 indexlist = find_sets(index0, row0, group, indexlist)
                 excludelist += indexlist
-                group.loc[indexlist]["LLID"] = "hey"
-                print(group.loc[indexlist])
-                # row = group.loc[indexlist].groupby('BBL',as_index=False).agg(lambda x: list(x))
-                # rowlist+= row.values.tolist()
+                df.loc[indexlist,"LLID"] = str(uuid.uuid4()) 
+                # print(df.loc[indexlist])
 
-    return pd.DataFrame(rowlist, columns=df.columns)
+        counter += 1 ##PRINT
+        print(float(counter)/thislen) ##PRINT
+
+    return df
 
 
 def load_source_files():
