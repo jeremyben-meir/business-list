@@ -15,11 +15,25 @@ dictlist.append({'Horse Drawn Driver','Spray Paint Sls Mnor - 832', "Gov'T Agenc
 dictlist.append({'Temporary Street Fair Vendor', 'Spray Paint Sls Mnor - 832', "Gov'T Agency Retail - 824", 'I &', '3', 'Tenant Screening - 480', 'H92', 'H29', 'H70', 'Hotel/Motel - 460', 'H26', 'H25', 'H27', '873', '117', '4', 'C73', '72', '119', 'H98', '71', 'SD6', 'H33', 'H03', 'H90', '9', 'Special Sale - 102', 'Tow Truck Exemption', 'H86', '53', 'Health Spa - 839', 'Mailorder Misc - 319', 'H10', 'Misc Archived', 'Other','H01', 'Gift Certificate - 895', 'H15', '23', 'Salons And Barbershop - 841','114', 'H06', 'H99', 'Box Cutter - 831', 'Floor Coverings - 241', 'Special Sale', '36', '115',  'Air Condtioning Law - 899', 'H05', 'Employment Agency', 'Internet Complaints - 443', 'E75', '420'})
 global counter
 counter = 0
+global totlen
+totlen = 0
 
 ####### HELPER FUNCTION DEFINITIONS #########
 
-def add_bbl(row,totlen):   
+def global_counter_init(curlen):
     global counter
+    global totlen
+    counter = 0
+    totlen = curlen
+
+def global_counter_tick():
+    global counter
+    global totlen
+    counter+=1
+    if round(counter/totlen,4)>round((counter-1)/totlen,4):
+        print(str(round(100*counter/totlen,2)) + "%")
+
+def add_bbl(row):   
     inject = row['Building Number'] + " " + row['Street'] + " " + row['City']
     try:
         response = requests.get("https://api.cityofnewyork.us/geoclient/v1/search.json?input="+ inject +"&app_id=d4aa601d&app_key=f75348e4baa7754836afb55dc9b6363d")
@@ -29,9 +43,7 @@ def add_bbl(row,totlen):
     except:
         row["BBL"]=""
 
-    counter+=1
-    if round(counter/totlen,4)>round((counter-1)/totlen,4):
-        print(str(round(100*counter/totlen,2)) + "%")
+    global_counter_tick()
     return row
 
 def text_prepare(text, street0, street1):
@@ -87,9 +99,9 @@ def load_source_files():
 
     df = type_cast(df)
 
-    totlen = len(df)
+    global_counter_init(len(df))
     df = df.replace(nyc_city,correct_nyc_city)
-    df = df.apply(lambda row: add_bbl(row, totlen=totlen), axis=1)
+    df = df.apply(lambda row: add_bbl(row), axis=1)
 
     return df
 
@@ -111,8 +123,7 @@ def add_llid(df, bbl):
     addrmask = (df['Building Number'].str.len() > 0) & (df['Building Number']!= 'nan') & (df['Street'].str.len() > 0)  & (df['Street']!= 'nan') & (df['City'].str.len() > 0) & (df['City'] != 'nan')
     curgrp = df[bblmask].groupby('BBL') if bbl else df[~bblmask & addrmask].groupby(['Building Number','Street','City'])
 
-    thislen = len(curgrp) ##PRINT
-    counter = 0 ##PRINT
+    global_counter_init(len(curgrp))
     for _ , group in curgrp:
         excludelist = []
         for index0,row0 in group.iterrows():
@@ -122,8 +133,7 @@ def add_llid(df, bbl):
                 excludelist += indexlist
                 df.loc[indexlist,"LLID"] = str(uuid.uuid4()) 
 
-        counter += 1 ##PRINT
-        print(float(counter)/thislen) ##PRINT
+        global_counter_tick()
 
     return df
 
@@ -150,8 +160,7 @@ def add_lbid(df):
 
     curgrp = df[df['LLID'].str.len() > 0].groupby('LLID')
 
-    thislen = len(curgrp) ##PRINT
-    counter = 0 ##PRINT
+    global_counter_init(len(curgrp))
     for _ , group in curgrp:
         excludelist = []
         for index0,row0 in group.iterrows():
@@ -161,8 +170,7 @@ def add_lbid(df):
                 excludelist += indexlist
         df.loc[excludelist,"LBID"] = str(uuid.uuid4()) 
 
-        counter += 1 ##PRINT
-        print(float(counter)/thislen) ##PRINT
+        global_counter_tick()
 
     return df
 
