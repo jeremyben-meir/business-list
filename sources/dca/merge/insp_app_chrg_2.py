@@ -125,13 +125,12 @@ def add_llid(df, bbl):
 
     global_counter_init(len(curgrp))
     for _ , group in curgrp:
-        excludelist = []
+        indexlist = []
         for index0,row0 in group.iterrows():
-            indexlist = []
-            if index0 not in excludelist:
-                indexlist = find_llid_sets(index0, row0, group, indexlist)
-                excludelist += indexlist
-                df.loc[indexlist,"LLID"] = str(uuid.uuid4()) 
+            indexlist.append(index0)
+        for index0,row0 in group.iterrows():
+            indexlist += find_llid_sets(index0, row0, group, indexlist)
+        df.loc[indexlist,"LLID"] = str(uuid.uuid4()) 
 
         global_counter_tick()
 
@@ -140,19 +139,23 @@ def add_llid(df, bbl):
 ########################################################################
 
 def find_lbid_sets_llid(index0, row0, df, indexlist):
-    indexlist.append(index0)
+    curlist = []
     group = df[df['LLID'] == row0['LLID']]
     for index1,row1 in group.iterrows():
+        curlist.append(index1)
+    for index1,row1 in group.iterrows():
         if index1 not in indexlist:
-            indexlist = find_lbid_sets_RecID(index1,row1,df,indexlist)
+            indexlist = find_lbid_sets_RecID(index1,row1,df,indexlist+curlist)
     return indexlist
 
 def find_lbid_sets_RecID(index0, row0, df, indexlist):
-    indexlist.append(index0)
+    curlist = []
     group = df[df['Record ID'] == row0['Record ID']]
     for index1,row1 in group.iterrows():
+        curlist.append(index1)
+    for index1,row1 in group.iterrows():
         if index1 not in indexlist:
-            indexlist = find_lbid_sets_llid(index1,row1,df,indexlist)
+            indexlist = find_lbid_sets_llid(index1,row1,df,indexlist+curlist)
     return indexlist
 
 def add_lbid(df):
@@ -162,13 +165,12 @@ def add_lbid(df):
 
     global_counter_init(len(curgrp))
     for _ , group in curgrp:
-        excludelist = []
+        indexlist = []
         for index0,row0 in group.iterrows():
-            indexlist = []
-            if index0 not in indexlist:
-                indexlist = find_lbid_sets_RecID(index0, row0, df, indexlist)
-                excludelist += indexlist
-        df.loc[excludelist,"LBID"] = str(uuid.uuid4()) 
+            indexlist.append(index0)
+        for index0,row0 in group.iterrows():
+            indexlist += find_lbid_sets_RecID(index0, row0, df, indexlist)
+        df.loc[indexlist,"LBID"] = str(uuid.uuid4()) 
 
         global_counter_tick()
 
@@ -212,4 +214,4 @@ def begin_process(segment):
 
 
 if __name__ == '__main__':
-    begin_process([0,1,2])
+    begin_process([3])
