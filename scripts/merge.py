@@ -33,15 +33,16 @@ def global_counter_tick():
     if round(counter/totlen,4)>round((counter-1)/totlen,4):
         print(str(round(100*counter/totlen,2)) + "%")
 
-def add_bbl(row):   
-    inject = row['Building Number'] + " " + row['Street'] + " " + row['City']
-    try:
-        response = requests.get("https://api.cityofnewyork.us/geoclient/v1/search.json?input="+ inject +"&app_id=d4aa601d&app_key=f75348e4baa7754836afb55dc9b6363d")
-        decoded = response.content.decode("utf-8")
-        json_loaded = json.loads(decoded)
-        row["BBL"]=json_loaded['results'][0]['response']['bbl']
-    except:
-        row["BBL"]=""
+def add_bbl(row, overwrite=True):   
+    if overwrite or len(row["BBL"])==0:
+        inject = row['Building Number'] + " " + row['Street'] + " " + row['City']
+        try:
+            response = requests.get("https://api.cityofnewyork.us/geoclient/v1/search.json?input="+ inject +"&app_id=d4aa601d&app_key=f75348e4baa7754836afb55dc9b6363d")
+            decoded = response.content.decode("utf-8")
+            json_loaded = json.loads(decoded)
+            row["BBL"]=json_loaded['results'][0]['response']['bbl']
+        except:
+            row["BBL"]=""
 
     global_counter_tick()
     return row
@@ -88,9 +89,9 @@ def type_cast(df):
 ########################################################################
 
 def load_source_files():
-    df_o1 = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-insp-2.p", "rb" ))
-    df_o2 = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-app-2.p", "rb" ))
-    df_o3 = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-charge-2.p", "rb" ))
+    df_o1 = pickle.load( open(LOCAL_LOCUS_PATH + "data/dca/temp/df-insp.p", "rb" ))
+    df_o2 = pickle.load( open(LOCAL_LOCUS_PATH + "data/dca/temp/df-app.p", "rb" ))
+    df_o3 = pickle.load( open(LOCAL_LOCUS_PATH + "data/dca/temp/df-charge.p", "rb" ))
 
     df = pd.concat([df_o1,df_o2,df_o3], axis=0, join='outer', ignore_index=False)
     df['BBL'] = ""
@@ -127,11 +128,9 @@ def add_llid(df, bbl):
     for _ , group in curgrp:
         indexlist = []
         for index0,row0 in group.iterrows():
-            indexlist.append(index0)
-        for index0,row0 in group.iterrows():
-            indexlist += find_llid_sets(index0, row0, group, indexlist)
+            if index0 not in indexlist:
+                indexlist += find_llid_sets(index0, row0, group, indexlist)
         df.loc[indexlist,"LLID"] = str(uuid.uuid4()) 
-
         global_counter_tick()
 
     return df
@@ -171,7 +170,6 @@ def add_lbid(df):
         for index0,row0 in group.iterrows():
             indexlist += find_lbid_sets_RecID(index0, row0, df, indexlist)
         df.loc[indexlist,"LBID"] = str(uuid.uuid4()) 
-
         global_counter_tick()
 
     return df
@@ -180,38 +178,45 @@ def add_lbid(df):
 
 def begin_process(segment):
 
+    if len(segment) == 0:
+        ## FILL EMPTY BBLS
+        df = pickle.load( open(LOCAL_LOCUS_PATH + "data/temp/df-1.p", "rb" ))
+        global_counter_init(len(df))
+        df = df.apply(lambda row: add_bbl(row, overwrite=False), axis=1)
+        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/temp/df-1.p", "wb" ))
+
     if 0 in segment:
         ## LOAD SOURCE FILES
         df = load_source_files()
-        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-1.p", "wb" ))
+        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/temp/df-1.p", "wb" ))
         print("load done")
 
     if 1 in segment:
         ## ADD LLID ON BBL
-        df = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-1.p", "rb" ))
+        df = pickle.load( open(LOCAL_LOCUS_PATH + "data/temp/df-1.p", "rb" ))
         df = add_llid(df, bbl=True)
-        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-2.p", "wb" ))
+        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/temp/df-2.p", "wb" ))
         print("added LLIDs on BBL")
 
     if 2 in segment:
         ## ADD LLID ON ADDRESS
-        df = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-2.p", "rb" ))
+        df = pickle.load( open(LOCAL_LOCUS_PATH + "data/temp/df-2.p", "rb" ))
         df = add_llid(df, bbl=False)
-        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-3.p", "wb" ))
+        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/temp/df-3.p", "wb" ))
         print("added LLIDs on address")
 
     if 3 in segment:
         ## ADD LBID
-        df = pickle.load( open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-3.p", "rb" ))
+        df = pickle.load( open(LOCAL_LOCUS_PATH + "data/temp/df-3.p", "rb" ))
         df = df[df['LLID'].str.len() > 0]
         df = df[df['Record ID'].str.len() > 5]
         df = add_lbid(df)
-        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/whole/dca_files/temp/df-4.p", "wb" ))
+        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/temp/df-4.p", "wb" ))
         print("added LBIDS")
 
-    cleaned_file_path = LOCAL_LOCUS_PATH + "data/whole/dca_files/inspection_application.csv"
+    cleaned_file_path = LOCAL_LOCUS_PATH + "data/dca/inspection_application.csv"
     df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
 
 
 if __name__ == '__main__':
-    begin_process([3])
+    begin_process([])
