@@ -6,10 +6,10 @@ TBD
 ## Instructions
 Given that the data pulls from multiple different sources of different formats, we have divided the code into segments that may be run separately. Instructions for each dataset are as follows:
 ### Pull from sources
-#### DCA
-In `/scrips/dca` run all the files labeled `..._src.py`
-#### DOH
-TBD
+* #### DCA
+* In `/scrips/dca` run all the files labeled `..._src.py`
+* #### DOH
+* TBD
 #### DOA
 TBD
 #### AES
