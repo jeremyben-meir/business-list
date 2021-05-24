@@ -18,6 +18,43 @@ import psutil
 import os
 from sys import platform
 
+global GLOBAL_COUNTER
+GLOBAL_COUNTER = 0
+global GLOBAL_LEN
+GLOBAL_LEN = 0
+
+def global_counter_init(curlen):
+    global GLOBAL_COUNTER
+    global GLOBAL_LEN
+    GLOBAL_COUNTER = 0
+    GLOBAL_LEN = curlen
+
+def global_counter_tick():
+    global GLOBAL_COUNTER
+    global GLOBAL_LEN
+    GLOBAL_COUNTER+=1
+    if round(GLOBAL_COUNTER/GLOBAL_LEN,4)>round((GLOBAL_COUNTER-1)/GLOBAL_LEN,4):
+        print(str(round(100*GLOBAL_COUNTER/GLOBAL_LEN,2)) + "%")
+
+def get_result(inject):
+    response = requests.get("https://api.cityofnewyork.us/geoclient/v1/search.json?input="+ inject +"&app_id=d4aa601d&app_key=f75348e4baa7754836afb55dc9b6363d")
+    decoded = response.content.decode("utf-8")
+    json_loaded = json.loads(decoded)
+    return json_loaded['results'][0]['response']['bbl']
+
+def add_bbl(row, overwrite=True):  # input row must have headers 'Building Number,' 'Street,' 'City,' 'Zip,' 'BBL'
+    if overwrite or len(row["BBL"])==0:
+        try:
+            row["BBL"]=get_result(row['Building Number'] + " " + row['Street'] + " " + row['City'])
+        except:
+            try:
+                row["BBL"]=get_result(row['Building Number'] + " " + row['Street'] + " " + row['Zip'])
+            except:
+                row["BBL"]=""
+
+    global_counter_tick()
+    return row
+
 global LOCAL_LOCUS_PATH
 global LOCAL_WEBDRIVER_PATH
 

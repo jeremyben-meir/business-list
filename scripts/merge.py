@@ -13,39 +13,8 @@ dictlist.append({"Tobacco Prod'T Sales - 890", 'Restaurant - 818', 'Supermarket 
 dictlist.append({"Tobacco Prod'T Sales - 890", 'Immigration Svc Prv - 893', 'Games of Chance', 'Travel Agency - 440', 'Temporary Street Fair Vendor', 'Amusement Arcade', 'Spray Paint Sls Mnor - 832', "Gov'T Agency Retail - 824", 'I &', 'Commercial Lessor (Bingo/Games Of Chance) - 091', '3', 'Tenant Screening - 480', 'Bingo Game Operator - 089', 'H92', 'H29', 'Motion Picture Projectionist - 123', 'Fuel Oil Dealer - 814', 'H70', 'Amusement Device (Portable) - 018', 'Hotel/Motel - 460', 'H26', 'Auction House Premises', 'Pool Or Billiard Room - 046', 'H25', 'General Vendor Distributor', 'H27', 'Secondhand Dealer - General', 'Bingo Game Operator', 'Ticket Seller Business', 'Debt Collection Agency - 122', '873', 'Auctioneer', 'Motion Picture Projectionist', '117', 'Secondhand Dealer [General] - 006', 'Bail Bonds', 'Scale Dealer Repairer', 'Auctioneer - 036', '4', 'C73', '72', 'Scale Dealer/Repairer - 107', '119', 'Funeral Homes - 888', 'Pawnbroker - 080', 'Commercial Lessor', 'General Vendor Distribution - 097', 'Secondhand Dealer - Firearm - 006A', 'Process Serving Agency', 'H98', '71', 'Home Improvement Contractor', 'Process Server (Organization) - 109', 'Locksmith Apprentice', 'Pedicab Business - 130', 'Newsstand', 'Ticket Seller', 'Distress Prop Consultants - 247', 'Amusement Device (Temporary) - 090', 'Newsstand - 024', 'Electronic & Appliance Service', 'Imitation Gun - 836', 'SD6', 'H33', 'H03', 'H90', 'Gaming Cafe - 129', 'Games Of Chance - 088', 'Locksmith Apprentice - 063', 'Booting Company - 126', 'Pedicab Driver', '9', 'Motion Picture Operator - 123', 'Special Sale - 102', 'Booting Company', 'H86', '53', 'Health Spa - 839', 'Mailorder Misc - 319', 'H10', 'Misc Archived', 'Gas Station-Retail - 815', 'Pedicab Business', 'Tax Preparers - 891', 'Sightseeing Bus', 'Other', 'Electronic Store - 001', 'Hardware-Retail - 811', 'Home Improvement Salesperson - 101', 'Auction House - 128', 'H01', 'Tow Truck Company', 'Amusement Arcade - 014', 'Electronic & Home Appliance Service Dealer - 115', 'Locksmith', 'Debt Collection Agency', 'Gaming Cafe', 'Secondhand Dealer - Firearms', 'Amusement Device (Permanent) - 016', 'Pool or Billiard Room - 046', 'Amusement Device Portable', 'Furniture Sales - 242', 'Home Improvement Salesperson', 'Temporary Street Fair Vendor Permit - 111', 'Gift Certificate - 895', 'H15', 'General Vendor - 094', 'Locksmith - 062', 'Cigarette Retail Dealer - 127', 'Sightseeing Bus - 078', 'Scrap Metal Processor', 'Storage Warehouse', 'Horse Drawn Cab Driver - 086', 'Amusement Device Permanent', '23','Scrap Metal Processor - 118', 'Photography Services - 415', 'Retail Store - 820', 'Dealer In Products For The Disabled - 119', 'Drug Store Retail - 810', 'Tobacco Retail Dealer', 'Process Server Individual', '114', 'H06', 'Home Improvement Contractor - 100', 'Tickets-Live Perf - 260', 'Amusement Device Temporary', 'H99', 'General Vendor', 'Storage Warehouse - 120', 'Laser Pointer Sales - 834', 'Wearing Apparel - 450', 'Box Cutter - 831', 'Horse Drawn Cab Owner - 087', 'Floor Coverings - 241', 'Dealer in Products for the Disabled - 119', 'Pawnbroker','Gasoline Truck-Retail - 822', 'Process Server (Individual) - 110', 'Sightseeing Guide - 021', 'Auto Leasing - 211', 'Electronic Cigarette Dealer', 'Special Sale', '36', '115', 'Mini-Storage Company - 830', 'Misc Non-Food Retail - 817', 'Air Condtioning Law - 899', 'H05', 'Employment Agency', 'Appliances - 244', 'Megastore - 821', 'Sightseeing Guide', 'Pool or Billiard Room', 'Pregnancy Service Center (PSC)', 'Debt Settlement - 248', 'Employment Agency - 034', 'Internet Complaints - 443', 'Jewelry Store-Retail - 823', 'Electronics Store', 'Dealer In Products', 'E75', '420'})
 dictlist.append({'Horse Drawn Driver','Spray Paint Sls Mnor - 832', "Gov'T Agency Retail - 824", 'I &',  '3','Car Wash', 'H92', 'H29', 'Fuel Oil Dealer - 814', 'H70', 'H26', 'H27', '873', '117', '4', 'Tow Truck Driver - 125', 'C73', '72', '119', 'H98', '71', 'Pedicab Business - 130', 'Auto Rental - 213', 'Horse Drawn Cab Owner', 'Secondhand Dealer - Auto', 'SD6', 'H33', 'H03', 'H90', 'Booting Company - 126', 'Pedicab Driver', '9', 'Special Sale - 102', 'Booting Company', 'H86', '53', 'Parking Lot', 'Mailorder Misc - 319', 'H10', 'Misc Archived', 'Gas Station-Retail - 815', 'Pedicab Business', 'Sightseeing Bus', 'Other', 'Garage & Parking Lot - 098', 'H01', 'Tow Truck Company', 'Gift Certificate - 895', 'H15', 'Pedicab Driver - 131', 'General Vendor - 094', 'Scrap Metal Processor', 'Storage Warehouse', 'Horse Drawn Cab Driver - 086', 'Tow Truck Driver', '23', 'Parking Lot - 050', 'Garage - 049', 'Scrap Metal Processor - 118', 'Secondhand Dealer Auto - 005', 'Auto Dealership - 212', '114', 'H06', 'Garage and Parking Lot',  'H99', 'Storage Warehouse - 120', 'Box Cutter - 831', 'Floor Coverings - 241', 'Gasoline Truck-Retail - 822', 'Auto Leasing - 211', 'Special Sale', '36', '115', 'Mini-Storage Company - 830',  'Air Condtioning Law - 899', 'H05', 'Garage', 'Internet Complaints - 443', 'Tow Truck Company - 124', 'E75', '420'})
 dictlist.append({'Temporary Street Fair Vendor', 'Spray Paint Sls Mnor - 832', "Gov'T Agency Retail - 824", 'I &', '3', 'Tenant Screening - 480', 'H92', 'H29', 'H70', 'Hotel/Motel - 460', 'H26', 'H25', 'H27', '873', '117', '4', 'C73', '72', '119', 'H98', '71', 'SD6', 'H33', 'H03', 'H90', '9', 'Special Sale - 102', 'Tow Truck Exemption', 'H86', '53', 'Health Spa - 839', 'Mailorder Misc - 319', 'H10', 'Misc Archived', 'Other','H01', 'Gift Certificate - 895', 'H15', '23', 'Salons And Barbershop - 841','114', 'H06', 'H99', 'Box Cutter - 831', 'Floor Coverings - 241', 'Special Sale', '36', '115',  'Air Condtioning Law - 899', 'H05', 'Employment Agency', 'Internet Complaints - 443', 'E75', '420'})
-global counter
-counter = 0
-global totlen
-totlen = 0
 
 ####### HELPER FUNCTION DEFINITIONS #########
-
-def global_counter_init(curlen):
-    global counter
-    global totlen
-    counter = 0
-    totlen = curlen
-
-def global_counter_tick():
-    global counter
-    global totlen
-    counter+=1
-    if round(counter/totlen,4)>round((counter-1)/totlen,4):
-        print(str(round(100*counter/totlen,2)) + "%")
-
-def add_bbl(row, overwrite=True):   
-    if overwrite or len(row["BBL"])==0:
-        inject = row['Building Number'] + " " + row['Street'] + " " + row['City']
-        try:
-            response = requests.get("https://api.cityofnewyork.us/geoclient/v1/search.json?input="+ inject +"&app_id=d4aa601d&app_key=f75348e4baa7754836afb55dc9b6363d")
-            decoded = response.content.decode("utf-8")
-            json_loaded = json.loads(decoded)
-            row["BBL"]=json_loaded['results'][0]['response']['bbl']
-        except:
-            row["BBL"]=""
-
-    global_counter_tick()
-    return row
 
 def text_prepare(text, street0, street1):
     street0 = street0.lower()
@@ -94,15 +63,13 @@ def load_source_files():
     df_o3 = pickle.load( open(LOCAL_LOCUS_PATH + "data/dca/temp/df-charge.p", "rb" ))
 
     df = pd.concat([df_o1,df_o2,df_o3], axis=0, join='outer', ignore_index=False)
-    df['BBL'] = ""
+    
     df["LLID"] = ""
     df["LBID"] = ""
 
     df = type_cast(df)
 
-    global_counter_init(len(df))
     df = df.replace(nyc_city,correct_nyc_city)
-    df = df.apply(lambda row: add_bbl(row), axis=1)
 
     return df
 
