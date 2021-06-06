@@ -20,43 +20,41 @@ def process_0():
     business_indicators_noninformative = ["Business Padlocked", "Unable to Locate", "Unable to Complete Inspection", "Unable to Seize Vehicle"]
 
     df["Inspection Result"] = df["Inspection Result"].astype(str)
-    df['Borough'] = df['Borough'].astype(str).apply(lambda x: x.upper())
+    df = df[~df["Inspection Result"].isin(business_indicators_noninformative)]
     df["Inspection Date"] = df["Inspection Date"].astype('datetime64[D]')
-    df['Inspection Date'] = pd.to_datetime(df['Inspection Date']).dt.date
+    df['Industry'] = df['Industry'].astype(str)
     df['Business Name'] = df['Business Name'].astype(str)
     df['Building Number'] = df['Building Number'].astype(str)
-    df['Zip'] = df['Zip'].astype(str)
     df['Street'] = df['Street'].astype(str)
-    df = df[~df["Inspection Result"].isin(business_indicators_noninformative)]# apply(lambda x: any([x == k for k in business_indicators_noninformative]))]
-    df = df[df["Borough"] != "Outside NYC"]
+    df['Street 2'] = df['Street 2'].astype(str)
+    df['Unit Type'] = df['Unit Type'].astype(str)
+    df['Unit'] = df['Unit'].astype(str)
+    df['Description'] = df['Description'].astype(str)
 
-    df = df.drop_duplicates(subset=['Borough', 'Business Name', 'Building Number', 'Street'], keep='first')
+    global_counter_init(len(df))
+    df = clean_zip_city(df)
 
-    df["City"] = df["City"].astype(str)
-    df["City"] = df["City"].fillna("")
-    df = df[(df['City'] == "") | (df['City'].isin(nyc_city))]
-
-    df["Zip"] = df["Zip"].astype(str)
-    df["Zip"] = df["Zip"].fillna("")
-    df["Zip"] = df["Zip"].apply(lambda x: str(int(float(x))) if x != "" and not math.isnan(float(x)) else "")
-    df = df[(df['Zip'] == "") | (df['Zip'].isin(manhattan_zips + non_manhattan_zips))]
-    
     del df["Certificate Number"]
     del df["Borough"]
     del df["Longitude"]
     del df["Latitude"]
-    del df["Inspection Result"]
-    df = df.rename(columns={"Inspection Date": "INSP Date"})
+       
+    df = df.rename(columns={"Inspection Date": "INSP Date", 'Inspection Result':"INSP Result"})
 
     df['BBL'] = ""
+    df = df.drop_duplicates()
+
+    pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/dca/temp/df-insp.p", "wb" ))
+
+def process_1():
+    df = pickle.load(open(LOCAL_LOCUS_PATH + "data/dca/temp/df-insp.p", "rb" ))
     global_counter_init(len(df))
     df = df.apply(lambda row: add_bbl(row), axis=1)
+    pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/dca/temp/df-insp-1.p", "wb" ))
 
-    return df
-
-def begin_process():
-    df = process_0()
+def process_2():
+    df = pickle.load(open(LOCAL_LOCUS_PATH + "data/dca/temp/df-insp-1.p", "rb" ))
     pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/dca/temp/df-insp.p", "wb" ))
         
 if __name__ == '__main__':
-    begin_process()
+    process_1()
