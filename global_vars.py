@@ -45,6 +45,8 @@ global GLOBAL_COUNTER
 GLOBAL_COUNTER = 0
 global GLOBAL_LEN
 GLOBAL_LEN = 0
+global GLOBAL_COUNTER_READY
+GLOBAL_COUNTER_READY = False
 
 def global_counter_init(curlen):
     global GLOBAL_COUNTER
@@ -55,6 +57,8 @@ def global_counter_init(curlen):
 def global_counter_tick(inp=1):
     global GLOBAL_COUNTER
     global GLOBAL_LEN
+    if GLOBAL_LEN == 0:
+        raise ValueError('You ticked the counter but either did not initiate it, or set the counter length to zero.')
     if round(GLOBAL_COUNTER/GLOBAL_LEN,2+inp)>round((GLOBAL_COUNTER-1)/GLOBAL_LEN,2+inp):
         print(str(round(100*GLOBAL_COUNTER/GLOBAL_LEN,inp)) + "%")#, end='\r')
     GLOBAL_COUNTER += 1
@@ -102,7 +106,6 @@ fuzzy_nyc = bronx + staten_island + brooklyn + new_york + queens
 def clean_zip_city(df): #input df must have have header 'City' and 'Zip'
 
     def lev_city(st, city_list = not_nyc):
-        global_counter_tick()
         maxlev = 0
         for i in city_list:
             ratio = fuzz.ratio(st,i) 
@@ -163,7 +166,6 @@ def clean_zip_city(df): #input df must have have header 'City' and 'Zip'
         return row
 
     def row_fix(row):
-        global_counter_tick()
         if row['Zip'] in nyc_zips:
             return zip_correct(row)
         if lev_city(row['City'], fuzzy_nyc) > 85:
