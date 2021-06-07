@@ -1,8 +1,3 @@
-####### DESCRIPTION ######
-# Dataframes must have the following colummn headers: 
-    # Identifiers: Record ID, Business Name, Industry, Contact Phone
-    # Address: Building Number, Street, City, State, Zip, BBL
-
 ####### IMPORTS #######
 
 from global_vars import *
@@ -43,20 +38,6 @@ def industry_to_match(industry1, industry2):
     global dictlist
     return any([(industry1 in x and industry2 in x) for x in dictlist])
 
-def type_cast(df):
-    df['Record ID'] = df['Record ID'].astype(str)
-    df['Contact Phone'] = df['Contact Phone'].astype(str)
-    df['APP Start Date'] = df['APP Start Date'].astype('datetime64[D]')
-    df['APP Status Date'] = df['APP Status Date'].astype('datetime64[D]')
-    df['APP End Date'] = df['APP End Date'].astype('datetime64[D]')
-    df['License Start Date'] = df['License Start Date'].astype('datetime64[D]')
-    df['License Expiration Date'] = df['License Expiration Date'].astype('datetime64[D]')
-    df['Temp Op Letter Issued'] = df['Temp Op Letter Issued'].astype('datetime64[D]')
-    df['Temp Op Letter Expiration'] = df['Temp Op Letter Expiration'].astype('datetime64[D]')
-    df['CHRG Date'] = df['CHRG Date'].astype('datetime64[D]')
-
-    return df
-
 ########################################################################
 
 def load_source_files():
@@ -69,10 +50,6 @@ def load_source_files():
     
     df["LLID"] = ""
     df["LBID"] = ""
-
-    df = type_cast(df)
-
-    df = df.replace(nyc_city,correct_nyc_city)
 
     return df
 
@@ -148,13 +125,6 @@ def add_lbid(df):
 
 def begin_process(segment):
 
-    if len(segment) == 0:
-        ## FILL EMPTY BBLS
-        df = pickle.load( open(LOCAL_LOCUS_PATH + "data/temp/df-1.p", "rb" ))
-        global_counter_init(len(df))
-        df = df.apply(lambda row: add_bbl(row, overwrite=False), axis=1)
-        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/temp/df-1.p", "wb" ))
-
     if 0 in segment:
         ## LOAD SOURCE FILES
         df = load_source_files()
@@ -184,9 +154,8 @@ def begin_process(segment):
         pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/temp/df-4.p", "wb" ))
         print("added LBIDS")
 
-    cleaned_file_path = LOCAL_LOCUS_PATH + "data/dca/inspection_application.csv"
+    cleaned_file_path = LOCAL_LOCUS_PATH + "data/temp/merged.csv"
     df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
-
 
 if __name__ == '__main__':
     begin_process([])
