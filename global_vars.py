@@ -94,7 +94,7 @@ def get_raw(inject):
 def get_result(inject):
     decoded = get_raw(inject)
     cap = 0
-    while decoded == "Authentication failed" and cap <= len(GLOBAL_KEYS):
+    while decoded == "Authentication failed" and cap < len(GLOBAL_KEYS):
         increment_global_key()
         decoded = get_raw(inject)
         cap += 1
