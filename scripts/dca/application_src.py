@@ -42,7 +42,6 @@ def instantiate_file():
     df['Description'] = df['Description'].astype(str)
     df['Street 2'] = df['Street 2'].astype(str)
 
-
     del df["Application Category"]
     del df["Last Update Date"]
     del df["Longitude"]
