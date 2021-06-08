@@ -66,9 +66,40 @@ def global_counter_tick(inp=1):
 
 # ADD BBL #########################################################################################
 
-def get_result(inject):
-    response = requests.get("https://api.cityofnewyork.us/geoclient/v1/search.json?input="+ inject +"&app_id=d4aa601d&app_key=f75348e4baa7754836afb55dc9b6363d")
+def format_keys():
+    val = []
+    for row in open(LOCAL_LOCUS_PATH + "data/api_keys.txt").readlines():
+        currow = row.strip("\n")
+        val.append(currow.split(" "))
+    return val
+
+global GLOBAL_KEY_ROW
+GLOBAL_KEY_ROW = 0
+global GLOBAL_KEYS
+GLOBAL_KEYS = format_keys()
+
+def increment_global_key():
+    global GLOBAL_KEY_ROW
+    GLOBAL_KEY_ROW += 1
+    if GLOBAL_KEY_ROW >= len(GLOBAL_KEYS):
+        GLOBAL_KEY_ROW = 0
+
+def get_raw(inject):
+    curkey = GLOBAL_KEYS[GLOBAL_KEY_ROW][0]
+    curid = GLOBAL_KEYS[GLOBAL_KEY_ROW][1]
+    response = requests.get("https://api.cityofnewyork.us/geoclient/v1/search.json?input=" + inject + "&app_id=" + curkey + "&app_key=" + curid)
     decoded = response.content.decode("utf-8")
+    return decoded
+
+def get_result(inject):
+    decoded = get_raw(inject)
+    cap = 0
+    while decoded == "Authentication failed" and cap <= len(GLOBAL_KEYS):
+        increment_global_key()
+        decoded = get_raw(inject)
+        cap += 1
+    if decoded == "Authentication failed":
+        print("ALL KEYS EXPIRED")
     json_loaded = json.loads(decoded)
     return json_loaded['results'][0]['response']['bbl']
 

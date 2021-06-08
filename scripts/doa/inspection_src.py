@@ -35,7 +35,7 @@ def instantiate_file():
   df['# FT Employees'] = df['# FT Employees'].astype(str)
   df['# PT Employees'] = df['# PT Employees'].astype(str)
   df['# Sq. Ft.'] = df['# Sq. Ft.'].astype(str)
-  df['Out of Business Date'] = pd.astype('datetime64[D]', errors='coerce')
+  # df['Out of Business Date'] = df['Out of Business Date'].astype('datetime64[D]')
 
   del df['STREET']
   del df['ESTABTYPE1']
