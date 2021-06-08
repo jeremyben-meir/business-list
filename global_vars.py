@@ -87,7 +87,7 @@ def increment_global_key():
 def get_raw(inject):
     curkey = GLOBAL_KEYS[GLOBAL_KEY_ROW][0]
     curid = GLOBAL_KEYS[GLOBAL_KEY_ROW][1]
-    response = requests.get("https://api.cityofnewyork.us/geoclient/v1/search.json?input=" + inject + "&app_id=" + curkey + "&app_key=" + curid)
+    response = requests.get("https://api.cityofnewyork.us/geoclient/v1/search.json?input=" + inject + "&app_id=" + curid + "&app_key=" + curkey)
     decoded = response.content.decode("utf-8")
     return decoded
 
