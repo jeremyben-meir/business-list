@@ -19,4 +19,4 @@ Given that the data pulls from multiple different sources of different formats, 
 
 ## Notes
 ### global_vars.py
-in order to use `global_vars.py` to handle imports, necessary global variables, and file paths, `global_vars.py` must be [added to the PYTHONPATH](https://stackoverflow.com/questions/3387695/add-to-python-path-mac-os-x).
+In order to use `global_vars.py` to handle imports, necessary global variables, and file paths, the local repository must be [added to the PYTHONPATH](https://stackoverflow.com/questions/3387695/add-to-python-path-mac-os-x).
