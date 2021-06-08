@@ -12,11 +12,13 @@ def instantiate_file():
   df_insp_os = pd.read_csv(insp_onsite_file_path)
   df_def = pd.read_csv(def_file_path)
   # Concatenate the dfs
-  df_1 = pd.merge(df_insp[['ESTABNO','ZIP','INSPDATE','LICDATE']], df_master[['ESTABNO','SANDATE01','NOFTEMP','NOPTEMP','NOSQFT','OOBDATE','OWNNAME','TRADENAME','STREET','CITY','ZIP','PHONE','ESTABTYPE1','ESTABTYPE2','ESTABTYPE3','ESTABTYPE4','ESTABTYPE5','ESTABTYPE6']], how='left', on = ['ESTABNO','ZIP'])
-  df_2 = pd.merge(df_insp_os[['ESTABNO','INSPDATE']], df_master[['ESTABNO','SANDATE01','NOFTEMP','NOPTEMP','NOSQFT','OOBDATE','OWNNAME','TRADENAME','STREET','CITY','ZIP','PHONE','ESTABTYPE1','ESTABTYPE2','ESTABTYPE3','ESTABTYPE4','ESTABTYPE5','ESTABTYPE6']], how='left', on = ['ESTABNO'])
-  df_3 = pd.merge(df_insp_os[['ESTABNO','INSPDATE']], df_master[['ESTABNO','SANDATE01','NOFTEMP','NOPTEMP','NOSQFT','OOBDATE','OWNNAME','TRADENAME','STREET','CITY','ZIP','PHONE','ESTABTYPE1','ESTABTYPE2','ESTABTYPE3','ESTABTYPE4','ESTABTYPE5','ESTABTYPE6']], how='left', on = ['ESTABNO'])
+  master_columns = ['ESTABNO','SANDATE01','NOFTEMP','NOPTEMP','NOSQFT','OOBDATE','OWNNAME','TRADENAME','STREET','CITY','ZIP','PHONE','ESTABTYPE1','ESTABTYPE2','ESTABTYPE3','ESTABTYPE4','ESTABTYPE5','ESTABTYPE6']
+  
+  df_1 = pd.merge(df_insp[['ESTABNO','ZIP','INSPDATE','LICDATE']], df_master[master_columns], how='left', on = ['ESTABNO','ZIP'])
+  df_2 = pd.merge(df_insp_os[['ESTABNO','INSPDATE']], df_master[master_columns], how='left', on = ['ESTABNO'])
+  df_3 = pd.merge(df_insp_os[['ESTABNO','INSPDATE']], df_master[master_columns], how='left', on = ['ESTABNO'])
 
-  df = pd.concat([df_1,df_2,df_3,df_master[['ESTABNO','SANDATE01','NOFTEMP','NOPTEMP','NOSQFT','OOBDATE','OWNNAME','TRADENAME','STREET','CITY','ZIP','PHONE','ESTABTYPE1','ESTABTYPE2','ESTABTYPE3','ESTABTYPE4','ESTABTYPE5','ESTABTYPE6']]], axis=0, join='outer', ignore_index=False)
+  df = pd.concat([df_1,df_2,df_3,df_master[master_columns]], axis=0, join='outer', ignore_index=False)
 
   df = df.rename(columns={"ESTABNO": "Record ID", 'TRADENAME':'Business Name','OWNNAME':'Business Name 2', 'CITY':'City', 'ZIP':'Zip','PHONE':'Contact Phone', 'INSPDATE':'INSP Date',	'LICDATE':'LIC Exp Date',	'SANDATE01':'Last INSP Date',	'NOFTEMP':'# FT Employees',	'NOPTEMP':'# PT Employees',	'NOSQFT':'# Sq. Ft.',	'OOBDATE':'Out of Business Date'})
  
@@ -33,9 +35,7 @@ def instantiate_file():
   df['# FT Employees'] = df['# FT Employees'].astype(str)
   df['# PT Employees'] = df['# PT Employees'].astype(str)
   df['# Sq. Ft.'] = df['# Sq. Ft.'].astype(str)
-  df['Out of Business Date'] = df['Out of Business Date'].astype('datetime64[D]')
-
-  print(df['Out of Business Date'])
+  df['Out of Business Date'] = pd.astype('datetime64[D]', errors='coerce')
 
   del df['STREET']
   del df['ESTABTYPE1']

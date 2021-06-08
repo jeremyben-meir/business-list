@@ -81,7 +81,6 @@ def add_bbl(row, overwrite=True):  # input row must have headers 'Building Numbe
                 row["BBL"]=get_result(row['Building Number'] + " " + row['Street'] + " " + row['Zip'])
             except:
                 row["BBL"]=""
-                print("failure")
 
     global_counter_tick(inp=2)
     return row
@@ -103,7 +102,7 @@ new_york = ['INWOOD','NEW YORK','MANHATTAN','ROOSEVELT ISLAND','WARDS ISLAND']
 queens = ['OZONE PARK','HOLLIS','DOUGLASTON','BRIARWOOD','BELLE HARBOR','ARVERNE','QUEENS','ROCKAWAY PARK','ROCKAWAY POINT','ROCKAWAY BEACH','SUNNYSIDE','FLUSHING','BROAD CHANNEL','QUEENS VILLAGE','SOUTH OZONE PARK','RICHMOND HILL','SOUTH RICHMOND HILL','REGO PARK','RIDGEWOOD','ROSEDALE','ST ALBANS','SAINT ALBANS','WHITESTONE','HOLLISWOOD','WOODHAVEN','WOODSIDE','SPRINGFIELD GARDENS','LONG ISLAND CITY','LIC','L.I.C.','HOLLIS HILLS','HOWARD BEACH','JACKSON HEIGHTS','KEW GARDENS HILLS','CAMBRIA HEIGHTS','BELLEROSE','ASTORIA','BAYSIDE','BELLEROSE MANOR','BREEZY POINT','COLLEGE POINT','CORONA','EAST ELMHURST','ELMHURST','FAR ROCKAWAY','FLORAL PARK','FOREST HILLS','FRESH MEADOWS','GLENDALE','GLEN OAKS','JAMAICA','JAMAICA ESTATES','KEW GARDENS','LITTLE NECK','MASPETH','MIDDLE VILLAGE','LAURELTON','OAKLAND GARDENS']
 fuzzy_nyc = bronx + staten_island + brooklyn + new_york + queens
 
-def clean_zip_city(df): #input df must have have header 'City' and 'Zip'
+def clean_zip_city(df): #input df must have have header 'City',Zip', and 'State'
 
     def lev_city(st, city_list = not_nyc):
         maxlev = 0
@@ -152,13 +151,13 @@ def clean_zip_city(df): #input df must have have header 'City' and 'Zip'
         if row['Zip'] not in nyc_zips:
             row['Zip'] = ''
         if (row['State']!='NY'):
-            row['State'] = ''
+            row['State'] = 'NY'
         return row
 
     def zip_correct(row):
         row['City'] = zip_assign(row['Zip'])
         if (row['State']!='NY'):
-            row['State'] = ''
+            row['State'] = 'NY'
         return row
 
     def row_delete(row):
@@ -173,7 +172,7 @@ def clean_zip_city(df): #input df must have have header 'City' and 'Zip'
         return row_delete(row)
 
     df = df[~ ((df['City'].apply(lev_city) > 90) | ((df['City'] =='') & (df['Zip']=='')))]
-    df = df.apply(lambda row : row_fix(row), axis=1) # df = df[(df['City'].apply(lev_city,city_list=fuzzy_nyc) > 85) | (df['Zip'].isin(nyc_zips))]
+    df = df.apply(lambda row : row_fix(row), axis=1) 
     df = df[~ (df['City'] == "scheduled_for_deletion")]
 
     df = df.reset_index(drop=True)

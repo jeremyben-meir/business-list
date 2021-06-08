@@ -54,4 +54,4 @@ def begin_process(segment):
   df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
         
 if __name__ == '__main__':
-    begin_process([0])
+    begin_process([0,1])
