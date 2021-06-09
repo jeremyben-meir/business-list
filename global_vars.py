@@ -95,6 +95,7 @@ def get_result(inject):
     decoded = get_raw(inject)
     cap = 0
     while decoded == "Authentication failed" and cap < len(GLOBAL_KEYS):
+        print("KEY " + GLOBAL_KEY_ROW + " EXPIRED")
         increment_global_key()
         decoded = get_raw(inject)
         cap += 1
