@@ -101,6 +101,7 @@ def get_result(inject):
         cap += 1
     if decoded == "Authentication failed":
         print("ALL KEYS EXPIRED")
+        return("NO-KEY")
     json_loaded = json.loads(decoded)
     return json_loaded['results'][0]['response']['bbl']
 
