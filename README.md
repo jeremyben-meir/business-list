@@ -8,15 +8,15 @@ Given that the data pulls from multiple different sources of different formats, 
 ### Pull from sources
 * #### DCA
   * In `/scripts/dca` run all the files labeled `..._src.py`
-* #### DOH
-  * TBD
 * #### DOA
-  * TBD
-* #### AES
-  * TBD
+  * In `/scripts/doa` run all the files labeled `..._src.py`
+* #### DOH
+  * In `/scripts/doh` run all the files labeled `..._src.py`
+* #### DOS
+  * In `/scripts/dos` run all the files labeled `..._src.py`
 ### Merge
 * Run `/scripts/merge.py`.
 
 ## Notes
 ### global_vars.py
-In order to use `global_vars.py` to handle imports, necessary global variables, and file paths, the local repository must be [added to the PYTHONPATH](https://stackoverflow.com/questions/3387695/add-to-python-path-mac-os-x).
+In order to import `global_vars.py` and the Counter and SourceFile classes from various scripts, the local repository must be [added to the PYTHONPATH](https://stackoverflow.com/questions/3387695/add-to-python-path-mac-os-x).
