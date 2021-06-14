@@ -52,12 +52,11 @@ def begin_process(segment):
 
   if 1 in segment:
     df = pickle.load( open(LOCAL_LOCUS_PATH + "data/doh/temp/df-doh.p", "rb" ))
-    source.init_ticker(len(df))
-    df = df.apply(lambda row: source.add_bbl(row), axis=1)
+    df = source.add_bbl(df)
     pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/doh/temp/df-doh-1.p", "wb" ))
 
   cleaned_file_path = LOCAL_LOCUS_PATH + "data/doh/temp/inspections.csv"
   df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
         
 if __name__ == '__main__':
-    begin_process([0,1])
+    begin_process([1])

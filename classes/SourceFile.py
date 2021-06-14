@@ -1,11 +1,13 @@
 from global_vars import LOCAL_LOCUS_PATH
-from .Counter import Counter
+from classes.Counter import Counter
 import json
 import requests
 from fuzzywuzzy import fuzz
 import pickle
 import pandas as pd
 import csv
+import asyncio
+import aiohttp
 
 class SourceFile:
 
@@ -28,39 +30,95 @@ class SourceFile:
         if self.key_row >= len(self.keylist):
             self.key_row = 0
 
-    def get_raw(self, inject):
-        curkey = self.keylist[self.key_row][0]
-        curid = self.keylist[self.key_row][1]
-        response = requests.get("https://api.cityofnewyork.us/geoclient/v1/search.json?input=" + inject + "&app_id=" + curid + "&app_key=" + curkey)
-        decoded = response.content.decode("utf-8")
-        return decoded
+    def add_bbl_async(self, df, overwrite=True):  # input row must have headers 'Building Number,' 'Street,' 'City,' 'Zip,' 'BBL'
+            
+        async def get_raw(session, inject):
+            curkey = self.keylist[self.key_row][0]
+            curid = self.keylist[self.key_row][1]
+            url = "https://api.cityofnewyork.us/geoclient/v1/search.json?input=" + inject + "&app_id=" + curid + "&app_key=" + curkey
+            async with session.get(url) as response:
+                results = await response.json()
+                return results
 
-    def get_result(self, inject):
-        decoded = self.get_raw(inject)
-        cap = 0
-        while decoded == "Authentication failed" and cap < len(self.keylist):
-            print("KEY " + self.key_row + " EXPIRED")
-            self.increment_global_key()
-            decoded = self.get_raw(inject)
-            cap += 1
-        if decoded == "Authentication failed":
-            print("ALL KEYS EXPIRED")
-            return("NO-KEY")
-        json_loaded = json.loads(decoded)
-        return json_loaded['results'][0]['response']['bbl']
+        async def get_result(session, inject):
+            results = await get_raw(session, inject)
+            cap = 0
+            while results == "Authentication failed" and cap < len(self.keylist):
+                print("KEY " + self.key_row + " EXPIRED")
+                self.increment_global_key()
+                results = await get_raw(session, inject)
+                cap += 1
+            if results == "Authentication failed":
+                print("ALL KEYS EXPIRED")
+                return("NO-KEY")
+            return results['results'][0]['response']['bbl']
 
-    def add_bbl(self, row, overwrite=True):  # input row must have headers 'Building Number,' 'Street,' 'City,' 'Zip,' 'BBL'
-        if overwrite or len(row["BBL"])==0:
-            try:
-                row["BBL"]=get_result(row['Building Number'] + " " + row['Street'] + " " + row['City'])
-            except:
+        async def decide_result(session, index, row): 
+            if overwrite or len(df.loc[index,"BBL"])==0:
                 try:
-                    row["BBL"]=get_result(row['Building Number'] + " " + row['Street'] + " " + row['Zip'])
+                    df.loc[index,"BBL"] = await get_result(session, row['Building Number'] + " " + row['Street'] + " " + row['City'])
                 except:
-                    row["BBL"]=""
+                    try:
+                        df.loc[index,"BBL"] = await get_result(session, row['Building Number'] + " " + row['Street'] + " " + row['Zip'])
+                    except:
+                        df.loc[index,"BBL"]=""
 
-        self.counter.tick()
-        return row
+            self.counter.tick()
+
+        async def add_bbl_helper():
+            async with aiohttp.ClientSession() as session:
+                tasks = []
+                for index , row in df.iterrows():
+                    task = asyncio.ensure_future(decide_result(session,index,row))
+                    tasks.append(task)
+                await asyncio.gather(tasks)
+
+        self.init_ticker(len(df))
+        asyncio.run(add_bbl_helper())
+    
+        return df
+
+    def add_bbl(self, df, overwrite=True):  # input row must have headers 'Building Number,' 'Street,' 'City,' 'Zip,' 'BBL'
+            
+        def get_raw(inject):
+            curkey = self.keylist[self.key_row][0]
+            curid = self.keylist[self.key_row][1]
+            url = "https://api.cityofnewyork.us/geoclient/v1/search.json?input=" + inject + "&app_id=" + curid + "&app_key=" + curkey
+            response = requests.get(url)
+            decoded = response.content.decode("utf-8")
+            return decoded
+
+        def get_result(inject):
+            results = get_raw(inject)
+            cap = 0
+            while results == "Authentication failed" and cap < len(self.keylist):
+                print("KEY " + str(self.key_row) + " EXPIRED")
+                self.increment_global_key()
+                results = get_raw(inject)
+                cap += 1
+            if results == "Authentication failed":
+                print("ALL KEYS EXPIRED")
+                return("NO-KEY")
+            json_loaded = json.loads(results)
+            return json_loaded['results'][0]['response']['bbl']
+
+        def decide_result(row): 
+            if overwrite or len(row["BBL"])==0:
+                try:
+                    row["BBL"] = get_result(row['Building Number'] + " " + row['Street'] + " " + row['City'])
+                except:
+                    try:
+                        row["BBL"] = get_result(row['Building Number'] + " " + row['Street'] + " " + row['Zip'])
+                    except:
+                        row["BBL"]=""
+
+            self.counter.tick()
+            return row
+
+        self.init_ticker(len(df))
+        df = df.apply(lambda row: decide_result(row), axis=1)
+    
+        return df
 
     # CITY SETTING #########################################################################################
 
