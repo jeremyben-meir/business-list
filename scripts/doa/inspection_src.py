@@ -1,6 +1,11 @@
-from global_vars import *
+#######IMPORTS#######
 
-def instantiate_file():
+from global_vars import LOCAL_LOCUS_PATH
+from classes.SourceFile import SourceFile, pd, pickle, csv
+
+#######FUNCTION DEFINITIONS#########
+
+def instantiate_file(source):
   # Get file paths
   inspection_file_path = LOCAL_LOCUS_PATH + "data/doa/inspections_10-21.csv"
   main_file_path = LOCAL_LOCUS_PATH + "data/doa/main_10-21.csv"
@@ -45,21 +50,22 @@ def instantiate_file():
   del df['ESTABTYPE5']
   del df['ESTABTYPE6']
 
-  df = type_cast(df)
-  df = clean_zip_city(df)
+  df = source.type_cast(df)
+  df = source.clean_zip_city(df)
  
   return df
 
 def begin_process(segment):
+  source = SourceFile()
 
   if 0 in segment:
-    df = instantiate_file()
+    df = instantiate_file(source)
     pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/doa/temp/df-doa.p", "wb" ))
 
   if 1 in segment:
     df = pickle.load( open(LOCAL_LOCUS_PATH + "data/doa/temp/df-doa.p", "rb" ))
-    global_counter_init(len(df))
-    df = df.apply(lambda row: add_bbl(row), axis=1)
+    source.init_ticker(len(df))
+    df = df.apply(lambda row: source.add_bbl(row), axis=1)
     pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/doa/temp/df-doa-1.p", "wb" ))
 
   cleaned_file_path = LOCAL_LOCUS_PATH + "data/doa/temp/inspections.csv"

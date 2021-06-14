@@ -1,4 +1,9 @@
-from global_vars import *
+#######IMPORTS#######
+
+from global_vars import LOCAL_LOCUS_PATH
+from classes.SourceFile import SourceFile, pd, pickle, csv
+
+#######FUNCTION DEFINITIONS#########
 
 def clean_addr(row):
     stopwords = ['FL', 'STORE', 'BSMT','RM','UNIT','STE','APT','APT#','FRNT','#','MEZZANINE','LOBBY','GROUND','FLOOR','SUITE','LEVEL']
@@ -80,7 +85,7 @@ def clean_addr(row):
     return row
 
 
-def instantiate_file():
+def instantiate_file(source):
   # Get file paths
   aes_file_path = LOCAL_LOCUS_PATH + "data/dos/aes_10-20.csv"
   barber_file_path = LOCAL_LOCUS_PATH + "data/dos/barber_92-20.csv"
@@ -114,21 +119,22 @@ def instantiate_file():
   del df["Address"]
   del df["Agency"]
 
-  df = type_cast(df)
-  # df = clean_zip_city(df)
+  df = source.type_cast(df)
+  # df = source.clean_zip_city(df)
  
   return df
 
 def begin_process(segment):
+  source = SourceFile()
 
   if 0 in segment:
-    df = instantiate_file()
+    df = instantiate_file(source)
     pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/doa/temp/df-doa.p", "wb" ))
 
   if 1 in segment:
     df = pickle.load( open(LOCAL_LOCUS_PATH + "data/doa/temp/df-doa.p", "rb" ))
-    global_counter_init(len(df))
-    df = df.apply(lambda row: add_bbl(row), axis=1)
+    source.init_ticker(len(df))
+    df = df.apply(lambda row: source.add_bbl(row), axis=1)
     pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/doa/temp/df-doa-1.p", "wb" ))
 
   cleaned_file_path = LOCAL_LOCUS_PATH + "data/dos/temp/licenses.csv"

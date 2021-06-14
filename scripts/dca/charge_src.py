@@ -1,10 +1,11 @@
 #######IMPORTS#######
 
-from global_vars import *
+from global_vars import LOCAL_LOCUS_PATH
+from classes.SourceFile import SourceFile, pd, pickle, csv
 
 #######FUNCTION DEFINITIONS#########
 
-def instantiate_file():
+def instantiate_file(source):
     charge_file_path = LOCAL_LOCUS_PATH + "data/dca/Charges_10_21.csv"
     df = pd.read_csv(charge_file_path)
 
@@ -28,20 +29,22 @@ def instantiate_file():
     del df["Longitude"]
     del df["Latitude"]
 
-    df = type_cast(df)
-    df = clean_zip_city(df)
+    df = source.type_cast(df)
+    df = source.clean_zip_city(df)
 
     return df
 
 def begin_process(segment):
+    source = SourceFile()
+
     if 0 in segment:
-        df = instantiate_file()
+        df = instantiate_file(source)
         pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/dca/temp/df-charge.p", "wb" ))
 
     if 1 in segment:
         df = pickle.load(open(LOCAL_LOCUS_PATH + "data/dca/temp/df-charge.p", "rb" ))
-        global_counter_init(len(df))
-        df = df.apply(lambda row: add_bbl(row), axis=1)
+        source.init_ticker(len(df))
+        df = df.apply(lambda row: source.add_bbl(row), axis=1)
         pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/dca/temp/df-charge-1.p", "wb" ))
 
     cleaned_file_path = LOCAL_LOCUS_PATH + "data/dca/temp/charges.csv"

@@ -1,10 +1,11 @@
 #######IMPORTS#######
 
-from global_vars import *
+from global_vars import LOCAL_LOCUS_PATH
+from classes.SourceFile import SourceFile, pd, pickle, csv
 
 #######FUNCTION DEFINITIONS#########
 
-def instantiate_file():
+def instantiate_file(source):
     # Get file paths
     inspection_10_17file_path = LOCAL_LOCUS_PATH + "data/dca/DCA_Inspections_10-17.csv"
     inspection_14_21file_path = LOCAL_LOCUS_PATH + "data/dca/DCA_Inspections_14-21.csv"
@@ -14,7 +15,7 @@ def instantiate_file():
     df_14_21 = pd.read_csv(inspection_14_21file_path)
 
     # Adjust column headers to match
-    col_10_17 = ['REC_ID','CERT_NBR','BIZ_NAME','INSP_DT','INSP_RSLT','INDUSTRY','BORO','BLDG_NBR','STREET','STREET2','UNIT_TYP','UNIT','DESCR','CITY','STATE','ZIP','X_COORD','Y_COORD']
+    # col_10_17 = ['REC_ID','CERT_NBR','BIZ_NAME','INSP_DT','INSP_RSLT','INDUSTRY','BORO','BLDG_NBR','STREET','STREET2','UNIT_TYP','UNIT','DESCR','CITY','STATE','ZIP','X_COORD','Y_COORD']
     col_14_21 = ['Record ID','Certificate Number','Business Name','Inspection Date','Inspection Result','Industry','Borough','Building Number','Street','Street 2','Unit Type','Unit','Description','City','State','Zip','Longitude','Latitude']
     df_10_17.columns = col_14_21
 
@@ -40,20 +41,22 @@ def instantiate_file():
     del df["Longitude"]
     del df["Latitude"]
        
-    df = type_cast(df)
-    df = clean_zip_city(df)
+    df = source.type_cast(df)
+    df = source.clean_zip_city(df)
 
     return df
 
 def begin_process(segment):
+    source = SourceFile()
+    
     if 0 in segment:
-        df = instantiate_file()
+        df = instantiate_file(source)
         pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/dca/temp/df-insp.p", "wb" ))
 
     if 1 in segment:
         df = pickle.load(open(LOCAL_LOCUS_PATH + "data/dca/temp/df-insp.p", "rb" ))
-        global_counter_init(len(df))
-        df = df.apply(lambda row: add_bbl(row), axis=1)
+        source.init_ticker(len(df))
+        df = df.apply(lambda row: source.add_bbl(row), axis=1)
         pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/dca/temp/df-insp-1.p", "wb" ))
 
     cleaned_file_path = LOCAL_LOCUS_PATH + "data/dca/temp/inspections.csv"
