@@ -2,6 +2,7 @@ from sys import platform
 import os
 
 class DirectoryFields:
+    
     if platform == "darwin":
         # MAC OS X
         LOCAL_LOCUS_PATH = os.path.expanduser("~") + "/Dropbox/locus/"
