@@ -33,6 +33,7 @@ class SourceFile:
     # ADD BBL ##############################################################################################
 
     def add_bbl_async(self, df, overwrite=True):
+        df = df.reset_index(drop=True)
         dflist = np.array_split(df,len(self.keylist))
         ticker = 0
         adder_objs = []
