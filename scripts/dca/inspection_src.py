@@ -56,8 +56,7 @@ def begin_process(segment):
 
     if 1 in segment:
         df = pickle.load(open(LOCAL_LOCUS_PATH + "data/dca/temp/df-insp.p", "rb" ))
-        source.init_ticker(len(df))
-        df = df.apply(lambda row: source.add_bbl(row), axis=1)
+        df = source.add_bbl_async(df)
         pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/dca/temp/df-insp-1.p", "wb" ))
 
     cleaned_file_path = LOCAL_LOCUS_PATH + "data/dca/temp/inspections.csv"
