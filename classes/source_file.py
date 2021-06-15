@@ -1,5 +1,4 @@
 from classes.common import DirectoryFields
-from classes.counter import Counter
 from classes.bbl_adder import BBLAdder
 import json
 import requests
