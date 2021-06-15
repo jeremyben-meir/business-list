@@ -20,4 +20,4 @@ class Counter:
     self.ticker += 1
     if round(self.ticker/self.length,2+self.precision)>round((self.ticker-1)/self.length,2+self.precision):
       elapsed = time.time() - self.start_time
-      print(str(round(100*self.ticker/self.length,self.precision)) + "% (" + str(round(elapsed)) + "s / " + str(round(elapsed*self.length/self.ticker))+ "s , IT: " + str(round(self.beginning_time)) + "s)")#, end='\r')
+      print(str(round(100*self.ticker/self.length,self.precision)) + "%\t(" + str(round(elapsed)) + "s / " + str(round(elapsed*self.length/self.ticker))+ "s)", end='\r')

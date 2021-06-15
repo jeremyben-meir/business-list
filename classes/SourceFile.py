@@ -1,5 +1,6 @@
 from global_vars import LOCAL_LOCUS_PATH
 from classes.Counter import Counter
+from classes.BBLAdder import BBLAdder
 import json
 import requests
 from fuzzywuzzy import fuzz
@@ -17,135 +18,35 @@ class SourceFile:
 
     def format_keys(self):
         val = []
-        for row in open(LOCAL_LOCUS_PATH + "data/api_keys.txt").readlines()[9:19]:
+        for row in open(LOCAL_LOCUS_PATH + "data/api_keys.txt").readlines():
             currow = row.strip("\n")
             val.append(currow.split(" "))
         return val
-    
-    def init_ticker(self, length, precision=1):
-        self.counter = Counter(length, precision)
+
+    # INIT #################################################################################################
 
     def __init__(self):
-        self.key_row = 0
-        self.keylist = self.format_keys()
+        self.bbl_segment_size = 10000 # These vars effect processing speed
+        self.bbl_thread_count = 12 # These vars effect processing speed
+        self.keylist = self.format_keys()[:self.bbl_thread_count]
 
-    def increment_global_key(self):
-        self.key_row += 1
-        if self.key_row >= len(self.keylist):
-            self.key_row = 0
+    # ADD BBL ##############################################################################################
 
-    def add_bbl_starter(self, df, keyset, ticker, overwrite=True):  # input row must have headers 'Building Number,' 'Street,' 'City,' 'Zip,' 'BBL'
-        curkey = keyset[0]
-        curid = keyset[1]
-        self.index_counter = 0
-        self.beg_time = time.time()
-
-        async def counter_max():
-            self.index_counter += 1
-            if self.index_counter >= 2500:
-                self.index_counter = 0
-                time_count = time.time() - self.beg_time
-                print("waiting " + str(round(61-time_count)))
-                if time_count < 60:
-                    time.sleep(61-time_count)
-                self.beg_time = time.time()
-            return
-            
-
-        async def get_raw(session, inject):
-            url = "https://api.cityofnewyork.us/geoclient/v1/search.json?input=" + inject + "&app_id=" + curid + "&app_key=" + curkey
-            async with session.get(url) as response:
-                results = await response.json()
-                await counter_max()
-                return results
-
-
-        async def get_result(session, inject):
-            results = await get_raw(session, inject)
-            return results['results'][0]['response']['bbl']
-
-        async def decide_result(session, index, row): 
-            if overwrite or len(df.loc[index,"BBL"])==0:
-                try:
-                    df.loc[index,"BBL"] = await get_result(session, row['Building Number'] + " " + row['Street'] + " " + row['City'])
-                except:
-                    try:
-                        df.loc[index,"BBL"] = await get_result(session, row['Building Number'] + " " + row['Street'] + " " + row['Zip'])
-                    except:
-                        df.loc[index,"BBL"]=""
-            if ticker==0:
-                self.counter.tick()
-
-        async def add_bbl_helper():
-            async with aiohttp.ClientSession() as session:
-                tasks = []
-                for index, row in df.iterrows():
-                    task = asyncio.ensure_future(decide_result(session,index,row))
-                    tasks.append(task)
-                await asyncio.gather(*tasks)
-
-        if ticker == 0:
-            self.init_ticker(len(df), precision=2)
-
-        asyncio.run(add_bbl_helper())
-
-        return df
-
-    def add_bbl_async(self, df, overwrite=True):  # input row must have headers 'Building Number,' 'Street,' 'City,' 'Zip,' 'BBL'
+    def add_bbl_async(self, df, overwrite=True):
         dflist = np.array_split(df,len(self.keylist))
         ticker = 0
+        adder_objs = []
+        for keyset in self.keylist: 
+            adder_objs.append(BBLAdder(keyset[1],keyset[0],dflist[ticker], len(self.keylist) - ticker - 1, overwrite, self.bbl_segment_size))
+            ticker += 1
+
         futures = []
-
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            print(len(dflist[ticker]))
-            for keyset in self.keylist: 
-                futures.append(executor.submit(self.add_bbl_starter,dflist[ticker],keyset,ticker,overwrite))
-                ticker += 1
-            resdflist = [f.result() for f in futures] 
-        resdf = pd.concat(resdflist)
+            for adder_obj in adder_objs:
+                futures.append(executor.submit(adder_obj.add_bbl_starter))
+
+        resdf = pd.concat([f.result() for f in futures])
         return resdf
-        
-    def add_bbl(self, df, overwrite=True):  # input row must have headers 'Building Number,' 'Street,' 'City,' 'Zip,' 'BBL'
-            
-        def get_raw(inject):
-            curkey = self.keylist[self.key_row][0]
-            curid = self.keylist[self.key_row][1]
-            url = "https://api.cityofnewyork.us/geoclient/v1/search.json?input=" + inject + "&app_id=" + curid + "&app_key=" + curkey
-            response = requests.get(url)
-            decoded = response.content.decode("utf-8")
-            return decoded
-
-        def get_result(inject):
-            results = get_raw(inject)
-            cap = 0
-            while results == "Authentication failed" and cap < len(self.keylist):
-                print("KEY " + str(self.key_row) + " EXPIRED")
-                self.increment_global_key()
-                results = get_raw(inject)
-                cap += 1
-            if results == "Authentication failed":
-                print("ALL KEYS EXPIRED")
-                return("NO-KEY")
-            json_loaded = json.loads(results)
-            return json_loaded['results'][0]['response']['bbl']
-
-        def decide_result(row): 
-            if overwrite or len(row["BBL"])==0:
-                try:
-                    row["BBL"] = get_result(row['Building Number'] + " " + row['Street'] + " " + row['City'])
-                except:
-                    try:
-                        row["BBL"] = get_result(row['Building Number'] + " " + row['Street'] + " " + row['Zip'])
-                    except:
-                        row["BBL"]=""
-
-            self.counter.tick()
-            return row
-
-        self.init_ticker(len(df), precision=2)
-        df = df.apply(lambda row: decide_result(row), axis=1)
-    
-        return df
 
     # CITY SETTING #########################################################################################
 
