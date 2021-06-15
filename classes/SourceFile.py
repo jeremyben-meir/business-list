@@ -8,18 +8,22 @@ import pandas as pd
 import csv
 import asyncio
 import aiohttp
+from multiprocessing import Process
+import time
+import numpy as np
+import concurrent.futures
 
 class SourceFile:
 
     def format_keys(self):
         val = []
-        for row in open(LOCAL_LOCUS_PATH + "data/api_keys.txt").readlines():
+        for row in open(LOCAL_LOCUS_PATH + "data/api_keys.txt").readlines()[9:19]:
             currow = row.strip("\n")
             val.append(currow.split(" "))
         return val
     
-    def init_ticker(self, length):
-        self.counter = Counter(length)
+    def init_ticker(self, length, precision=1):
+        self.counter = Counter(length, precision)
 
     def __init__(self):
         self.key_row = 0
@@ -30,27 +34,34 @@ class SourceFile:
         if self.key_row >= len(self.keylist):
             self.key_row = 0
 
-    def add_bbl_async(self, df, overwrite=True):  # input row must have headers 'Building Number,' 'Street,' 'City,' 'Zip,' 'BBL'
+    def add_bbl_starter(self, df, keyset, ticker, overwrite=True):  # input row must have headers 'Building Number,' 'Street,' 'City,' 'Zip,' 'BBL'
+        curkey = keyset[0]
+        curid = keyset[1]
+        self.index_counter = 0
+        self.beg_time = time.time()
+
+        async def counter_max():
+            self.index_counter += 1
+            if self.index_counter >= 2500:
+                self.index_counter = 0
+                time_count = time.time() - self.beg_time
+                print("waiting " + str(round(61-time_count)))
+                if time_count < 60:
+                    time.sleep(61-time_count)
+                self.beg_time = time.time()
+            return
             
+
         async def get_raw(session, inject):
-            curkey = self.keylist[self.key_row][0]
-            curid = self.keylist[self.key_row][1]
             url = "https://api.cityofnewyork.us/geoclient/v1/search.json?input=" + inject + "&app_id=" + curid + "&app_key=" + curkey
             async with session.get(url) as response:
                 results = await response.json()
+                await counter_max()
                 return results
+
 
         async def get_result(session, inject):
             results = await get_raw(session, inject)
-            cap = 0
-            while results == "Authentication failed" and cap < len(self.keylist):
-                print("KEY " + self.key_row + " EXPIRED")
-                self.increment_global_key()
-                results = await get_raw(session, inject)
-                cap += 1
-            if results == "Authentication failed":
-                print("ALL KEYS EXPIRED")
-                return("NO-KEY")
             return results['results'][0]['response']['bbl']
 
         async def decide_result(session, index, row): 
@@ -62,22 +73,38 @@ class SourceFile:
                         df.loc[index,"BBL"] = await get_result(session, row['Building Number'] + " " + row['Street'] + " " + row['Zip'])
                     except:
                         df.loc[index,"BBL"]=""
-
-            self.counter.tick()
+            if ticker==0:
+                self.counter.tick()
 
         async def add_bbl_helper():
             async with aiohttp.ClientSession() as session:
                 tasks = []
-                for index , row in df.iterrows():
+                for index, row in df.iterrows():
                     task = asyncio.ensure_future(decide_result(session,index,row))
                     tasks.append(task)
-                await asyncio.gather(tasks)
+                await asyncio.gather(*tasks)
 
-        self.init_ticker(len(df))
+        if ticker == 0:
+            self.init_ticker(len(df), precision=2)
+
         asyncio.run(add_bbl_helper())
-    
+
         return df
 
+    def add_bbl_async(self, df, overwrite=True):  # input row must have headers 'Building Number,' 'Street,' 'City,' 'Zip,' 'BBL'
+        dflist = np.array_split(df,len(self.keylist))
+        ticker = 0
+        futures = []
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            print(len(dflist[ticker]))
+            for keyset in self.keylist: 
+                futures.append(executor.submit(self.add_bbl_starter,dflist[ticker],keyset,ticker,overwrite))
+                ticker += 1
+            resdflist = [f.result() for f in futures] 
+        resdf = pd.concat(resdflist)
+        return resdf
+        
     def add_bbl(self, df, overwrite=True):  # input row must have headers 'Building Number,' 'Street,' 'City,' 'Zip,' 'BBL'
             
         def get_raw(inject):
@@ -115,7 +142,7 @@ class SourceFile:
             self.counter.tick()
             return row
 
-        self.init_ticker(len(df))
+        self.init_ticker(len(df), precision=2)
         df = df.apply(lambda row: decide_result(row), axis=1)
     
         return df
@@ -159,11 +186,11 @@ class SourceFile:
         queens_zip = ['11385', '11004', '11413', '11369', '11421', '11372', '11427', '11435', '11414', '11432', '11423', '11368', '11426', '11411', '11429', '11433', '11365', '11377', '11419', '11416', '11422', '11364', '11367', '11103', '11420', '11693', '11697', '11417', '11363', '11358', '11102', '11371', '11101', '11360', '11109', '11370', '11362', '11692', '11412', '11104', '11434', '11418', '11361', '11379', '11375', '11356', '11436', '11694', '11354', '11355', '11357', '11106', '11105', '11428', '11359', '11373', '11430', '11366', '11351', '11374', '11378', '11415', '11691']
         nyc_zips = bronx_zip + staten_island_zip + brooklyn_zip + new_york_zip + queens_zip
 
-        not_nyc = ['EAST ROCKAWAY','BRONXVILLE']
+        not_nyc = ['EAST ROCKAWAY','BRONXVILLE','INWOOD']
         bronx = ['BRONX']
         staten_island = ['STATEN ISLAND']
         brooklyn = ['BROOKLYN','BKLYN']
-        new_york = ['INWOOD','NEW YORK','MANHATTAN','ROOSEVELT ISLAND','WARDS ISLAND']
+        new_york = ['NEW YORK','MANHATTAN','ROOSEVELT ISLAND','WARDS ISLAND']
         queens = ['OZONE PARK','HOLLIS','DOUGLASTON','BRIARWOOD','BELLE HARBOR','ARVERNE','QUEENS','ROCKAWAY PARK','ROCKAWAY POINT','ROCKAWAY BEACH','SUNNYSIDE','FLUSHING','BROAD CHANNEL','QUEENS VILLAGE','SOUTH OZONE PARK','RICHMOND HILL','SOUTH RICHMOND HILL','REGO PARK','RIDGEWOOD','ROSEDALE','ST ALBANS','SAINT ALBANS','WHITESTONE','HOLLISWOOD','WOODHAVEN','WOODSIDE','SPRINGFIELD GARDENS','LONG ISLAND CITY','LIC','L.I.C.','HOLLIS HILLS','HOWARD BEACH','JACKSON HEIGHTS','KEW GARDENS HILLS','CAMBRIA HEIGHTS','BELLEROSE','ASTORIA','BAYSIDE','BELLEROSE MANOR','BREEZY POINT','COLLEGE POINT','CORONA','EAST ELMHURST','ELMHURST','FAR ROCKAWAY','FLORAL PARK','FOREST HILLS','FRESH MEADOWS','GLENDALE','GLEN OAKS','JAMAICA','JAMAICA ESTATES','KEW GARDENS','LITTLE NECK','MASPETH','MIDDLE VILLAGE','LAURELTON','OAKLAND GARDENS']
         fuzzy_nyc = bronx + staten_island + brooklyn + new_york + queens
 

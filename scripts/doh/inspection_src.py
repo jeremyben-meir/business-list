@@ -40,6 +40,7 @@ def instantiate_file(source):
 
   df = source.type_cast(df)
   df = source.clean_zip_city(df)
+  df = df.drop_duplicates()
  
   return df
 
@@ -52,7 +53,7 @@ def begin_process(segment):
 
   if 1 in segment:
     df = pickle.load( open(LOCAL_LOCUS_PATH + "data/doh/temp/df-doh.p", "rb" ))
-    df = source.add_bbl(df)
+    df = source.add_bbl_async(df)
     pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/doh/temp/df-doh-1.p", "wb" ))
 
   cleaned_file_path = LOCAL_LOCUS_PATH + "data/doh/temp/inspections.csv"

@@ -120,7 +120,8 @@ def instantiate_file(source):
   del df["Agency"]
 
   df = source.type_cast(df)
-  # df = source.clean_zip_city(df)
+  df = source.clean_zip_city(df)
+  df = df.drop_duplicates()
  
   return df
 

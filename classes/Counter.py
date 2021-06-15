@@ -2,7 +2,7 @@ import time
 
 class Counter:
 
-  def __init__(self, length, precision=3): 
+  def __init__(self, length, precision=1): 
     self.length = length
     self.ticker = 0
     self.precision = precision

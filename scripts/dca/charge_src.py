@@ -31,6 +31,7 @@ def instantiate_file(source):
 
     df = source.type_cast(df)
     df = source.clean_zip_city(df)
+    df = df.drop_duplicates()
 
     return df
 
