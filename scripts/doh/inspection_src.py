@@ -1,12 +1,12 @@
 #######IMPORTS#######
 
-from global_vars import LOCAL_LOCUS_PATH
-from classes.SourceFile import SourceFile, pd, pickle, csv
+from classes.common import DirectoryFields
+from classes.source_file import SourceFile, pd, pickle, csv
 
 #######FUNCTION DEFINITIONS#########
 
 def instantiate_file(source):
-  dh_file_path = LOCAL_LOCUS_PATH + "data/doh/doh_10-20.txt"
+  dh_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/doh/doh_10-20.txt"
   textfile = open(dh_file_path, "r")
   colnames = textfile.readline().strip("\n").split("\t")
   lines = textfile.readlines()
@@ -49,15 +49,15 @@ def begin_process(segment):
 
   if 0 in segment:
     df = instantiate_file(source)
-    pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/doh/temp/df-doh.p", "wb" ))
+    pickle.dump(df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/doh/temp/df-doh.p", "wb" ))
 
   if 1 in segment:
-    df = pickle.load( open(LOCAL_LOCUS_PATH + "data/doh/temp/df-doh.p", "rb" ))
+    df = pickle.load( open(DirectoryFields.LOCAL_LOCUS_PATH + "data/doh/temp/df-doh.p", "rb" ))
     # df = df.head(n=29313)
     df = source.add_bbl_async(df)
-    pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/doh/temp/df-doh-1.p", "wb" ))
+    pickle.dump(df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/doh/temp/df-doh-1.p", "wb" ))
 
-  cleaned_file_path = LOCAL_LOCUS_PATH + "data/doh/temp/inspections.csv"
+  cleaned_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/doh/temp/inspections.csv"
   df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
         
 if __name__ == '__main__':

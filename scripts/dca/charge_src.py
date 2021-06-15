@@ -1,12 +1,12 @@
 #######IMPORTS#######
 
-from global_vars import LOCAL_LOCUS_PATH
-from classes.SourceFile import SourceFile, pd, pickle, csv
+from classes.common import DirectoryFields
+from classes.source_file import SourceFile, pd, pickle, csv
 
 #######FUNCTION DEFINITIONS#########
 
 def instantiate_file(source):
-    charge_file_path = LOCAL_LOCUS_PATH + "data/dca/Charges_10_21.csv"
+    charge_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/dca/Charges_10_21.csv"
     df = pd.read_csv(charge_file_path)
 
     df = df.rename(columns={"Violation Date": "CHRG Date"})
@@ -40,14 +40,14 @@ def begin_process(segment):
 
     if 0 in segment:
         df = instantiate_file(source)
-        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/dca/temp/df-charge.p", "wb" ))
+        pickle.dump(df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/dca/temp/df-charge.p", "wb" ))
 
     if 1 in segment:
-        df = pickle.load(open(LOCAL_LOCUS_PATH + "data/dca/temp/df-charge.p", "rb" ))
+        df = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/dca/temp/df-charge.p", "rb" ))
         df = source.add_bbl_async(df)
-        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/dca/temp/df-charge-1.p", "wb" ))
+        pickle.dump(df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/dca/temp/df-charge-1.p", "wb" ))
 
-    cleaned_file_path = LOCAL_LOCUS_PATH + "data/dca/temp/charges.csv"
+    cleaned_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/dca/temp/charges.csv"
     df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
         
 if __name__ == '__main__':

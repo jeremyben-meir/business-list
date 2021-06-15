@@ -1,14 +1,14 @@
 #######IMPORTS#######
 
-from global_vars import LOCAL_LOCUS_PATH
-from classes.SourceFile import SourceFile, pd, pickle, csv
+from classes.common import DirectoryFields
+from classes.source_file import SourceFile, pd, pickle, csv
 
 #######FUNCTION DEFINITIONS#########
 
 def instantiate_file(source):
     # Get file paths
-    inspection_10_17file_path = LOCAL_LOCUS_PATH + "data/dca/DCA_Inspections_10-17.csv"
-    inspection_14_21file_path = LOCAL_LOCUS_PATH + "data/dca/DCA_Inspections_14-21.csv"
+    inspection_10_17file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/dca/DCA_Inspections_10-17.csv"
+    inspection_14_21file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/dca/DCA_Inspections_14-21.csv"
 
     # Get df from file paths
     df_10_17 = pd.read_csv(inspection_10_17file_path)
@@ -52,14 +52,14 @@ def begin_process(segment):
     
     if 0 in segment:
         df = instantiate_file(source)
-        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/dca/temp/df-insp.p", "wb" ))
+        pickle.dump(df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/dca/temp/df-insp.p", "wb" ))
 
     if 1 in segment:
-        df = pickle.load(open(LOCAL_LOCUS_PATH + "data/dca/temp/df-insp.p", "rb" ))
+        df = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/dca/temp/df-insp.p", "rb" ))
         df = source.add_bbl_async(df)
-        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/dca/temp/df-insp-1.p", "wb" ))
+        pickle.dump(df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/dca/temp/df-insp-1.p", "wb" ))
 
-    cleaned_file_path = LOCAL_LOCUS_PATH + "data/dca/temp/inspections.csv"
+    cleaned_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/dca/temp/inspections.csv"
     df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
         
 if __name__ == '__main__':

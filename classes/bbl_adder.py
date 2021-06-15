@@ -1,5 +1,5 @@
-from global_vars import LOCAL_LOCUS_PATH
-from classes.Counter import Counter
+from classes.common import DirectoryFields
+from classes.counter import Counter
 import json
 import requests
 import pandas as pd

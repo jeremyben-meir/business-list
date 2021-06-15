@@ -1,11 +1,11 @@
 ####### IMPORTS #######
 
-from global_vars import LOCAL_LOCUS_PATH
+from classes.common import DirectoryFields
 from fuzzywuzzy import fuzz
 import pickle
 import re
 import pandas as pd
-from classes.Counter import Counter
+from classes.counter import Counter
 import uuid
 import csv
 
@@ -48,10 +48,10 @@ def industry_to_match(industry1, industry2):
 ########################################################################
 
 def load_source_files():
-    df_o1 = pickle.load( open(LOCAL_LOCUS_PATH + "data/dca/temp/df-insp.p", "rb" ))
-    df_o2 = pickle.load( open(LOCAL_LOCUS_PATH + "data/dca/temp/df-app-1.p", "rb" ))
-    df_o3 = pickle.load( open(LOCAL_LOCUS_PATH + "data/dca/temp/df-charge-1.p", "rb" ))
-    df_o4 = pickle.load( open(LOCAL_LOCUS_PATH + "data/doh/temp/df-doh-2.p", "rb" ))
+    df_o1 = pickle.load( open(DirectoryFields.LOCAL_LOCUS_PATH + "data/dca/temp/df-insp.p", "rb" ))
+    df_o2 = pickle.load( open(DirectoryFields.LOCAL_LOCUS_PATH + "data/dca/temp/df-app-1.p", "rb" ))
+    df_o3 = pickle.load( open(DirectoryFields.LOCAL_LOCUS_PATH + "data/dca/temp/df-charge-1.p", "rb" ))
+    df_o4 = pickle.load( open(DirectoryFields.LOCAL_LOCUS_PATH + "data/doh/temp/df-doh-2.p", "rb" ))
 
     df = pd.concat([df_o1,df_o2,df_o3,df_o4], axis=0, join='outer', ignore_index=False)
     
@@ -135,33 +135,33 @@ def begin_process(segment):
     if 0 in segment:
         ## LOAD SOURCE FILES
         df = load_source_files()
-        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/temp/df-1.p", "wb" ))
+        pickle.dump(df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/temp/df-1.p", "wb" ))
         print("load done")
 
     if 1 in segment:
         ## ADD LLID ON BBL
-        df = pickle.load( open(LOCAL_LOCUS_PATH + "data/temp/df-1.p", "rb" ))
+        df = pickle.load( open(DirectoryFields.LOCAL_LOCUS_PATH + "data/temp/df-1.p", "rb" ))
         df = add_llid(df, bbl=True)
-        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/temp/df-2.p", "wb" ))
+        pickle.dump(df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/temp/df-2.p", "wb" ))
         print("added LLIDs on BBL")
 
     if 2 in segment:
         ## ADD LLID ON ADDRESS
-        df = pickle.load( open(LOCAL_LOCUS_PATH + "data/temp/df-2.p", "rb" ))
+        df = pickle.load( open(DirectoryFields.LOCAL_LOCUS_PATH + "data/temp/df-2.p", "rb" ))
         df = add_llid(df, bbl=False)
-        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/temp/df-3.p", "wb" ))
+        pickle.dump(df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/temp/df-3.p", "wb" ))
         print("added LLIDs on address")
 
     if 3 in segment:
         ## ADD LBID
-        df = pickle.load( open(LOCAL_LOCUS_PATH + "data/temp/df-3.p", "rb" ))
+        df = pickle.load( open(DirectoryFields.LOCAL_LOCUS_PATH + "data/temp/df-3.p", "rb" ))
         df = df[df['LLID'].str.len() > 0]
         df = df[df['Record ID'].str.len() > 5]
         df = add_lbid(df)
-        pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/temp/df-4.p", "wb" ))
+        pickle.dump(df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/temp/df-4.p", "wb" ))
         print("added LBIDS")
 
-    cleaned_file_path = LOCAL_LOCUS_PATH + "data/temp/merged.csv"
+    cleaned_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/temp/merged.csv"
     df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
 
 if __name__ == '__main__':

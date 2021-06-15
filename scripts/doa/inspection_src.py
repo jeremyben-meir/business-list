@@ -1,16 +1,16 @@
 #######IMPORTS#######
 
-from global_vars import LOCAL_LOCUS_PATH
-from classes.SourceFile import SourceFile, pd, pickle, csv
+from classes.common import DirectoryFields
+from classes.source_file import SourceFile, pd, pickle, csv
 
 #######FUNCTION DEFINITIONS#########
 
 def instantiate_file(source):
   # Get file paths
-  inspection_file_path = LOCAL_LOCUS_PATH + "data/doa/inspections_10-21.csv"
-  main_file_path = LOCAL_LOCUS_PATH + "data/doa/main_10-21.csv"
-  insp_onsite_file_path = LOCAL_LOCUS_PATH + "data/doa/inspections_onsite_10-21.csv"
-  def_file_path = LOCAL_LOCUS_PATH + "data/doa/deficiencies_10-21.csv"
+  inspection_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/inspections_10-21.csv"
+  main_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/main_10-21.csv"
+  insp_onsite_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/inspections_onsite_10-21.csv"
+  def_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/deficiencies_10-21.csv"
   # Get dfs from file paths
   df_insp = pd.read_csv(inspection_file_path)
   df_master = pd.read_csv(main_file_path)
@@ -61,14 +61,14 @@ def begin_process(segment):
 
   if 0 in segment:
     df = instantiate_file(source)
-    pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/doa/temp/df-doa.p", "wb" ))
+    pickle.dump(df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/temp/df-doa.p", "wb" ))
 
   if 1 in segment:
-    df = pickle.load( open(LOCAL_LOCUS_PATH + "data/doa/temp/df-doa.p", "rb" ))
+    df = pickle.load( open(DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/temp/df-doa.p", "rb" ))
     df = source.add_bbl_async(df)
-    pickle.dump(df, open(LOCAL_LOCUS_PATH + "data/doa/temp/df-doa-1.p", "wb" ))
+    pickle.dump(df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/temp/df-doa-1.p", "wb" ))
 
-  cleaned_file_path = LOCAL_LOCUS_PATH + "data/doa/temp/inspections.csv"
+  cleaned_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/temp/inspections.csv"
   df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
         
 if __name__ == '__main__':
