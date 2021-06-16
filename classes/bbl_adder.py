@@ -35,18 +35,15 @@ class BBLAdder:
             self.beg_time = time.time()
         return
             
-
-    async def get_raw(self, session, inject):
+    async def get_result(self, session, inject):
         url = f"https://api.cityofnewyork.us/geoclient/v1/search.json?input={inject}&app_id={self.app_id}&app_key={self.app_key}"
         async with session.get(url) as response:
-            results = await response.json()
+            try:
+                results = await response.json()
+            except:
+                return "AUTH_FAILURE"
             await self.counter_max()
-            return results
-
-
-    async def get_result(self, session, inject):
-        results = await self.get_raw(session, inject)
-        return results['results'][0]['response']['bbl']
+            return results['results'][0]['response']['bbl']
 
     async def decide_result(self, session, index, row): 
         if self.overwrite or len(self.df.loc[index,"BBL"])==0:
@@ -56,7 +53,7 @@ class BBLAdder:
                 try:
                     self.df.loc[index,"BBL"] = await self.get_result(session, f"{row['Building Number']} {row['Street']} {row['Zip']}")
                 except:
-                    self.df.loc[index,"BBL"]=""
+                    self.df.loc[index,"BBL"]="NO_BBL"
         if self.adder_id==0:
             self.counter.tick()
 
