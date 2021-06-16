@@ -25,28 +25,30 @@ class SourceFile:
     # INIT #################################################################################################
 
     def __init__(self):
-        self.bbl_segment_size = 10000 # These vars effect processing speed
-        self.bbl_thread_count = 12 # These vars effect processing speed
-        self.keylist = self.format_keys()[:self.bbl_thread_count]
+        self.keylist = self.format_keys()
+        # self.bbl_thread_count = 1 # These vars effect processing speed
 
     # ADD BBL ##############################################################################################
 
     def add_bbl_async(self, df, overwrite=True):
         df = df.reset_index(drop=True)
-        dflist = np.array_split(df,len(self.keylist))
-        ticker = 0
-        adder_objs = []
-        for keyset in self.keylist: 
-            adder_objs.append(BBLAdder(keyset[1],keyset[0],dflist[ticker], len(self.keylist) - ticker - 1, overwrite, self.bbl_segment_size))
-            ticker += 1
+        my_adder = BBLAdder(df, overwrite, self.keylist)
+        return my_adder.add_bbl_starter()
 
-        futures = []
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            for adder_obj in adder_objs:
-                futures.append(executor.submit(adder_obj.add_bbl_starter))
+        # dflist = np.array_split(df,len(self.keylist))
+        # ticker = 0
+        # adder_objs = []
+        # for keyset in self.keylist: 
+        #     adder_objs.append(BBLAdder(keyset[1],keyset[0],dflist[ticker], len(self.keylist) - ticker - 1, overwrite, self.bbl_segment_size))
+        #     ticker += 1
 
-        resdf = pd.concat([f.result() for f in futures])
-        return resdf
+        # futures = []
+        # with concurrent.futures.ThreadPoolExecutor() as executor:
+        #     for adder_obj in adder_objs:
+        #         futures.append(executor.submit(adder_obj.add_bbl_starter))
+
+        # resdf = pd.concat([f.result() for f in futures])
+        # return resdf
 
     # CITY SETTING #########################################################################################
 

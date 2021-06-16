@@ -9,7 +9,7 @@ class Counter:
         self.start_time = time.time()
         self.time_to_start = 0
         self.beginning_time = 0
-        print(f"Intantiated ticker with length {self.length}...")
+        print(f"Instantiated ticker with length {self.length}...")
 
     def tick(self):
         if self.length == 0:
@@ -24,4 +24,4 @@ class Counter:
             elapsed = round(time.time() - self.start_time)
             percent = round(100*self.ticker/self.length,self.precision)
             est_time = round(elapsed*self.length/self.ticker)
-            print(f"{percent}%\t({elapsed}s / {est_time}s)", end='\r')
+            print(f"{percent}%\t({elapsed}s / {est_time}s)", end='\n')

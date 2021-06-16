@@ -53,7 +53,7 @@ def begin_process(segment):
 
     if 1 in segment:
         df = pickle.load( open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doh/temp/df-doh.p", "rb" ))
-        # df = df.head(n=29313)
+        df = df.head(n=31237)
         df = source.add_bbl_async(df)
         pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doh/temp/df-doh-1.p", "wb" ))
 
