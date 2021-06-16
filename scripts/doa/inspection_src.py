@@ -7,10 +7,10 @@ from classes.source_file import SourceFile, pd, pickle, csv
 
 def instantiate_file(source):
     # Get file paths
-    inspection_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/inspections_10-21.csv"
-    main_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/main_10-21.csv"
-    insp_onsite_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/inspections_onsite_10-21.csv"
-    def_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/deficiencies_10-21.csv"
+    inspection_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doa/inspections_10-21.csv"
+    main_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doa/main_10-21.csv"
+    insp_onsite_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doa/inspections_onsite_10-21.csv"
+    def_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doa/deficiencies_10-21.csv"
     # Get dfs from file paths
     df_insp = pd.read_csv(inspection_file_path)
     df_master = pd.read_csv(main_file_path)
@@ -31,7 +31,7 @@ def instantiate_file(source):
     df['STREET'] = df['STREET'].apply(lambda x: str(x).replace('#',''))
     df['Building Number'] = df['STREET'].apply(lambda x: x.split(" ")[0])
     df['Street'] = df['STREET'].apply(lambda x: " ".join(x.split(" ")[1:]))
-    df['Industry'] =df.apply(lambda row: "FSE-"+str(row['ESTABTYPE1'])+','+str(row['ESTABTYPE2'])+','+str(row['ESTABTYPE3'])+','+str(row['ESTABTYPE4'])+','+str(row['ESTABTYPE5'])+','+str(row['ESTABTYPE6']), axis=1)
+    df['Industry'] =df.apply(lambda row: f"FSE-{row['ESTABTYPE1']},{row['ESTABTYPE2']},{row['ESTABTYPE3']},{row['ESTABTYPE4']},{row['ESTABTYPE5']},{row['ESTABTYPE6']}", axis=1)
 
     df['Business Name 2'] = df['Business Name 2'].astype(str)
     df['INSP Date'] = df['INSP Date'].astype('datetime64[D]')
@@ -61,14 +61,14 @@ def begin_process(segment):
 
     if 0 in segment:
         df = instantiate_file(source)
-        pickle.dump(df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/temp/df-doa.p", "wb" ))
+        pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doa/temp/df-doa.p", "wb" ))
 
     if 1 in segment:
-        df = pickle.load( open(DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/temp/df-doa.p", "rb" ))
+        df = pickle.load( open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doa/temp/df-doa.p", "rb" ))
         df = source.add_bbl_async(df)
-        pickle.dump(df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/temp/df-doa-1.p", "wb" ))
+        pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doa/temp/df-doa-1.p", "wb" ))
 
-    cleaned_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/temp/inspections.csv"
+    cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doa/temp/inspections.csv"
     df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
         
 if __name__ == '__main__':

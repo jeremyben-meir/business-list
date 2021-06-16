@@ -37,7 +37,7 @@ class BBLAdder:
             
 
     async def get_raw(self, session, inject):
-        url = "https://api.cityofnewyork.us/geoclient/v1/search.json?input=" + inject + "&app_id=" + self.app_id + "&app_key=" + self.app_key
+        url = f"https://api.cityofnewyork.us/geoclient/v1/search.json?input={inject}&app_id={self.app_id}&app_key={self.app_key}"
         async with session.get(url) as response:
             results = await response.json()
             await self.counter_max()
@@ -51,10 +51,10 @@ class BBLAdder:
     async def decide_result(self, session, index, row): 
         if self.overwrite or len(self.df.loc[index,"BBL"])==0:
             try:
-                self.df.loc[index,"BBL"] = await self.get_result(session, row['Building Number'] + " " + row['Street'] + " " + row['City'])
+                self.df.loc[index,"BBL"] = await self.get_result(session, f"{row['Building Number']} {row['Street']} {row['City']}")
             except:
                 try:
-                    self.df.loc[index,"BBL"] = await self.get_result(session, row['Building Number'] + " " + row['Street'] + " " + row['Zip'])
+                    self.df.loc[index,"BBL"] = await self.get_result(session, f"{row['Building Number']} {row['Street']} {row['Zip']}")
                 except:
                     self.df.loc[index,"BBL"]=""
         if self.adder_id==0:

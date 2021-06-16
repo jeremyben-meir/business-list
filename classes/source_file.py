@@ -17,7 +17,7 @@ class SourceFile:
 
     def format_keys(self):
         val = []
-        for row in open(DirectoryFields.LOCAL_LOCUS_PATH + "data/api_keys.txt").readlines():
+        for row in open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/api_keys.txt").readlines():
             currow = row.strip("\n")
             val.append(currow.split(" "))
         return val

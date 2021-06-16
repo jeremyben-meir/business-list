@@ -5,7 +5,7 @@ class DirectoryFields:
     
     if platform == "darwin":
         # MAC OS X
-        LOCAL_LOCUS_PATH = os.path.expanduser("~") + "/Dropbox/locus/"
+        LOCAL_LOCUS_PATH = f"{os.path.expanduser('~')}/Dropbox/locus/"
         LOCAL_WEBDRIVER_PATH = "/usr/local/bin/chromedriver"
     elif platform == "linux":
         # LINUX

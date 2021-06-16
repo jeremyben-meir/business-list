@@ -87,8 +87,8 @@ def clean_addr(row):
 
 def instantiate_file(source):
     # Get file paths
-    aes_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/dos/aes_10-20.csv"
-    barber_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/dos/barber_92-20.csv"
+    aes_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dos/aes_10-20.csv"
+    barber_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dos/barber_92-20.csv"
     
     # Get dfs from file paths
     df_aes = pd.read_csv(aes_file_path)
@@ -130,14 +130,14 @@ def begin_process(segment):
 
     if 0 in segment:
         df = instantiate_file(source)
-        pickle.dump(df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/temp/df-doa.p", "wb" ))
+        pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doa/temp/df-doa.p", "wb" ))
 
     if 1 in segment:
-        df = pickle.load( open(DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/temp/df-doa.p", "rb" ))
+        df = pickle.load( open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doa/temp/df-doa.p", "rb" ))
         df = source.add_bbl_async(df)
-        pickle.dump(df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/doa/temp/df-doa-1.p", "wb" ))
+        pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doa/temp/df-doa-1.p", "wb" ))
 
-    cleaned_file_path = DirectoryFields.LOCAL_LOCUS_PATH + "data/dos/temp/licenses.csv"
+    cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dos/temp/licenses.csv"
     df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
             
 if __name__ == '__main__':
