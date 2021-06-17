@@ -6,12 +6,6 @@ from fuzzywuzzy import fuzz
 import pickle
 import pandas as pd
 import csv
-import asyncio
-import aiohttp
-from multiprocessing import Process
-import time
-import numpy as np
-import concurrent.futures
 
 class SourceFile:
 
@@ -26,29 +20,15 @@ class SourceFile:
 
     def __init__(self):
         self.keylist = self.format_keys()
-        # self.bbl_thread_count = 1 # These vars effect processing speed
 
     # ADD BBL ##############################################################################################
 
     def add_bbl_async(self, df, overwrite=True):
         df = df.reset_index(drop=True)
-        my_adder = BBLAdder(df, overwrite, self.keylist)
-        return my_adder.add_bbl_starter()
-
-        # dflist = np.array_split(df,len(self.keylist))
-        # ticker = 0
-        # adder_objs = []
-        # for keyset in self.keylist: 
-        #     adder_objs.append(BBLAdder(keyset[1],keyset[0],dflist[ticker], len(self.keylist) - ticker - 1, overwrite, self.bbl_segment_size))
-        #     ticker += 1
-
-        # futures = []
-        # with concurrent.futures.ThreadPoolExecutor() as executor:
-        #     for adder_obj in adder_objs:
-        #         futures.append(executor.submit(adder_obj.add_bbl_starter))
-
-        # resdf = pd.concat([f.result() for f in futures])
-        # return resdf
+        if overwrite:
+            df = BBLAdder(df, self.keylist, overwrite=True, id_ = 0).add_bbl_starter()
+        df = BBLAdder(df, self.keylist, overwrite=False, id_ = 0).add_bbl_starter()
+        return df
 
     # CITY SETTING #########################################################################################
 
@@ -96,6 +76,8 @@ class SourceFile:
         new_york = ['NEW YORK','MANHATTAN','ROOSEVELT ISLAND','WARDS ISLAND']
         queens = ['OZONE PARK','HOLLIS','DOUGLASTON','BRIARWOOD','BELLE HARBOR','ARVERNE','QUEENS','ROCKAWAY PARK','ROCKAWAY POINT','ROCKAWAY BEACH','SUNNYSIDE','FLUSHING','BROAD CHANNEL','QUEENS VILLAGE','SOUTH OZONE PARK','RICHMOND HILL','SOUTH RICHMOND HILL','REGO PARK','RIDGEWOOD','ROSEDALE','ST ALBANS','SAINT ALBANS','WHITESTONE','HOLLISWOOD','WOODHAVEN','WOODSIDE','SPRINGFIELD GARDENS','LONG ISLAND CITY','LIC','L.I.C.','HOLLIS HILLS','HOWARD BEACH','JACKSON HEIGHTS','KEW GARDENS HILLS','CAMBRIA HEIGHTS','BELLEROSE','ASTORIA','BAYSIDE','BELLEROSE MANOR','BREEZY POINT','COLLEGE POINT','CORONA','EAST ELMHURST','ELMHURST','FAR ROCKAWAY','FLORAL PARK','FOREST HILLS','FRESH MEADOWS','GLENDALE','GLEN OAKS','JAMAICA','JAMAICA ESTATES','KEW GARDENS','LITTLE NECK','MASPETH','MIDDLE VILLAGE','LAURELTON','OAKLAND GARDENS']
         fuzzy_nyc = bronx + staten_island + brooklyn + new_york + queens
+
+        endwords = ["AVE","AVENUE","ST","STREET","ROAD","RD","PLACE","PL","BOULEVARD","BLVD"]
 
         def lev_city(st, city_list = not_nyc):
             maxlev = 0
@@ -164,8 +146,17 @@ class SourceFile:
                 return city_correct(row)
             return row_delete(row)
 
+        def address_clean(row):
+            mylist = row['Address'][0].split(" ")
+            for x in range(0, len(mylist)):
+                if mylist[x].upper() in endwords:
+                    mylist = mylist[:x+1]
+                    row['Address'][0] = " ".join(mylist)
+                    break   
+
         df = df[~ ((df['City'].apply(lev_city) > 90) | ((df['City'] =='') & (df['Zip']=='')))]
         df = df.apply(lambda row : row_fix(row), axis=1) 
+        df = df.apply(lambda row : address_clean(row), axis=1) 
         df = df[~ (df['City'] == "scheduled_for_deletion")]
 
         df = df.reset_index(drop=True)

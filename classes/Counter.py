@@ -24,4 +24,6 @@ class Counter:
             elapsed = round(time.time() - self.start_time)
             percent = round(100*self.ticker/self.length,self.precision)
             est_time = round(elapsed*self.length/self.ticker)
-            print(f"{percent}%\t({elapsed}s / {est_time}s)", end='\n')
+            print(f" {percent}%\t({elapsed}s / {est_time}s)", end='\r')
+        if self.length <= self.ticker:
+            print("\nDone!")
