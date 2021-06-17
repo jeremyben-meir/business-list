@@ -153,6 +153,7 @@ class SourceFile:
                     mylist = mylist[:x+1]
                     row['Street'][0] = " ".join(mylist)
                     return row
+            return row
 
         df = df[~ ((df['City'].apply(lev_city) > 90) | ((df['City'] =='') & (df['Zip']=='')))]
         df = df.apply(lambda row : row_fix(row), axis=1) 
