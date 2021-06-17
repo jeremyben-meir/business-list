@@ -147,12 +147,15 @@ class SourceFile:
             return row_delete(row)
 
         def address_clean(row):
-            mylist = row['Street'][0].split(" ")
+            mylist = row['Street'].split(" ")
             for x in range(0, len(mylist)):
                 if mylist[x].upper() in endwords:
                     mylist = mylist[:x+1]
-                    row['Street'][0] = " ".join(mylist)
-                    return row
+                    row['Street'] = " ".join(mylist)
+                    break
+            row['Building Number'] = row['Building Number'].strip(" ")
+            row['Street'] = row['Street'].strip(" ")
+            row['Zip'] = row['Zip'].strip(" ")
             return row
 
         df = df[~ ((df['City'].apply(lev_city) > 90) | ((df['City'] =='') & (df['Zip']=='')))]
