@@ -147,11 +147,11 @@ class SourceFile:
             return row_delete(row)
 
         def address_clean(row):
-            mylist = row['Address'][0].split(" ")
+            mylist = row['Street'][0].split(" ")
             for x in range(0, len(mylist)):
                 if mylist[x].upper() in endwords:
                     mylist = mylist[:x+1]
-                    row['Address'][0] = " ".join(mylist)
+                    row['Street'][0] = " ".join(mylist)
                     break   
 
         df = df[~ ((df['City'].apply(lev_city) > 90) | ((df['City'] =='') & (df['Zip']=='')))]
