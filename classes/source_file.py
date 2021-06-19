@@ -33,13 +33,17 @@ class SourceFile:
     # CITY SETTING #########################################################################################
 
     def type_cast(self, df):
+        print("Type casting")
 
         df['BBL'] = ""
+
         df['Record ID'] = df['Record ID'].astype(str)
-        df['Contact Phone'] = df['Contact Phone'].astype(str).apply(lambda x: x.replace("-","").replace(")","").replace("(","").replace(" ","").replace(".","").replace("/","").replace("\\",""))
+
+        df['Contact Phone'] = df['Contact Phone'].astype(str)
+        df['Contact Phone'] = df['Contact Phone'].apply(lambda x: x.replace("-","").replace(")","").replace("(","").replace(" ","").replace(".","").replace("/","").replace("\\",""))
+
         df['Business Name'] = df['Business Name'].astype(str)
-        df['Building Number'] = df['Building Number'].astype(str)
-        df['Street'] = df['Street'].astype(str)
+        
         df['Industry'] = df['Industry'].astype(str)
 
         df['State'] = df['State'].astype(str)    
@@ -58,9 +62,18 @@ class SourceFile:
         df['City'] = df['City'].replace(['N/A','NULL','nan','NaN'],'')
         df["City"] = df["City"].fillna("")
 
+        df['Building Number'] = df['Building Number'].astype(str)
+        df['Building Number'] = df['Building Number'].apply(lambda x: x.strip(' '))
+
+        df['Street'] = df['Street'].astype(str)
+        df['Street'] = df['Street'].apply(lambda x: x.replace("  "," "))
+        df['Street'] = df['Street'].apply(lambda x: x.replace(",",""))
+        df['Street'] = df['Street'].apply(lambda x: x.strip(' '))
+
         return df
 
     def clean_zip_city(self, df): #input df must have have header 'City',Zip', and 'State'
+        print("Cleaning address")
 
         bronx_zip = ['10465', '10460', '10471', '10474', '10453', '10470', '10472', '10454', '10463', '10451', '10475', '10461', '10469', '10473', '10467', '10457', '10466', '10458', '10468', '10456', '10452', '10459', '10455', '10462', '10464']
         staten_island_zip = ['10310', '10309', '10302', '10312', '10301', '10303', '10306', '10307', '10305', '10311', '10308', '10314', '10304']
@@ -153,9 +166,6 @@ class SourceFile:
                     mylist = mylist[:x+1]
                     row['Street'] = " ".join(mylist)
                     break
-            row['Building Number'] = row['Building Number'].strip(" ")
-            row['Street'] = row['Street'].strip(" ")
-            row['Zip'] = row['Zip'].strip(" ")
             return row
 
         df = df[~ ((df['City'].apply(lev_city) > 90) | ((df['City'] =='') & (df['Zip']=='')))]

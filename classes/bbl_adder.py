@@ -55,6 +55,9 @@ class BBLAdder:
                 return "NO_BBL"
 
     async def decide_result(self, session, index, row): 
+        if self.overwrite and (len(row["Building Number"])==6 or len(row["Building Number"])==8):
+            curnum = row["Building Number"]
+            self.df.loc[index,"Building Number"] = f"{curnum[:len(curnum)/2]}-{curnum[len(curnum)/2:]}"
         self.df.loc[index,"BBL"] = await self.get_result(session, f"{row['Building Number']} {row['Street']} {row['Zip'] if self.overwrite else row['City']}")
         if self.id == 0:
             self.counter.tick()
