@@ -6,6 +6,7 @@ from fuzzywuzzy import fuzz
 import pickle
 import pandas as pd
 import csv
+import re
 
 class SourceFile:
 
@@ -62,12 +63,19 @@ class SourceFile:
         df['City'] = df['City'].replace(['N/A','NULL','nan','NaN'],'')
         df["City"] = df["City"].fillna("")
 
+        def fix_dashed(x):
+            if (len(x)==6 or len(x)==8) and ("-" not in x) and (not re.search('[a-zA-Z]', x)):
+                split_index = round(len(x)/2)
+                if abs(int(x[:split_index])-int(x[split_index:])) <= 100:
+                    x = f"{x[:split_index]}-{x[split_index:]}"
+            return x
         df['Building Number'] = df['Building Number'].astype(str)
         df['Building Number'] = df['Building Number'].apply(lambda x: x.strip(' '))
+        df['Building Number'] = df['Building Number'].apply(lambda x: fix_dashed(x))
 
         df['Street'] = df['Street'].astype(str)
-        df['Street'] = df['Street'].apply(lambda x: x.replace("  "," "))
-        df['Street'] = df['Street'].apply(lambda x: x.replace(",",""))
+        df['Street'] = df['Street'].replace("  "," ")
+        df['Street'] = df['Street'].replace(",","")
         df['Street'] = df['Street'].apply(lambda x: x.strip(' '))
 
         return df
