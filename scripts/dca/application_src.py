@@ -1,17 +1,16 @@
 #######IMPORTS#######
 
 from classes.common import DirectoryFields
+from classes.file_retriever import FileRetriever
 from classes.source_file import SourceFile, pd, pickle, csv
 
 #######FUNCTION DEFINITIONS#########
 
 def instantiate_file(source):
-    application_98_21file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dca/License_Applications_98-21.csv"
-    application_00_12file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dca/License_Applications_00-12.csv"
+    df_list = FileRetriever('dca','applications').retrieve_df()
+    df_98_21 = df_list[0]
+    df_00_12 = df_list[1]
     
-    df_98_21 = pd.read_csv(application_98_21file_path)
-    df_00_12 = pd.read_csv(application_00_12file_path)
-
     ##### DATE FORMATTING FOR 00_12 FILE AS STRING AND THEN CONVERSION INTO DATETIME BEFORE FILE MERGE
 
     df_00_12['End Date'] = df_00_12['End Date'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)

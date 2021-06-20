@@ -1,6 +1,7 @@
 #######IMPORTS#######
 
 from classes.common import DirectoryFields
+from classes.file_retriever import FileRetriever
 from classes.source_file import SourceFile, pd, pickle, csv
 
 #######FUNCTION DEFINITIONS#########
@@ -87,12 +88,12 @@ def clean_addr(row):
 
 def instantiate_file(source):
     # Get file paths
-    aes_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dos/aes_10-20.csv"
-    barber_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dos/barber_92-20.csv"
-    
+    df_list = (FileRetriever('dos','aes').retrieve_df())
+    df_list += (FileRetriever('dos','barber').retrieve_df())
+
     # Get dfs from file paths
-    df_aes = pd.read_csv(aes_file_path)
-    df_barber = pd.read_csv(barber_file_path)
+    df_aes = df_list[0]
+    df_barber = df_list[1]
 
     # Concatenate the dfs  
     df_aes['Industry'] = 'Appearance Enhancement Service'

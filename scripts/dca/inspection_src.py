@@ -1,18 +1,17 @@
 #######IMPORTS#######
 
 from classes.common import DirectoryFields
+from classes.file_retriever import FileRetriever
 from classes.source_file import SourceFile, pd, pickle, csv
 
 #######FUNCTION DEFINITIONS#########
 
 def instantiate_file(source):
-    # Get file paths
-    inspection_10_17file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dca/DCA_Inspections_10-17.csv"
-    inspection_14_21file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dca/DCA_Inspections_14-21.csv"
+    df_list = FileRetriever('dca','inspections').retrieve_df()
 
     # Get df from file paths
-    df_10_17 = pd.read_csv(inspection_10_17file_path)
-    df_14_21 = pd.read_csv(inspection_14_21file_path)
+    df_10_17 = df_list[0]
+    df_14_21 = df_list[1]
 
     # Adjust column headers to match
     # col_10_17 = ['REC_ID','CERT_NBR','BIZ_NAME','INSP_DT','INSP_RSLT','INDUSTRY','BORO','BLDG_NBR','STREET','STREET2','UNIT_TYP','UNIT','DESCR','CITY','STATE','ZIP','X_COORD','Y_COORD']

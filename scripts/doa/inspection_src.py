@@ -1,21 +1,24 @@
 #######IMPORTS#######
 
 from classes.common import DirectoryFields
+from classes.file_retriever import FileRetriever
 from classes.source_file import SourceFile, pd, pickle, csv
 
 #######FUNCTION DEFINITIONS#########
 
 def instantiate_file(source):
-    # Get file paths
-    inspection_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doa/inspections_10-21.csv"
-    main_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doa/main_10-21.csv"
-    insp_onsite_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doa/inspections_onsite_10-21.csv"
-    def_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doa/deficiencies_10-21.csv"
+    df_list = FileRetriever('doa','inspections').retrieve_df()
+    df_list += (FileRetriever('doa','main').retrieve_df())
+    df_list += (FileRetriever('doa','inspections-onsite').retrieve_df())
+    df_list += (FileRetriever('doa','deficiencies').retrieve_df())
+    df = pd.concat(df_list, ignore_index=True)
+
     # Get dfs from file paths
-    df_insp = pd.read_csv(inspection_file_path)
-    df_master = pd.read_csv(main_file_path)
-    df_insp_os = pd.read_csv(insp_onsite_file_path)
-    df_def = pd.read_csv(def_file_path)
+    df_insp = df_list[0]
+    df_master = df_list[1]
+    df_insp_os = df_list[2]
+    df_def = df_list[3]
+    
     # Concatenate the dfs
     master_columns = ['ESTABNO','SANDATE01','NOFTEMP','NOPTEMP','NOSQFT','OOBDATE','OWNNAME','TRADENAME','STREET','CITY','ZIP','PHONE','ESTABTYPE1','ESTABTYPE2','ESTABTYPE3','ESTABTYPE4','ESTABTYPE5','ESTABTYPE6']
     

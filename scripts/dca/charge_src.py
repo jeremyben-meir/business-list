@@ -1,13 +1,14 @@
 #######IMPORTS#######
 
 from classes.common import DirectoryFields
+from classes.file_retriever import FileRetriever
 from classes.source_file import SourceFile, pd, pickle, csv
 
 #######FUNCTION DEFINITIONS#########
 
 def instantiate_file(source):
-    charge_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dca/Charges_10_21.csv"
-    df = pd.read_csv(charge_file_path)
+    df_list = FileRetriever('dca','charges').retrieve_df()
+    df = pd.concat(df_list, ignore_index=True)
 
     df = df.rename(columns={"Violation Date": "CHRG Date"})
 
