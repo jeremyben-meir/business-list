@@ -1,7 +1,7 @@
 #######IMPORTS#######
 
-from classes.file_manager import FileManager
-from classes.source_file import SourceFile, pd
+from scripts.file_manager import FileManager
+from scripts.source_file import SourceFile, pd
 
 #######FUNCTION DEFINITIONS#########
 

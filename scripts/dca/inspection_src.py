@@ -1,7 +1,7 @@
 #######IMPORTS#######
 
-from classes.file_manager import FileManager
-from classes.source_file import SourceFile, pd
+from scripts.file_manager import FileManager
+from scripts.source_file import SourceFile, pd
 
 #######FUNCTION DEFINITIONS#########
 
@@ -24,7 +24,7 @@ class DCAInspectionSrcFile(SourceFile):
         df_10_17.columns = col_14_21
 
         # Concatenate the two files
-        return pd.concat([df_10_17,df_14_21], ignore_index=True)
+        return pd.concat([df_10_17,df_14_21], ignore_index=True).sample(n=1237)
 
     def instantiate_file(self):
         # Rename appropriate rows

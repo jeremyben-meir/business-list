@@ -1,11 +1,10 @@
 ####### IMPORTS #######
 
-from classes.common import DirectoryFields
+from scripts.common import DirectoryFields
 from fuzzywuzzy import fuzz
 import pickle
 import re
 import pandas as pd
-from classes.progress_meter import ProgressMeter
 import uuid
 import csv
 
