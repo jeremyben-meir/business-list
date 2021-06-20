@@ -24,7 +24,7 @@ class DCAInspectionSrcFile(SourceFile):
         df_10_17.columns = col_14_21
 
         # Concatenate the two files
-        return pd.concat([df_10_17,df_14_21], ignore_index=True).sample(n=1237)
+        return pd.concat([df_10_17,df_14_21], ignore_index=True)
 
     def instantiate_file(self):
         # Rename appropriate rows
