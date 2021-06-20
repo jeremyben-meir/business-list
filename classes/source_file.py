@@ -191,5 +191,5 @@ class SourceFile:
 
         self.df = self.df.reset_index(drop=True)
 
-    def save_csv(self, save_name):
-        self.file_manager.save_csv(self.df,save_name)
+    def save_csv(self):
+        self.file_manager.save_csv(self.df)

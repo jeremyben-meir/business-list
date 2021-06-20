@@ -5,7 +5,7 @@ from fuzzywuzzy import fuzz
 import pickle
 import re
 import pandas as pd
-from classes.counter import Counter
+from classes.progress_meter import ProgressMeter
 import uuid
 import csv
 
@@ -78,14 +78,12 @@ def add_llid(df, bbl):
     addrmask = (df['Building Number'].str.len() > 0) & (df['Building Number']!= 'nan') & (df['Street'].str.len() > 0)  & (df['Street']!= 'nan') & (df['City'].str.len() > 0) & (df['City'] != 'nan')
     curgrp = df[bblmask].groupby('BBL') if bbl else df[~bblmask & addrmask].groupby(['Building Number','Street','City'])
 
-    counter = Counter(len(curgrp))
     for _ , group in curgrp:
         indexlist = []
         for index0,row0 in group.iterrows():
             if index0 not in indexlist:
                 indexlist += find_llid_sets(index0, row0, group, indexlist)
         df.loc[indexlist,"LLID"] = str(uuid.uuid4()) 
-        counter.tick()
 
     return df
 
@@ -116,7 +114,6 @@ def add_lbid(df):
 
     curgrp = df[df['LLID'].str.len() > 0].groupby('LLID')
 
-    counter = Counter(len(curgrp))
     for _ , group in curgrp:
         indexlist = []
         for index0,row0 in group.iterrows():
@@ -124,7 +121,6 @@ def add_lbid(df):
         for index0,row0 in group.iterrows():
             indexlist += find_lbid_sets_RecID(index0, row0, df, indexlist)
         df.loc[indexlist,"LBID"] = str(uuid.uuid4()) 
-        counter.tick()
 
     return df
 

@@ -1,5 +1,5 @@
 from classes.common import DirectoryFields
-from classes.counter import Counter
+from classes.progress_meter import ProgressMeter
 import json
 import requests
 import pandas as pd
@@ -30,7 +30,7 @@ class BBLAdder:
             self.df = self.df.reset_index(drop=True)
 
         if self.id == 0:
-            self.counter = Counter(len(self.df), precision=1)
+            self.progress_meter = ProgressMeter(len(self.df), precision=1)
 
     def increment_global_key(self):
         self.key_row += 1
@@ -57,7 +57,7 @@ class BBLAdder:
     async def decide_result(self, session, index, row): 
         self.df.loc[index,"BBL"] = await self.get_result(session, f"{row['Building Number']} {row['Street']} {row['Zip'] if self.overwrite else row['City']}")
         if self.id == 0:
-            self.counter.tick()
+            self.progress_meter.tick()
 
     async def add_bbl_helper(self,top_index,bot_index):
         async with aiohttp.ClientSession() as session:
