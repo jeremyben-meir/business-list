@@ -1,65 +1,59 @@
 #######IMPORTS#######
 
-from classes.common import DirectoryFields
-from classes.file_retriever import FileRetriever
-from classes.source_file import SourceFile, pd, pickle, csv
+from classes.file_manager import FileManager
+from classes.source_file import SourceFile, pd
 
 #######FUNCTION DEFINITIONS#########
 
-def instantiate_file(source):
-    df_list = FileRetriever('dca','inspections').retrieve_df()
+class DCAInspectionSrcFile(SourceFile):
 
-    # Get df from file paths
-    df_10_17 = df_list[0]
-    df_14_21 = df_list[1]
+    def __init__(self):
+        file_manager = FileManager('dca',['inspections'], 'inspections')
+        super().__init__(self.retrieve_file(file_manager), file_manager)
 
-    # Adjust column headers to match
-    # col_10_17 = ['REC_ID','CERT_NBR','BIZ_NAME','INSP_DT','INSP_RSLT','INDUSTRY','BORO','BLDG_NBR','STREET','STREET2','UNIT_TYP','UNIT','DESCR','CITY','STATE','ZIP','X_COORD','Y_COORD']
-    col_14_21 = ['Record ID','Certificate Number','Business Name','Inspection Date','Inspection Result','Industry','Borough','Building Number','Street','Street 2','Unit Type','Unit','Description','City','State','Zip','Longitude','Latitude']
-    df_10_17.columns = col_14_21
+    def retrieve_file(self,file_manager):
+        df_list = file_manager.retrieve_df()
 
-    # Concatenate the two files
-    df = pd.concat([df_10_17,df_14_21], ignore_index=True)
+        # Get df from file paths
+        df_10_17 = df_list[1]
+        df_14_21 = df_list[0]
 
-    # Rename appropriate rows
-    df = df.rename(columns={"Inspection Date": "INSP Date", 'Inspection Result':"INSP Result"})
+        # Adjust column headers to match
+        # col_10_17 = ['REC_ID','CERT_NBR','BIZ_NAME','INSP_DT','INSP_RSLT','INDUSTRY','BORO','BLDG_NBR','STREET','STREET2','UNIT_TYP','UNIT','DESCR','CITY','STATE','ZIP','X_COORD','Y_COORD']
+        col_14_21 = ['Record ID','Certificate Number','Business Name','Inspection Date','Inspection Result','Industry','Borough','Building Number','Street','Street 2','Unit Type','Unit','Description','City','State','Zip','Longitude','Latitude']
+        df_10_17.columns = col_14_21
 
-    business_indicators_noninformative = ["Business Padlocked", "Unable to Locate", "Unable to Complete Inspection", "Unable to Seize Vehicle"]
+        # Concatenate the two files
+        return pd.concat([df_10_17,df_14_21], ignore_index=True)
 
-    df['Contact Phone'] = ""
-    df["INSP Result"] = df["INSP Result"].astype(str)
-    df = df[~df["INSP Result"].isin(business_indicators_noninformative)]
-    df["INSP Date"] = df["INSP Date"].astype('datetime64[D]')
-    df['Street 2'] = df['Street 2'].astype(str)
-    df['Unit Type'] = df['Unit Type'].astype(str)
-    df['Unit'] = df['Unit'].astype(str)
-    df['Description'] = df['Description'].astype(str)
+    def instantiate_file(self):
+        # Rename appropriate rows
+        self.df = self.df.rename(columns={"Inspection Date": "INSP Date", 'Inspection Result':"INSP Result"})
 
-    del df["Certificate Number"]
-    del df["Borough"]
-    del df["Longitude"]
-    del df["Latitude"]
-       
-    df = source.type_cast(df)
-    df = source.clean_zip_city(df)
-    df = df.drop_duplicates()
+        business_indicators_noninformative = ["Business Padlocked", "Unable to Locate", "Unable to Complete Inspection", "Unable to Seize Vehicle"]
 
-    return df
+        self.df['Contact Phone'] = ""
+        self.df["INSP Result"] = self.df["INSP Result"].astype(str)
+        self.df = self.df[~self.df["INSP Result"].isin(business_indicators_noninformative)]
+        self.df["INSP Date"] = self.df["INSP Date"].astype('datetime64[D]')
+        self.df['Street 2'] = self.df['Street 2'].astype(str)
+        self.df['Unit Type'] = self.df['Unit Type'].astype(str)
+        self.df['Unit'] = self.df['Unit'].astype(str)
+        self.df['Description'] = self.df['Description'].astype(str)
 
-def begin_process(segment):
-    source = SourceFile()
-    
-    if 0 in segment:
-        df = instantiate_file(source)
-        pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dca/temp/df-insp.p", "wb" ))
+        del self.df["Certificate Number"]
+        del self.df["Borough"]
+        del self.df["Longitude"]
+        del self.df["Latitude"]
 
-    if 1 in segment:
-        df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dca/temp/df-insp.p", "rb" ))
-        df = source.add_bbl_async(df)
-        pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dca/temp/df-insp-1.p", "wb" ))
+        self.type_cast()
+        self.clean_zip_city()
+        self.df = self.df.drop_duplicates()
 
-    cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dca/temp/inspections.csv"
-    df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
+        self.file_manager.store_pickle(self.df,0)
         
 if __name__ == '__main__':
-    begin_process([0])
+    source = DCAInspectionSrcFile()
+    source.instantiate_file()
+    source.add_bbl_async()
+    source.save_csv()

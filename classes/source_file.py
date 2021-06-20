@@ -19,49 +19,59 @@ class SourceFile:
 
     # INIT #################################################################################################
 
-    def __init__(self):
+    def __init__(self, df, file_manager):
         self.keylist = self.format_keys()
+        self.df = df
+        self.file_manager = file_manager
 
     # ADD BBL ##############################################################################################
 
-    def add_bbl_async(self, df, overwrite=True):
-        df = df.reset_index(drop=True)
+    def add_bbl_async(self, overwrite=True):
+        self.df = self.file_manager.load_pickle(0)
+        self.df = self.df.reset_index(drop=True)
         if overwrite:
-            df = BBLAdder(df, self.keylist, overwrite=True, id_ = 0).add_bbl_starter()
-        df = BBLAdder(df, self.keylist, overwrite=False, id_ = 0).add_bbl_starter()
-        return df
+            self.df = BBLAdder(self.df, self.keylist, overwrite=True, id_ = 0).add_bbl_starter()
+        self.df = BBLAdder(self.df, self.keylist, overwrite=False, id_ = 0).add_bbl_starter()
+        self.file_manager.store_pickle(self.df,1)
 
     # CITY SETTING #########################################################################################
 
-    def type_cast(self, df):
+    def type_cast(self):
         print("Type casting")
 
-        df['BBL'] = ""
+        self.df['BBL'] = ""
 
-        df['Record ID'] = df['Record ID'].astype(str)
+        self.df['Record ID'] = self.df['Record ID'].astype(str)
 
-        df['Contact Phone'] = df['Contact Phone'].astype(str)
-        df['Contact Phone'] = df['Contact Phone'].apply(lambda x: x.replace("-","").replace(")","").replace("(","").replace(" ","").replace(".","").replace("/","").replace("\\",""))
+        self.df['Contact Phone'] = self.df['Contact Phone'].astype(str)
+        self.df['Contact Phone'] = self.df['Contact Phone'].apply(lambda x: x.replace("-","").replace(")","").replace("(","").replace(" ","").replace(".","").replace("/","").replace("\\",""))
 
-        df['Business Name'] = df['Business Name'].astype(str)
+        self.df['Business Name'] = self.df['Business Name'].astype(str)
         
-        df['Industry'] = df['Industry'].astype(str)
+        self.df['Industry'] = self.df['Industry'].astype(str)
 
-        df['State'] = df['State'].astype(str)    
-        df['State'] = df['State'].str.upper()
-        df['State'] = df['State'].replace(['N/A','NULL','nan','NaN'],'')
-        df['State'] = df['State'].fillna("")
+        self.df['State'] = self.df['State'].astype(str)    
+        self.df['State'] = self.df['State'].str.upper()
+        self.df['State'] = self.df['State'].replace(['N/A','NULL','nan','NaN'],'')
+        self.df['State'] = self.df['State'].fillna("")
         
-        df["Zip"] = df["Zip"].astype(str)
-        df['Zip'] = df['Zip'].replace(['N/A','NULL','nan','NaN'],'')
-        df["Zip"] = df["Zip"].fillna("")
-        df["Zip"] = df["Zip"].apply(lambda x: x.strip(' '))
-        df["Zip"] = df["Zip"].apply(lambda x: str(int(float(x))) if x!='' and str(x).isnumeric() and len(str(int(float(x))))==5 else '')
+        self.df["Zip"] = self.df["Zip"].astype(str)
+        self.df['Zip'] = self.df['Zip'].replace(['N/A','NULL','nan','NaN'],'')
+        self.df["Zip"] = self.df["Zip"].fillna("")
+        self.df["Zip"] = self.df["Zip"].apply(lambda x: x.strip(' '))
+        def fix_zip(x):
+            try:
+                res = str(int(float(x)))
+                if len(res)==5:
+                    return res
+            except:
+                return ""
+        self.df["Zip"] = self.df["Zip"].apply(lambda x: fix_zip(x))
         
-        df["City"] = df["City"].astype(str)
-        df['City'] = df['City'].str.upper()
-        df['City'] = df['City'].replace(['N/A','NULL','nan','NaN'],'')
-        df["City"] = df["City"].fillna("")
+        self.df["City"] = self.df["City"].astype(str)
+        self.df['City'] = self.df['City'].str.upper()
+        self.df['City'] = self.df['City'].replace(['N/A','NULL','nan','NaN'],'')
+        self.df["City"] = self.df["City"].fillna("")
 
         def fix_dashed(x):
             if (len(x)==6 or len(x)==8) and (x.isnumeric()):
@@ -69,18 +79,16 @@ class SourceFile:
                 if abs(int(x[:split_index])-int(x[split_index:])) <= 100:
                     x = f"{x[:split_index]}-{x[split_index:]}"
             return x
-        df['Building Number'] = df['Building Number'].astype(str)
-        df['Building Number'] = df['Building Number'].apply(lambda x: x.strip(' '))
-        df['Building Number'] = df['Building Number'].apply(lambda x: fix_dashed(x))
+        self.df['Building Number'] = self.df['Building Number'].astype(str)
+        self.df['Building Number'] = self.df['Building Number'].apply(lambda x: x.strip(' '))
+        self.df['Building Number'] = self.df['Building Number'].apply(lambda x: fix_dashed(x))
 
-        df['Street'] = df['Street'].astype(str)
-        df['Street'] = df['Street'].replace("  "," ")
-        df['Street'] = df['Street'].replace(",","")
-        df['Street'] = df['Street'].apply(lambda x: x.strip(' '))
+        self.df['Street'] = self.df['Street'].astype(str)
+        self.df['Street'] = self.df['Street'].replace("  "," ")
+        self.df['Street'] = self.df['Street'].replace(",","")
+        self.df['Street'] = self.df['Street'].apply(lambda x: x.strip(' '))
 
-        return df
-
-    def clean_zip_city(self, df): #input df must have have header 'City',Zip', and 'State'
+    def clean_zip_city(self): #input df must have have header 'City',Zip', and 'State'
         print("Cleaning address")
 
         bronx_zip = ['10465', '10460', '10471', '10474', '10453', '10470', '10472', '10454', '10463', '10451', '10475', '10461', '10469', '10473', '10467', '10457', '10466', '10458', '10468', '10456', '10452', '10459', '10455', '10462', '10464']
@@ -176,11 +184,12 @@ class SourceFile:
                     break
             return row
 
-        df = df[~ ((df['City'].apply(lev_city) > 90) | ((df['City'] =='') & (df['Zip']=='')))]
-        df = df.apply(lambda row : row_fix(row), axis=1) 
-        df = df.apply(lambda row : address_clean(row), axis=1) 
-        df = df[~ (df['City'] == "scheduled_for_deletion")]
+        self.df = self.df[~ ((self.df['City'].apply(lev_city) > 90) | ((self.df['City'] =='') & (self.df['Zip']=='')))]
+        self.df = self.df.apply(lambda row : row_fix(row), axis=1) 
+        self.df = self.df.apply(lambda row : address_clean(row), axis=1) 
+        self.df = self.df[~ (self.df['City'] == "scheduled_for_deletion")]
 
-        df = df.reset_index(drop=True)
-        
-        return df
+        self.df = self.df.reset_index(drop=True)
+
+    def save_csv(self, save_name):
+        self.file_manager.save_csv(self.df,save_name)

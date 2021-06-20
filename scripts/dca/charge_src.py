@@ -1,55 +1,50 @@
 #######IMPORTS#######
 
-from classes.common import DirectoryFields
-from classes.file_retriever import FileRetriever
-from classes.source_file import SourceFile, pd, pickle, csv
+from classes.file_manager import FileManager
+from classes.source_file import SourceFile, pd
 
 #######FUNCTION DEFINITIONS#########
 
-def instantiate_file(source):
-    df_list = FileRetriever('dca','charges').retrieve_df()
-    df = pd.concat(df_list, ignore_index=True)
+class DCAChargeSrcFile(SourceFile):
 
-    df = df.rename(columns={"Violation Date": "CHRG Date"})
+    def __init__(self):
+        file_manager = FileManager('dca',['charges'],'charges')
+        super().__init__(self.retrieve_file(file_manager), file_manager)
 
-    df['Contact Phone'] = ""
-    df['CHRG Date'] = df['CHRG Date'].astype('datetime64[D]')
-    df['Street 2'] = df['Street 2'].astype(str)
-    df['Unit Type'] = df['Unit Type'].astype(str)
-    df['Unit'] = df['Unit'].astype(str)
-    df['Description'] = df['Description'].astype(str)
+    def retrieve_file(self,file_manager):
+        df_list = file_manager.retrieve_df()
+        return pd.concat(df_list, ignore_index=True)
 
-    del df["Certificate Number"]
-    del df["Borough"]
-    del df["Charge"]
-    del df["Charge Count"]
-    del df["Outcome"]
-    del df["Counts Settled"]
-    del df["Counts Guilty"]
-    del df["Counts Not Guilty"]
-    del df["Longitude"]
-    del df["Latitude"]
+    def instantiate_file(self):
 
-    df = source.type_cast(df)
-    df = source.clean_zip_city(df)
-    df = df.drop_duplicates()
+        self.df = self.df.rename(columns={"Violation Date": "CHRG Date"})
 
-    return df
+        self.df['Contact Phone'] = ""
+        self.df['CHRG Date'] = self.df['CHRG Date'].astype('datetime64[D]')
+        self.df['Street 2'] = self.df['Street 2'].astype(str)
+        self.df['Unit Type'] = self.df['Unit Type'].astype(str)
+        self.df['Unit'] = self.df['Unit'].astype(str)
+        self.df['Description'] = self.df['Description'].astype(str)
 
-def begin_process(segment):
-    source = SourceFile()
+        del self.df["Certificate Number"]
+        del self.df["Borough"]
+        del self.df["Charge"]
+        del self.df["Charge Count"]
+        del self.df["Outcome"]
+        del self.df["Counts Settled"]
+        del self.df["Counts Guilty"]
+        del self.df["Counts Not Guilty"]
+        del self.df["Longitude"]
+        del self.df["Latitude"]
 
-    if 0 in segment:
-        df = instantiate_file(source)
-        pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dca/temp/df-charge.p", "wb" ))
+        self.type_cast()
+        self.clean_zip_city()
+        self.df = self.df.drop_duplicates()
 
-    if 1 in segment:
-        df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dca/temp/df-charge.p", "rb" ))
-        df = source.add_bbl_async(df)
-        pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dca/temp/df-charge-1.p", "wb" ))
-
-    cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dca/temp/charges.csv"
-    df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
+        self.file_manager.store_pickle(self.df,0)
         
 if __name__ == '__main__':
-    begin_process([0])
+    source = DCAChargeSrcFile()
+    source.instantiate_file()
+    source.add_bbl_async()
+    source.save_csv()
