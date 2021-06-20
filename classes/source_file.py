@@ -56,7 +56,7 @@ class SourceFile:
         df['Zip'] = df['Zip'].replace(['N/A','NULL','nan','NaN'],'')
         df["Zip"] = df["Zip"].fillna("")
         df["Zip"] = df["Zip"].apply(lambda x: x.strip(' '))
-        df["Zip"] = df["Zip"].apply(lambda x: str(int(float(x))) if x!='' and str(x).isdigit and len(str(int(float(x))))==5 else '')
+        df["Zip"] = df["Zip"].apply(lambda x: str(int(float(x))) if x!='' and str(x).isnumeric() and len(str(int(float(x))))==5 else '')
         
         df["City"] = df["City"].astype(str)
         df['City'] = df['City'].str.upper()
@@ -64,7 +64,7 @@ class SourceFile:
         df["City"] = df["City"].fillna("")
 
         def fix_dashed(x):
-            if (len(x)==6 or len(x)==8) and ("-" not in x) and (not re.search('[a-zA-Z]', x)):
+            if (len(x)==6 or len(x)==8) and (x.isnumeric()):
                 split_index = round(len(x)/2)
                 if abs(int(x[:split_index])-int(x[split_index:])) <= 100:
                     x = f"{x[:split_index]}-{x[split_index:]}"

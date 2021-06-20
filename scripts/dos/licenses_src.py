@@ -89,7 +89,7 @@ def clean_addr(row):
 def instantiate_file(source):
     # Get file paths
     df_list = (FileRetriever('dos','aes').retrieve_df())
-    df_list.append(FileRetriever('dos','barber').retrieve_df())
+    df_list += (FileRetriever('dos','barber').retrieve_df())
 
     # Get dfs from file paths
     df_aes = df_list[0]

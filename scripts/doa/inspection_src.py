@@ -8,9 +8,9 @@ from classes.source_file import SourceFile, pd, pickle, csv
 
 def instantiate_file(source):
     df_list = FileRetriever('doa','inspections').retrieve_df()
-    df_list.append(FileRetriever('doa','main').retrieve_df())
-    df_list.append(FileRetriever('doa','inspection-onsite').retrieve_df())
-    df_list.append(FileRetriever('doa','deficiencies').retrieve_df())
+    df_list += (FileRetriever('doa','main').retrieve_df())
+    df_list += (FileRetriever('doa','inspections-onsite').retrieve_df())
+    df_list += (FileRetriever('doa','deficiencies').retrieve_df())
     df = pd.concat(df_list, ignore_index=True)
 
     # Get dfs from file paths
