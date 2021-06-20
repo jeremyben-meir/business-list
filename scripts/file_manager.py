@@ -6,6 +6,7 @@ from os.path import isfile, join
 import pickle
 import csv
 import requests
+import time
 
 class FileManager:
 
@@ -33,6 +34,13 @@ class FileManager:
                 df_list.append(pd.read_csv(path, low_memory=False))
         return df_list
     
+    def fetch_api(self, url, filename):
+        req = requests.get(url)
+        url_content = req.content
+        csv_file = open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/{filename}/{time.time()}.csv", 'wb')
+        csv_file.write(url_content)
+        csv_file.close()
+
     def check_relevance(self,filename):
         df = pd.read_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/data-relevance.csv")
         df = df.set_index(['department','filename'])
@@ -45,11 +53,9 @@ class FileManager:
         if exp_date <= date.today():
             if len(row['api']) > 0 and row['api'] != 'nan':
                 print(f"Fetching from {row['api']}")
-                req = requests.get(row['api'])
-                url_content = req.content
-                csv_file = open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/{filename}/rando.csv", 'wb')
-                csv_file.write(url_content)
-                csv_file.close()
+                self.fetch_api(row['api'],filename)
+                df.loc[(self.department,filename),'last_retrieved'] = date.today()
+                df.to_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/data-relevance.csv")
             elif len(row['scrape_py']) > 0 and row['scrape_py'] != 'nan':
                 print(f"Running {row['scrape_py']}")
             elif len(row['FOIL']) > 0 and row['FOIL'] != 'nan':
