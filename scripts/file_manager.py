@@ -5,6 +5,7 @@ from os import listdir
 from os.path import isfile, join
 import pickle
 import csv
+import requests
 
 class FileManager:
 
@@ -44,8 +45,13 @@ class FileManager:
         if exp_date <= date.today():
             if len(row['api']) > 0 and row['api'] != 'nan':
                 print(f"Fetching from {row['api']}")
+                req = requests.get(row['api'])
+                url_content = req.content
+                csv_file = open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/{filename}/rando.csv", 'wb')
+                csv_file.write(url_content)
+                csv_file.close()
             elif len(row['scrape_py']) > 0 and row['scrape_py'] != 'nan':
-                print(f"Running {row['FOIL']}")
+                print(f"Running {row['scrape_py']}")
             elif len(row['FOIL']) > 0 and row['FOIL'] != 'nan':
                 print(row['FOIL'])
             else:
