@@ -1,7 +1,5 @@
-from scripts.common import DirectoryFields
 from scripts.progress_meter import ProgressMeter
 import json
-import requests
 import pandas as pd
 import asyncio
 import aiohttp
