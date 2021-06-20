@@ -1,17 +1,14 @@
 #######IMPORTS#######
 
 from classes.common import DirectoryFields
+from classes.file_retriever import FileRetriever
 from classes.source_file import SourceFile, pd, pickle, csv
 
 #######FUNCTION DEFINITIONS#########
 
 def instantiate_file(source):
-    dh_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doh/doh_10-20.txt"
-    textfile = open(dh_file_path, "r")
-    colnames = textfile.readline().strip("\n").split("\t")
-    lines = textfile.readlines()
-    listlist = [x.strip("\n").split("\t") for x in lines]
-    df = pd.DataFrame(listlist, columns=colnames)
+    df_list = FileRetriever('doh','inspections').retrieve_df()
+    df = df_list[0]
 
     df = df.rename(columns={"CAMIS": "Record ID", 'DBA':'Business Name', 'BORO':'City', 'ZIPCODE':'Zip','PHONE':'Contact Phone', 'CUISINECODE':'Industry','INSPDATE':'INSP Date','CASE_DECISION_DATE':'Case Dec. Date','CURRENTGRADE':'Current Grade','GRADEDATE':'Current Grade Date'})
     
