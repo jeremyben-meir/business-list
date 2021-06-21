@@ -37,7 +37,7 @@ class FileManager:
     def fetch_api(self, url, filename):
         req = requests.get(url)
         url_content = req.content
-        csv_file = open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/{filename}/{time.time()}.csv", 'wb')
+        csv_file = open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/{filename}/{self.department}_{filename}_{date.today()}.csv", 'wb')
         csv_file.write(url_content)
         csv_file.close()
 
@@ -71,10 +71,10 @@ class FileManager:
         return self.df_list
 
     def store_pickle(self,df,num):
-        pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/df-{num}.p", "wb" ))
+        pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/df-{self.outname}-{num}.p", "wb" ))
     
     def load_pickle(self,num):
-        return pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/df-{num}.p", "rb" ))
+        return pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/df-{self.outname}-{num}.p", "rb" ))
 
     def save_csv(self,df):
         cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/{self.outname}.csv"
