@@ -1,60 +1,54 @@
 #######IMPORTS#######
 
-from classes.common import DirectoryFields
-from classes.file_retriever import FileRetriever
-from classes.source_file import SourceFile, pd, pickle, csv
+from scripts.file_manager import FileManager
+from scripts.source_file import SourceFile, pd
 
 #######FUNCTION DEFINITIONS#########
 
-def instantiate_file(source):
-    df_list = FileRetriever('doh','inspections').retrieve_df()
-    df = df_list[0]
+class DOHInspectionSrcFile(SourceFile):
 
-    df = df.rename(columns={"CAMIS": "Record ID", 'DBA':'Business Name', 'BORO':'City', 'ZIPCODE':'Zip','PHONE':'Contact Phone', 'CUISINECODE':'Industry','INSPDATE':'INSP Date','CASE_DECISION_DATE':'Case Dec. Date','CURRENTGRADE':'Current Grade','GRADEDATE':'Current Grade Date'})
-    
-    df['City'] = df['City'].replace(['0','1','2','3',"4","5"],['','NEW YORK', 'BRONX', 'BROOKLYN', 'QUEENS', 'STATEN ISLAND'])
-    df['Building Number'] = df['ADDRESS'].apply(lambda x: x.split(" ")[0])
-    df['Street'] = df['ADDRESS'].apply(lambda x: " ".join(x.split(" ")[1:]))
-    df['Industry'] = df['Industry'].apply(lambda x: "Restaurant-"+x)
-    df['Industry'] = df['Industry'].apply(lambda x: x.strip('        '))
-    df['State'] = 'NY'
-    df['INSP Date'] = df['INSP Date'].astype('datetime64[D]')
-    df['Case Dec. Date'] = df['Case Dec. Date'].replace(['N/A','NULL','nan'],'')
-    df['Case Dec. Date'] = df['Case Dec. Date'].astype('datetime64[D]')
-    df['Current Grade'] = df['Current Grade'].astype(str)
-    df['Current Grade Date'] = df['Current Grade Date'].replace(['N/A','NULL','nan'],'')
-    df['Current Grade Date'] = df['Current Grade Date'].astype('datetime64[D]')
+    def __init__(self):
+        file_manager = FileManager('doh',['inspections'], 'inspections')
+        super().__init__(self.retrieve_file(file_manager), file_manager)
 
-    del df['ADDRESS']
-    del df['ACTION']
-    del df['PROGRAM']
-    del df['INSPTYPE']
-    del df['VIOLCODE']
-    del df['DISMISSED']
-    del df['SCORE']
-    del df['VIOLSCORE']
-    del df['MOD_TOTALSCORE']
+    def retrieve_file(self,file_manager):
+        df_list = file_manager.retrieve_df()
+        return pd.concat(df_list, ignore_index=True)
 
-    df = source.type_cast(df)
-    df = source.clean_zip_city(df)
-    df = df.drop_duplicates()
-    
-    return df
+    def instantiate_file(self):
+        self.df = self.df.rename(columns={"CAMIS": "Record ID", 'DBA':'Business Name', 'BORO':'City', 'ZIPCODE':'Zip','PHONE':'Contact Phone', 'CUISINECODE':'Industry','INSPDATE':'INSP Date','CASE_DECISION_DATE':'Case Dec. Date','CURRENTGRADE':'Current Grade','GRADEDATE':'Current Grade Date'})
+        
+        self.df['City'] = self.df['City'].replace(['0','1','2','3',"4","5"],['','NEW YORK', 'BRONX', 'BROOKLYN', 'QUEENS', 'STATEN ISLAND'])
+        self.df['Building Number'] = self.df['ADDRESS'].apply(lambda x: x.split(" ")[0])
+        self.df['Street'] = self.df['ADDRESS'].apply(lambda x: " ".join(x.split(" ")[1:]))
+        self.df['Industry'] = self.df['Industry'].apply(lambda x: "Restaurant-"+x)
+        self.df['Industry'] = self.df['Industry'].apply(lambda x: x.strip('        '))
+        self.df['State'] = 'NY'
+        self.df['INSP Date'] = self.df['INSP Date'].astype('datetime64[D]')
+        self.df['Case Dec. Date'] = self.df['Case Dec. Date'].replace(['N/A','NULL','nan'],'')
+        self.df['Case Dec. Date'] = self.df['Case Dec. Date'].astype('datetime64[D]')
+        self.df['Current Grade'] = self.df['Current Grade'].astype(str)
+        self.df['Current Grade Date'] = self.df['Current Grade Date'].replace(['N/A','NULL','nan'],'')
+        self.df['Current Grade Date'] = self.df['Current Grade Date'].astype('datetime64[D]')
 
-def begin_process(segment):
-    source = SourceFile()
+        del self.df['ADDRESS']
+        del self.df['ACTION']
+        del self.df['PROGRAM']
+        del self.df['INSPTYPE']
+        del self.df['VIOLCODE']
+        del self.df['DISMISSED']
+        del self.df['SCORE']
+        del self.df['VIOLSCORE']
+        del self.df['MOD_TOTALSCORE']
 
-    if 0 in segment:
-        df = instantiate_file(source)
-        pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doh/temp/df-doh.p", "wb" ))
+        self.type_cast()
+        self.clean_zip_city()
+        self.df = self.df.drop_duplicates()
 
-    if 1 in segment:
-        df = pickle.load( open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doh/temp/df-doh.p", "rb" ))
-        df = source.add_bbl_async(df)
-        pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doh/temp/df-doh-1.p", "wb" ))
-
-    cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doh/temp/inspections.csv"
-    df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
+        self.file_manager.store_pickle(self.df,0)
         
 if __name__ == '__main__':
-    begin_process([1])
+    source = DOHInspectionSrcFile()
+    source.instantiate_file()
+    source.add_bbl_async()
+    source.save_csv()

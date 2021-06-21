@@ -1,6 +1,6 @@
 import time
 
-class Counter:
+class ProgressMeter:
     
     def __init__(self, length, precision=1): 
         self.length = length
