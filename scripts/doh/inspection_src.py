@@ -11,8 +11,21 @@ class DOHInspectionSrcFile(SourceFile):
         file_manager = FileManager('doh',['inspections'], 'inspections')
         super().__init__(self.retrieve_file(file_manager), file_manager)
 
+    def apply_template(self, df, template):
+        return df
+
+    def get_template(self,df_list):
+        for df_val in range(len(df_list)):
+            df = df_list[df_val]
+            if df.columns == ["a","b","c","d","e","f","g"]:
+                df_list[df_val] = self.apply_template(df,0)
+            elif df.columns == ["a","z","c","d","e","f","g"]:
+                df_list[df_val] = self.apply_template(df,1)
+        return df_list
+
     def retrieve_file(self,file_manager):
-        df_list = file_manager.retrieve_df()
+        df_list = file_manager.retrieve_df() #[df0,df1,df2,df3,df4]
+        df_list = self.get_template(df_list) ## [1,1,2,0,1]
         return pd.concat(df_list, ignore_index=True)
 
     def instantiate_file(self):
