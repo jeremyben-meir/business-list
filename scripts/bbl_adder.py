@@ -23,8 +23,8 @@ class BBLAdder:
 
         if self.overwrite == False:
 
-            self.org_df = df[~(df["BBL"].eq("AUTH_FAILURE") | df["BBL"].eq("NO_BBL"))]
-            self.df = df[df["BBL"].eq("AUTH_FAILURE") | df["BBL"].eq("NO_BBL")]
+            self.org_df = df[~(df["BBL"].eq("AUTH_FAILURE") | df["BBL"].eq("NO_BBL") | df["BBL"].eq(""))]
+            self.df = df[df["BBL"].eq("AUTH_FAILURE") | df["BBL"].eq("NO_BBL") | df["BBL"].eq("")]
             self.df = self.df.reset_index(drop=True)
 
         if self.id == 0:

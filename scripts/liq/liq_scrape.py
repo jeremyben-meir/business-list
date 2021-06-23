@@ -9,10 +9,12 @@ import pandas as pd
 import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
+from lxml import etree
 
 class LiquorScrape():
     def __init__(self):
         self.county_list = ['QUEENS','RICHMOND','KINGS','BRONX','NEW YORK']
+        self.df = pd.DataFrame(columns=["Premises Name","Trade Name","Zone","Address","County","Serial Number","License Type","License Status","Credit Group","Filing Date","Effective Date","Expiration Date","Principal's Name"])#,"Serial 2","License Class"])
 
     # def write_to_table(self, write_list,liq_df,driver):
     #     liq_df.loc[len(liq_df)] = write_list
@@ -126,41 +128,62 @@ class LiquorScrape():
             async with session.get(url) as response:
                 text = await response.text()
                 tags = await self.extract_tags(text)
-                return url, tags
+                return tags
         except Exception as e:
             print(f"get error:  {e}")
+            return [url]
             
     async def extract_tags(self, text): ##EDIT CONTENT
         try:
             soup = BeautifulSoup(text, 'html.parser')
-            print(soup)
-            return soup.title
+            tree = etree.HTML(str(soup))
+            labels = tree.xpath('//*[@class="displaylabel"]')
+            values = tree.xpath('//*[@class="displayvalue"]')
+            counter = 1
+            # dflen = len(self.df)
+            # if dflen % 100 == 0:
+            #     print(dflen)
+            val_list = []
+            if len(labels) != 13:
+                print(len(labels))
+            for item in labels:
+                # print(f"{item.text} {values[counter].text}")
+                # self.df.loc[dflen,item.text.strip(":")] = values[counter].text
+                val_list.append(values[counter].text)
+                counter += 2
+            return val_list
         except Exception as e:
             print(f"extract error:  {e}")
+            return []
 
     async def main(self, urls):
         tasks = []
-        headers = {
-            "user-agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"}
+        headers = ({'User-Agent':
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
+            (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36',\
+            'Accept-Language': 'en-US, en;q=0.5'})
         async with aiohttp.ClientSession(headers=headers) as session:
             for url in urls:
                 tasks.append(self.fetch(session, url))
-
             htmls = await asyncio.gather(*tasks)
-
-            for html in htmls:
-                if html is not None:
-                    print(f"url:   {html[0]}")
-                    print(f"tag:   {html[1]}")
-
+            # for html in htmls:
+            #     if html is not None:
+            #         print(len(html))
+            # print(len(htmls))
+            self.df=pd.DataFrame(htmls, columns=self.df.columns).append(self.df, ignore_index=True)
+            print(self.df)
+            
     def get_data(self):
         self.links = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/links-liqour-0", "rb"))
         print(len(self.links))
-        self.df = pd.DataFrame(columns=["Serial","License Type","License Status","Credit Group","Filing Date","Effective Date","Expiration Date","Principal's Name","Premises Name","Trade Name","Zone","County","Address Tab","Serial 2","License Class"])
-        segment_size = 5000
+        segment_size = 1000
         for ticker in range (0,len(self.links),segment_size):
             bot_index = ticker+segment_size if ticker+segment_size < len(self.links) else len(self.links)
             asyncio.run(self.main(self.links[ticker:bot_index]))
+            print(ticker)
+            pickle.dump(self.df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/df-liqour-0", "wb"))
+        cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/liq/temp/liq_scrape.csv"
+        self.df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
 
     def save_pages(self):
         pickle.dump(self.links, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/links-liqour-0", "wb"))
