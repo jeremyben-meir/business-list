@@ -39,7 +39,7 @@ class SourceFile:
     def type_cast(self):
         print("Type casting")
         
-        if set(['BBL']).issubset(self.df.columns):
+        if 'BBL' in self.df.columns.to_list():
             self.df['BBL'] = self.df['BBL'].astype(str)
             self.df['BBL'] = self.df['BBL'].apply(lambda x: '' if ~x.isnumeric() else x)
         else:
