@@ -1,15 +1,14 @@
 #######IMPORTS#######
 
 from scripts.file_manager import FileManager
-from scripts.source_file import SourceFile, pd
-import sys
+from scripts.source_file import SourceFile, pd, sys
 
 #######FUNCTION DEFINITIONS#########
 
 class DOSLicensesSrcFile(SourceFile):
 
     def __init__(self):
-        file_manager = FileManager('dos',['aes','barber'], 'licenses')
+        file_manager = FileManager('dos',['aes','barber'], 'license')
         super().__init__(self.retrieve_file(file_manager), file_manager)
 
     def apply_template(self, df, template):

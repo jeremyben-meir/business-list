@@ -1,15 +1,14 @@
 #######IMPORTS#######
 
 from scripts.file_manager import FileManager
-from scripts.source_file import SourceFile, pd
-import sys
+from scripts.source_file import SourceFile, pd, sys
 
 #######FUNCTION DEFINITIONS#########
 
 class DCAChargeSrcFile(SourceFile):
 
     def __init__(self):
-        file_manager = FileManager('dca',['charges'],'charges')
+        file_manager = FileManager('dca',['charge'],'charge')
         super().__init__(self.retrieve_file(file_manager), file_manager)
 
     def apply_template(self, df, template):
