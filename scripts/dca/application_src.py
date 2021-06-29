@@ -11,21 +11,52 @@ class DCAApplicationSrcFile(SourceFile):
         file_manager = FileManager('dca',['applications'], 'applications')
         super().__init__(self.retrieve_file(file_manager),file_manager)
 
+    def apply_template(self, df, template):
+        if template == 0:
+            df['End Date'] = df['End Date'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
+            df['Start Date'] = df['Start Date'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
+            df['Status Date'] = df['Status Date'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
+            df['License Start'] = df['License Start'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
+            df['Expiration Date'] = df['Expiration Date'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
+            df.columns = ['Application ID', 'License Number', 'License Type', 'Application or Renewal', 'Business Name', 'Status', 'Status Date', 'Start Date', 'End Date', 'License Start', 'Expiration Date', 'Temp Op Letter Issued', 'Temp Op Letter Expiration', 'License Category', 'Application Category', 'Building Number', 'Street', 'Street 2', 'Unit Type', 'Unit', 'Description', 'City', 'State', 'Zip', 'Contact Phone', 'Last Update Date']
+        elif template == 1:
+            del df['Longitude']
+            del df['Latitude']
+            df.columns = ['Application ID', 'License Number', 'License Type', 'Application or Renewal', 'Business Name', 'Status', 'Status Date', 'Start Date', 'End Date', 'License Start', 'Expiration Date', 'Temp Op Letter Issued', 'Temp Op Letter Expiration', 'License Category', 'Application Category', 'Building Number', 'Street', 'Street 2', 'Unit Type', 'Unit', 'Description', 'City', 'State', 'Zip', 'Contact Phone', 'Last Update Date']
+        elif template == 2:
+            del df['longitude']
+            del df['latitude']
+            del df['active_vehicles']
+            df['Status Date'] = ''
+            df['License Start'] = ''
+            df['Expiration Date'] = ''
+            df['Last Update Date'] = ''
+            df = df[['application_id', 'license_number', 'license_type', 'application_or_renewal', 'business_name', 'status','Status Date', 'start_date', 'end_date', 'License Start', 'Expiration Date', 'temp_op_letter_issued', 'temp_op_letter_expiration', 'license_category', 'application_category', 'building_number', 'street', 'street_2', 'unit_type', 'unit', 'description', 'city', 'state', 'zip', 'contact_phone', 'Last Update Date']]
+            df.columns = ['Application ID', 'License Number', 'License Type', 'Application or Renewal', 'Business Name', 'Status', 'Status Date', 'Start Date', 'End Date', 'License Start', 'Expiration Date', 'Temp Op Letter Issued', 'Temp Op Letter Expiration', 'License Category', 'Application Category', 'Building Number', 'Street', 'Street 2', 'Unit Type', 'Unit', 'Description', 'City', 'State', 'Zip', 'Contact Phone', 'Last Update Date']
+        return df
+
+    def get_template(self,df_list):
+        column_0 = ['Application ID', 'License Number', 'License Type', 'Application or Renewal', 'Business Name', 'Status', 'Status Date', 'Start Date', 'End Date', 'License Start', 'Expiration Date', 'Temp Op Letter Issued', 'Temp Op Letter Expiration', 'License Category', 'Application Category', 'Building Number', 'Street', 'Street 2', 'Unit Type', 'Unit', 'Description', 'City', 'State', 'Zip', 'Contact Phone', 'Last Update Date'] 
+        column_1 = ['Application ID', 'License Number', 'License Type', 'Application or Renewal', 'Business Name', 'Status', 'Status Date', 'Start Date', 'End Date', 'License Start', 'Expiration Date', 'Temp Op Letter Issued', 'Temp Op Letter Expiration', 'License Category', 'Application Category', 'Building Number', 'Street', 'Street 2', 'Unit Type', 'Unit', 'Description', 'City', 'State', 'Zip', 'Contact Phone', 'Last Update Date', 'Longitude', 'Latitude']
+        column_2 = ['application_id', 'license_number', 'license_type', 'application_or_renewal', 'business_name', 'status', 'start_date', 'end_date', 'temp_op_letter_issued', 'temp_op_letter_expiration', 'license_category', 'application_category', 'building_number', 'street', 'street_2', 'unit_type', 'unit', 'description', 'city', 'state', 'zip', 'contact_phone', 'longitude', 'latitude', 'active_vehicles']
+
+        for df_val in range(len(df_list)):
+            df = df_list[df_val]
+            columns = df.columns.tolist()
+            if columns == column_0:
+                df_list[df_val] = self.apply_template(df,0)
+            elif columns == column_1:
+                df_list[df_val] = self.apply_template(df,1)
+            elif columns == column_2:
+                df_list[df_val] = self.apply_template(df,2)
+            else:
+                sys.exit('Columns do not match any templates.')
+        return df_list
+
     def retrieve_file(self,file_manager):
-        df_list = file_manager.retrieve_df()
-
-        df_98_21 = df_list[1]
-        df_00_12 = df_list[0]
-        
-        ##### DATE FORMATTING FOR 00_12 FILE AS STRING AND THEN CONVERSION INTO DATETIME BEFORE FILE MERGE
-
-        df_00_12['End Date'] = df_00_12['End Date'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
-        df_00_12['Start Date'] = df_00_12['Start Date'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
-        df_00_12['Status Date'] = df_00_12['Status Date'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
-        df_00_12['License Start'] = df_00_12['License Start'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
-        df_00_12['Expiration Date'] = df_00_12['Expiration Date'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
-        
-        return pd.concat([df_98_21,df_00_12], ignore_index=True).sample(1231)
+        df_list = file_manager.retrieve_df() 
+        df_list = self.get_template(df_list) 
+        return pd.concat(df_list, ignore_index=True)
 
     def instantiate_file(self):
 
@@ -52,8 +83,6 @@ class DCAApplicationSrcFile(SourceFile):
 
         del self.df["Application Category"]
         del self.df["Last Update Date"]
-        del self.df["Longitude"]
-        del self.df["Latitude"]
         
         self.type_cast()
         self.clean_zip_city()

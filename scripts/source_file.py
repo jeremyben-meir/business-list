@@ -38,9 +38,13 @@ class SourceFile:
 
     def type_cast(self):
         print("Type casting")
-
-        self.df['BBL'] = ""
-
+        
+        if 'BBL' in self.df.columns.to_list():
+            self.df['BBL'] = self.df['BBL'].astype(str)
+            self.df['BBL'] = self.df['BBL'].apply(lambda x: '' if ~x.isnumeric() else x)
+        else:
+            self.df['BBL'] = ""
+        
         self.df['Record ID'] = self.df['Record ID'].astype(str)
 
         self.df['Contact Phone'] = self.df['Contact Phone'].astype(str)

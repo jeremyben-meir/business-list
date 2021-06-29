@@ -2,6 +2,7 @@
 
 from scripts.file_manager import FileManager
 from scripts.source_file import SourceFile, pd
+import sys
 
 #######FUNCTION DEFINITIONS#########
 
@@ -10,24 +11,64 @@ class DOAInspectionSrcFile(SourceFile):
     def __init__(self):
         file_manager = FileManager('doa',['inspections','main','inspections-onsite','deficiencies'],'inspections')
         super().__init__(self.retrieve_file(file_manager), file_manager)
+   
+    def apply_template(self, df, template):
+        if template == 0:
+            df = df[['ESTABNO','ZIP','INSPDATE','LICDATE']]
+        if template == 1:
+            df = df[['ESTABNO','SANDATE01','NOFTEMP','NOPTEMP','NOSQFT','OOBDATE','OWNNAME','TRADENAME','STREET','CITY','ZIP','PHONE','ESTABTYPE1','ESTABTYPE2','ESTABTYPE3','ESTABTYPE4','ESTABTYPE5','ESTABTYPE6']]
+        if template == 2:
+            df = df[['ESTABNO','INSPDATE']]
+        if template == 3:
+            df = df[['ESTABNO','INSPDATE']]
+        return df
+
+    def get_template(self,df_list):
+        column_0 = ['ESTABNO', 'INSPDATE', 'BEGTIME', 'INSPTYPE', 'SCORE', 'FDACONTR', 'PHOTOS', 'COMPLAINT', 'RECNAME', 'RECTITLE', 'OPWITHOUT', 'MEMO', 'LICTYPE', 'LICDATE', 'OWNNAME', 'TRADENAME', 'STREET', 'CITY', 'ZIP', 'ESTABTYPE1', 'ESTABTYPE2', 'ESTABTYPE3', 'ESTABTYPE4', 'ESTABTYPE5', 'ESTABTYPE6', 'IPHCODE', 'PRINTED', 'BACKSYNC', 'LIMITEDIND', 'CRITDEFFIX']
+        column_1 = ['ESTABNO', 'OWNNAME', 'TRADENAME', 'STREET', 'CITY', 'ZIP', 'PHONE', 'ESTABTYPE1', 'ESTABTYPE2', 'ESTABTYPE3', 'ESTABTYPE4', 'ESTABTYPE5','ESTABTYPE6', 'PROCCODE1', 'COMMCODE1', 'PROCCODE2', 'COMMCODE2','PROCCODE3', 'COMMCODE3', 'PROCCODE4', 'COMMCODE4', 'PROCCODE5','COMMCODE5', 'PROCCODE6', 'COMMCODE6', 'SANDATE01', 'SANSCORE01','SANTYPE01', 'IPHCODE', 'VAR1CODE', 'VAR2CODE', 'SCANIND', 'PRODIND','EGGSIND', 'WATERSOURC', 'HOLDIND', 'UNITPRICE', 'CHAINNO', 'OPERSU','OPERMO', 'OPERTU', 'OPERWE', 'OPERTH', 'OPERFR', 'OPERSA', 'OPEROPEN','OPERAPOPN', 'OPERCLOSE', 'OPERAPCLS', 'OPERBEGMM', 'OPERENDMM', 'NOFTEMP', 'NOPTEMP', 'NOSQFT', 'NOCHKOUT', 'CERTDATE', 'OOBDATE','REGION', 'ZONE', 'TRANSTIME', 'LIMITEDIND']
+        column_2 = ['ESTABNO', 'INSPDATE', 'BEGTIME', 'INSPNO', 'TIMEIN', 'TIMEOUT','TOTALTIME']
+        column_3 = ['ESTABNO', 'INSPDATE', 'BEGTIME', 'DEFNO', 'DEFTEXT']
+
+        df_insp = pd.DataFrame()
+        df_main = pd.DataFrame()
+        df_insp_os = pd.DataFrame()
+        df_def = pd.DataFrame()
+
+        for df_val in range(len(df_list)):
+            df = df_list[df_val]
+            columns = df.columns.tolist()
+            if columns == column_0:
+                df = self.apply_template(df,0)
+                df_insp = pd.concat([df_insp,df], ignore_index=True)
+                df_insp = df_insp.drop_duplicates()
+            elif columns == column_1:
+                df = self.apply_template(df,1)
+                df_main = pd.concat([df_main,df], ignore_index=True)
+                df_main = df_main.drop_duplicates()
+            elif columns == column_2: 
+                df = self.apply_template(df,2)
+                df_insp_os= pd.concat([df_insp_os,df], ignore_index=True)
+                df_insp_os = df_insp_os.drop_duplicates()
+            elif columns == column_3:
+                df = self.apply_template(df,3)
+                df_def = pd.concat([df_def,df], ignore_index=True)
+                df_def = df_def.drop_duplicates()
+            else:
+                sys.exit('Columns do not match any templates.')
+        
+        df_insp = pd.merge(df_insp, df_main, how='left', on = ['ESTABNO','ZIP'])
+        df_insp_os = pd.merge(df_insp_os, df_main, how='left', on = ['ESTABNO'])
+        df_def = pd.merge(df_def, df_main, how='left', on = ['ESTABNO'])
+        df = pd.concat([df_insp,df_insp_os,df_def,df_main], axis=0, join='outer', ignore_index=False)
+
+        df_list = [df]
+
+        return df_list
 
     def retrieve_file(self,file_manager):
-        df_list = file_manager.retrieve_df()
-
-        # Get dfs from file paths
-        df_insp = df_list[0]
-        df_master = df_list[1]
-        df_insp_os = df_list[2]
-        df_def = df_list[3]
-
-        # Concatenate the dfs
-        master_columns = ['ESTABNO','SANDATE01','NOFTEMP','NOPTEMP','NOSQFT','OOBDATE','OWNNAME','TRADENAME','STREET','CITY','ZIP','PHONE','ESTABTYPE1','ESTABTYPE2','ESTABTYPE3','ESTABTYPE4','ESTABTYPE5','ESTABTYPE6']
-        
-        df_1 = pd.merge(df_insp[['ESTABNO','ZIP','INSPDATE','LICDATE']], df_master[master_columns], how='left', on = ['ESTABNO','ZIP'])
-        df_2 = pd.merge(df_insp_os[['ESTABNO','INSPDATE']], df_master[master_columns], how='left', on = ['ESTABNO'])
-        df_3 = pd.merge(df_insp_os[['ESTABNO','INSPDATE']], df_master[master_columns], how='left', on = ['ESTABNO'])
-
-        return pd.concat([df_1,df_2,df_3,df_master[master_columns]], axis=0, join='outer', ignore_index=False)
+        df_list = file_manager.retrieve_df() 
+        df_list = self.get_template(df_list) 
+        return pd.concat(df_list, ignore_index=True)
 
     def instantiate_file(self):
 
@@ -46,7 +87,7 @@ class DOAInspectionSrcFile(SourceFile):
         self.df['# FT Employees'] = self.df['# FT Employees'].astype(str)
         self.df['# PT Employees'] = self.df['# PT Employees'].astype(str)
         self.df['# Sq. Ft.'] = self.df['# Sq. Ft.'].astype(str)
-        # df['Out of Business Date'] = df['Out of Business Date'].astype('datetime64[D]')
+        self.df['Out of Business Date'] = self.df['Out of Business Date'].astype('datetime64[D]')
 
         del self.df['STREET']
         del self.df['ESTABTYPE1']
@@ -65,5 +106,5 @@ class DOAInspectionSrcFile(SourceFile):
 if __name__ == '__main__':
     source = DOAInspectionSrcFile()
     source.instantiate_file()
-    source.add_bbl_async()
+    # source.add_bbl_async()
     source.save_csv()

@@ -2,27 +2,38 @@
 
 from scripts.file_manager import FileManager
 from scripts.source_file import SourceFile, pd
+import sys
 
 #######FUNCTION DEFINITIONS#########
 
-class DOHInspectionSrcFile(SourceFile):
+class DOSLicensesSrcFile(SourceFile):
 
     def __init__(self):
         file_manager = FileManager('dos',['aes','barber'], 'licenses')
         super().__init__(self.retrieve_file(file_manager), file_manager)
 
+    def apply_template(self, df, template):
+        if template == 0:
+            pass
+        
+        return df
+
+    def get_template(self,df_list):
+        column_0 = ['License Number', 'Name', 'Business Name', 'Address', 'Phone', 'County', 'License State', 'License Issue Date', 'Current Term Effective Date', 'Expiration Date', 'Agency', 'License Status']
+        
+        for df_val in range(len(df_list)):
+            df = df_list[df_val]
+            columns = df.columns.tolist()
+            if columns == column_0:
+                df_list[df_val] = self.apply_template(df,0)
+            else:
+                sys.exit('Columns do not match any templates.')
+        return df_list
+
     def retrieve_file(self,file_manager):
-        # Get file paths
-        df_list = file_manager.retrieve_df()
-
-        # Get dfs from file paths
-        df_aes = df_list[0]
-        df_barber = df_list[1]
-
-        # Concatenate the dfs  
-        df_aes['Industry'] = 'Appearance Enhancement Service'
-        df_barber['Industry'] = 'Barber'
-        return pd.concat([df_aes,df_barber], axis=0, join='outer', ignore_index=False)
+        df_list = file_manager.retrieve_df() 
+        df_list = self.get_template(df_list) 
+        return pd.concat(df_list, ignore_index=True)
 
     def instantiate_file(self):
 
@@ -30,9 +41,6 @@ class DOHInspectionSrcFile(SourceFile):
             stopwords = ['FL', 'STORE', 'BSMT','RM','UNIT','STE','APT','APT#','FRNT','#','MEZZANINE','LOBBY','GROUND','FLOOR','SUITE','LEVEL']
             stopwords1 = ["1ST FLOOR", "1ST FL","2ND FLOOR", "2ND FL","3RD FLOOR", "3RD FL","4TH FLOOR", "4TH FL","5TH FLOOR", "5TH FL","6TH FLOOR", "6TH FL","7TH FLOOR", "7TH FL","8TH FLOOR", "8TH FL","9TH FLOOR", "9TH FL","10TH FLOOR", "10TH FL"]
             endwords = ["AVE","AVENUE","ST","STREET","ROAD","RD","PLACE","PL","BOULEVARD","BLVD"]
-            
-            # address = row['Address'][0]
-            # zipcode = row['Address'][1]
 
             if not any(x.isdigit() for x in row['Address'][0]):
                 del row['Address'][0]
@@ -40,7 +48,6 @@ class DOHInspectionSrcFile(SourceFile):
                 del row['Address'][-1]
 
             if len(row['Address']) > 1:
-                # print(row['Address'][0])
                 row['Address'][0] = row['Address'][0].replace(",","")
                 row['Address'][0] = row['Address'][0].replace(".","")
                 row['Address'][0] = row['Address'][0].replace("\"","")
@@ -119,6 +126,7 @@ class DOHInspectionSrcFile(SourceFile):
         self.df["Building Number"] = ""
         self.df["Street"] = ""
         self.df["Zip"] = ""
+        self.df["Industry"] =''  ################################# APPLY BARBER/AES in Industry
 
         self.df = self.df.apply(lambda row : clean_addr(row), axis=1)
 
@@ -132,7 +140,7 @@ class DOHInspectionSrcFile(SourceFile):
         self.file_manager.store_pickle(self.df,0)
         
 if __name__ == '__main__':
-    source = DOHInspectionSrcFile()
+    source = DOSLicensesSrcFile()
     source.instantiate_file()
     source.add_bbl_async()
     source.save_csv()

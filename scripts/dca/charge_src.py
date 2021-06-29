@@ -2,6 +2,7 @@
 
 from scripts.file_manager import FileManager
 from scripts.source_file import SourceFile, pd
+import sys
 
 #######FUNCTION DEFINITIONS#########
 
@@ -11,8 +12,29 @@ class DCAChargeSrcFile(SourceFile):
         file_manager = FileManager('dca',['charges'],'charges')
         super().__init__(self.retrieve_file(file_manager), file_manager)
 
+    def apply_template(self, df, template):
+        if template == 1:
+            df.columns = ['Record ID', 'Certificate Number', 'Business Name', 'Violation Date', 'Industry', 'Borough', 'Charge', 'Charge Count', 'Outcome', 'Counts Settled', 'Counts Guilty', 'Counts Not Guilty', 'Building Number', 'Street', 'Street 2', 'Unit Type', 'Unit', 'Description', 'City', 'State', 'Zip', 'Longitude', 'Latitude']
+        return df
+
+    def get_template(self,df_list):
+        column_0 = ['Record ID', 'Certificate Number', 'Business Name', 'Violation Date', 'Industry', 'Borough', 'Charge', 'Charge Count', 'Outcome', 'Counts Settled', 'Counts Guilty', 'Counts Not Guilty', 'Building Number', 'Street', 'Street 2', 'Unit Type', 'Unit', 'Description', 'City', 'State', 'Zip', 'Longitude', 'Latitude']
+        column_1 = ['record_id', 'certificate_number', 'business_name', 'violation_date', 'industry', 'borough', 'charge', 'charge_count', 'outcome', 'counts_settled', 'counts_guilty', 'counts_not_guilty', 'building_number', 'street', 'street_2', 'unit_type', 'unit', 'description', 'city', 'state', 'zip', 'longitude', 'latitude']
+
+        for df_val in range(len(df_list)):
+            df = df_list[df_val]
+            columns = df.columns.tolist()
+            if columns == column_0:
+                df_list[df_val] = self.apply_template(df,0)
+            elif columns == column_1:
+                df_list[df_val] = self.apply_template(df,1)
+            else:
+                sys.exit('Columns do not match any templates.')
+        return df_list
+    
     def retrieve_file(self,file_manager):
-        df_list = file_manager.retrieve_df()
+        df_list = file_manager.retrieve_df() 
+        df_list = self.get_template(df_list) 
         return pd.concat(df_list, ignore_index=True)
 
     def instantiate_file(self):
