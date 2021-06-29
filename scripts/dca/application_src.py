@@ -19,13 +19,11 @@ class DCAApplicationSrcFile(SourceFile):
             df['License Start'] = df['License Start'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
             df['Expiration Date'] = df['Expiration Date'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
             df.columns = ['Application ID', 'License Number', 'License Type', 'Application or Renewal', 'Business Name', 'Status', 'Status Date', 'Start Date', 'End Date', 'License Start', 'Expiration Date', 'Temp Op Letter Issued', 'Temp Op Letter Expiration', 'License Category', 'Application Category', 'Building Number', 'Street', 'Street 2', 'Unit Type', 'Unit', 'Description', 'City', 'State', 'Zip', 'Contact Phone', 'Last Update Date']
-        
-        if template == 1:
+        elif template == 1:
             del df['Longitude']
             del df['Latitude']
             df.columns = ['Application ID', 'License Number', 'License Type', 'Application or Renewal', 'Business Name', 'Status', 'Status Date', 'Start Date', 'End Date', 'License Start', 'Expiration Date', 'Temp Op Letter Issued', 'Temp Op Letter Expiration', 'License Category', 'Application Category', 'Building Number', 'Street', 'Street 2', 'Unit Type', 'Unit', 'Description', 'City', 'State', 'Zip', 'Contact Phone', 'Last Update Date']
-
-        if template == 2:
+        elif template == 2:
             del df['longitude']
             del df['latitude']
             del df['active_vehicles']
