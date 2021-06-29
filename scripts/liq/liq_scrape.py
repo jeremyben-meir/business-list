@@ -14,147 +14,43 @@ from lxml import etree
 class LiquorScrape():
     def __init__(self):
         self.county_list = ['QUEENS','RICHMOND','KINGS','BRONX','NEW YORK']
-        self.df = pd.DataFrame(columns=["Premises Name","Trade Name","Zone","Address","County","Serial Number","License Type","License Status","Credit Group","Filing Date","Effective Date","Expiration Date","Principal's Name"])#,"Serial 2","License Class"])
-
-    # def write_to_table(self, write_list,liq_df,driver):
-    #     liq_df.loc[len(liq_df)] = write_list
-    #     return liq_df
-            
-
-    # def try_click_next(self, driver):
-    #     entered = False
-    #     retries = 5
-    #     while not entered and retries > 0:
-    #         try:
-    #             driver.find_element_by_name("NextButton").click()
-    #             entered = True
-    #         except:
-    #             retries -= 1
-    #             driver.refresh()
-
-    #     return entered
-
-    # def read_page(self, driver,liq_df,county_in):
-    #     table = driver.find_elements_by_xpath("/html/body/table[1]/tbody/tr[1]/td[2]/table/tbody/tr[2]/td[2]/table[4]/tbody/tr/td/table/tbody/tr/td[2]/form[2]/div[2]/table[1]/tbody/tr")
-    #     skip1 = False
-    #     for length in range(0,len(table)):
-    #         x = driver.find_elements_by_xpath("/html/body/table[1]/tbody/tr[1]/td[2]/table/tbody/tr[2]/td[2]/table[4]/tbody/tr/td/table/tbody/tr/td[2]/form[2]/div[2]/table[1]/tbody/tr")[length]
-    #         if skip1:
-    #             clicked_in = False
-    #             try:
-    #                 x.find_element_by_xpath(".//td[1]/a").click()
-    #                 clicked_in = True
-    #             except:
-    #                 liq_df = write_to_table(["",x.find_element_by_xpath(".//td[4]").text,x.find_element_by_xpath(".//td[6]").text,"","","",x.find_element_by_xpath(".//td[5]").text,"",x.find_element_by_xpath(".//td[1]").text,"","","",x.find_element_by_xpath(".//td[2]").text,"",x.find_element_by_xpath(".//td[3]").text],liq_df,driver)
-
-    #             if clicked_in:
-    #                 if "does not match any of the licenses" not in driver.page_source:
-    #                     table_table = driver.find_elements_by_xpath("/html/body/table[1]/tbody/tr[1]/td[2]/table/tbody/tr[2]/td[2]/table[4]/tbody/tr/td/table/tbody/tr/td[2]/table")
-    #                     serial = ""
-    #                     license_type = ""
-    #                     license_status = ""
-    #                     credit_group = ""
-    #                     filing_date = ""
-    #                     effective_date = ""
-    #                     expiration_date = ""
-    #                     principal_name = ""
-    #                     premises_name = ""
-    #                     trade_name = ""
-    #                     zone = ""
-    #                     county = ""
-    #                     secondary_serial = ""
-    #                     for y in table_table[2].find_elements_by_xpath(".//tbody/tr"):
-    #                         if "Serial Number" in y.find_element_by_xpath(".//td[2]").text:
-    #                             serial = y.find_element_by_xpath(".//td[3]").text
-    #                         elif "License Type" in y.find_element_by_xpath(".//td[2]").text:
-    #                             license_type = y.find_element_by_xpath(".//td[3]").text
-    #                         elif "License Status" in y.find_element_by_xpath(".//td[2]").text:
-    #                             license_status = y.find_element_by_xpath(".//td[3]").text
-    #                         elif "Credit Group" in y.find_element_by_xpath(".//td[2]").text:
-    #                             credit_group = y.find_element_by_xpath(".//td[3]").text
-    #                         elif "Filing Date" in y.find_element_by_xpath(".//td[2]").text:
-    #                             filing_date = y.find_element_by_xpath(".//td[3]").text
-    #                         elif "Effective Date" in y.find_element_by_xpath(".//td[2]").text:
-    #                             effective_date = y.find_element_by_xpath(".//td[3]").text
-    #                         elif "Expiration Date" in y.find_element_by_xpath(".//td[2]").text:
-    #                             expiration_date = y.find_element_by_xpath(".//td[3]").text
-                            
-    #                     for y in table_table[-1].find_elements_by_xpath(".//tbody/tr"):
-    #                         if "Principal's" in y.find_element_by_xpath(".//td[2]").text:
-    #                             principal_name = y.find_element_by_xpath(".//td[3]").text
-    #                         elif "Premises Name" in y.find_element_by_xpath(".//td[2]").text:
-    #                             premises_name = y.find_element_by_xpath(".//td[3]").text
-    #                         elif "Trade Name" in y.find_element_by_xpath(".//td[2]").text:
-    #                             trade_name = y.find_element_by_xpath(".//td[3]").text
-    #                         elif "Zone" in y.find_element_by_xpath(".//td[2]").text:
-    #                             zone = y.find_element_by_xpath(".//td[3]").text
-    #                         elif "County" in y.find_element_by_xpath(".//td[2]").text:
-    #                             county = y.find_element_by_xpath(".//td[3]").text
-                            
-                        
-    #                     try:
-    #                         secondary_serial = driver.find_element_by_xpath("//div[contains(concat(' ', @class, ' '), ' instructions ')]/a").text
-    #                     except:
-    #                         pass
-                                
-    #                     driver.back()
-    #                     x = driver.find_elements_by_xpath("/html/body/table[1]/tbody/tr[1]/td[2]/table/tbody/tr[2]/td[2]/table[4]/tbody/tr/td/table/tbody/tr/td[2]/form[2]/div[2]/table[1]/tbody/tr")[length]
-    #                     liq_df = write_to_table([serial,license_type,license_status,credit_group,filing_date,effective_date,expiration_date,principal_name,premises_name,trade_name,zone,county,x.find_element_by_xpath(".//td[2]").text,secondary_serial,x.find_element_by_xpath(".//td[3]").text],liq_df,driver) 
-    #                 else:
-    #                     driver.back()
-    #                     x = driver.find_elements_by_xpath("/html/body/table[1]/tbody/tr[1]/td[2]/table/tbody/tr[2]/td[2]/table[4]/tbody/tr/td/table/tbody/tr/td[2]/form[2]/div[2]/table[1]/tbody/tr")[length]
-    #                     liq_df = write_to_table(["",x.find_element_by_xpath(".//td[4]").text,x.find_element_by_xpath(".//td[6]").text,"","","",x.find_element_by_xpath(".//td[5]").text,"",x.find_element_by_xpath(".//td[1]").text,"","",county_in,x.find_element_by_xpath(".//td[2]").text,"",x.find_element_by_xpath(".//td[3]").text],liq_df,driver)
-    #         skip1 = True
-    #     return liq_df
-
-    # def iterate_through_pages(self,driver,liq_df,county,start_clicks,county_list):
-    #     clicks = 0
-    #     while True:
-    #         if start_clicks <= clicks:
-    #             liq_df = read_page(driver,liq_df,county)
-    #             print(liq_df)
-    #         if try_click_next(driver):
-    #             clicks += 1
-    #         else:
-    #             pickle.dump(liq_df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/file-fin-2.p", "wb"))
-    #             break
-    #         if start_clicks < clicks:
-    #             pickle.dump(liq_df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/file-fin-2.p", "wb"))
-    #             pickle.dump((county,clicks), open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/file2-fin-2.p", "wb"))
-
-    
-    async def fetch(self, session, url):    
+        self.df = pd.DataFrame(columns=["Premises Name","Trade Name","Zone","Address","County","Serial Number","License Type","License Status","Credit Group","Filing Date","Effective Date","Expiration Date","Principal's Name","URL"])#,"Serial 2","License Class"])
         try:
-            async with session.get(url) as response:
-                text = await response.text()
-                tags = await self.extract_tags(text)
-                return tags
-        except Exception as e:
-            print(f"get error:  {e}")
-            return [url]
+            # self.df = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/df-liqour-0", "rb"))
+            self.links = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/links-liqour-0", "rb"))
+            self.start_clicks = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/var-liqour-0", "rb"))
+        except:
+            self.links = []
+            self.start_clicks = (0,2)
+    
+    async def fetch(self, session, url):
+        row = pd.Series(index=self.df.columns, dtype = 'object')
+        row.loc["URL"] = url
+        counter = 0
+        while counter<5:
+            try:
+                async with session.get(url) as response:
+                    text = await response.text()
+                    full_row = await self.extract_tags(text,row)
+                    return full_row
+            except Exception as e:
+                counter+=1
+        print(f"get error:  {e}")
+        return row
             
-    async def extract_tags(self, text): ##EDIT CONTENT
+    async def extract_tags(self, text, row):
         try:
             soup = BeautifulSoup(text, 'html.parser')
             tree = etree.HTML(str(soup))
             labels = tree.xpath('//*[@class="displaylabel"]')
             values = tree.xpath('//*[@class="displayvalue"]')
             counter = 1
-            # dflen = len(self.df)
-            # if dflen % 100 == 0:
-            #     print(dflen)
-            val_list = []
-            if len(labels) != 13:
-                print(len(labels))
             for item in labels:
-                # print(f"{item.text} {values[counter].text}")
-                # self.df.loc[dflen,item.text.strip(":")] = values[counter].text
-                val_list.append(values[counter].text)
+                row.loc[item.text.strip(":")] = values[counter].text
                 counter += 2
-            return val_list
         except Exception as e:
             print(f"extract error:  {e}")
-            return []
+        return row
 
     async def main(self, urls):
         tasks = []
@@ -165,25 +61,25 @@ class LiquorScrape():
         async with aiohttp.ClientSession(headers=headers) as session:
             for url in urls:
                 tasks.append(self.fetch(session, url))
-            htmls = await asyncio.gather(*tasks)
-            for html in htmls:
-                if html is not None:
-                    try:
-                        row = pd.Series(row, index=self.df.columns)
-                        self.df=self.df.append(row,ignore_index=True)
-                    except Exception as e:
-                        print(f"translate error:  {e}")
+            rows = await asyncio.gather(*tasks)
+            for row in rows:
+                try:
+                    self.df=self.df.append(row,ignore_index=True)
+                except Exception as e:
+                    print(f"translate error:  {e}")
+            print(self.df)            
             
     def get_data(self):
         self.links = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/links-liqour-0", "rb"))
+        # self.links = self.links[12:143]
         print(len(self.links))
         segment_size = 1000
         for ticker in range (0,len(self.links),segment_size):
             bot_index = ticker+segment_size if ticker+segment_size < len(self.links) else len(self.links)
             asyncio.run(self.main(self.links[ticker:bot_index]))
-            print(ticker)
             pickle.dump(self.df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/df-liqour-0", "wb"))
         cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/liq/temp/liq_scrape.csv"
+        self.df["Principal's Name"]=self.df["Principal's Name"].str.replace("\n","").str.replace("\r","").str.replace("\t","").str.strip()
         self.df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
 
     def save_pages(self):
@@ -219,14 +115,6 @@ class LiquorScrape():
     def start_scrape(self):
         self.driver = webdriver.Chrome(DirectoryFields.LOCAL_WEBDRIVER_PATH)
 
-        try:
-            # self.df = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/df-liqour-0", "rb"))
-            self.links = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/links-liqour-0", "rb"))
-            self.start_clicks = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/var-liqour-0", "rb"))
-        except:
-            self.links = []
-            self.start_clicks = (0,2)
-
         for county in self.county_list:
             if county == self.county_list[self.start_clicks[0]]:
                 self.load_page(county)
@@ -237,4 +125,5 @@ class LiquorScrape():
 
 if __name__ == '__main__':
     scraper = LiquorScrape()
+    # scraper.start_scrape()
     scraper.get_data()
