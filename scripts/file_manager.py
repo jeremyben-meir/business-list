@@ -47,9 +47,10 @@ class FileManager:
     def update_relevance(self):
         df = self.get_df()
         for filename in self.filenames:
-            list_of_files = glob.glob(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/{filename}/*")
-            latest_file = max(list_of_files, key=os.path.getctime)
-            df.loc[(self.department,filename),'last_retrieved'] = latest_file
+            path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/{filename}/"
+            path_list = [f"{path}{f}" for f in listdir(path) if isfile(join(path, f)) and f[0] != '.']
+            latest_time = min([time.ctime(os.path.getmtime(path)) for path in path_list])
+            df.loc[(self.department,filename),'last_retrieved'] = latest_time
         df.to_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/data-relevance.csv")
 
     def get_df(self):
@@ -94,4 +95,4 @@ class FileManager:
         df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
 
 if __name__ == "__main__":
-    file_manager = FileManager('dca',['application'],"")
+    file_manager = FileManager('dca',['application','charge','inspection','license'],"application")
