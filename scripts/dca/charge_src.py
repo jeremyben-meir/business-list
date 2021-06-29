@@ -13,8 +13,6 @@ class DCAChargeSrcFile(SourceFile):
         super().__init__(self.retrieve_file(file_manager), file_manager)
 
     def apply_template(self, df, template):
-        if template == 0:
-            pass
         if template == 1:
             df.columns = ['Record ID', 'Certificate Number', 'Business Name', 'Violation Date', 'Industry', 'Borough', 'Charge', 'Charge Count', 'Outcome', 'Counts Settled', 'Counts Guilty', 'Counts Not Guilty', 'Building Number', 'Street', 'Street 2', 'Unit Type', 'Unit', 'Description', 'City', 'State', 'Zip', 'Longitude', 'Latitude']
         return df
