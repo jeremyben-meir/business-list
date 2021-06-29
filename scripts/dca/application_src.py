@@ -1,14 +1,14 @@
 #######IMPORTS#######
 
 from scripts.file_manager import FileManager
-from scripts.source_file import SourceFile, pd
+from scripts.source_file import SourceFile, pd, sys
 
 #######FUNCTION DEFINITIONS#########
 
 class DCAApplicationSrcFile(SourceFile):
 
     def __init__(self):
-        file_manager = FileManager('dca',['applications'], 'applications')
+        file_manager = FileManager('dca',['application'], 'application')
         super().__init__(self.retrieve_file(file_manager),file_manager)
 
     def apply_template(self, df, template):

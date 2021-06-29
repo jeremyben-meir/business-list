@@ -78,7 +78,7 @@ class LiquorScrape():
             bot_index = ticker+segment_size if ticker+segment_size < len(self.links) else len(self.links)
             asyncio.run(self.main(self.links[ticker:bot_index]))
             pickle.dump(self.df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/df-liqour-0", "wb"))
-        cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/liq/temp/liq_scrape.csv"
+        cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/liq/liq/liq_scrape.csv"
         self.df["Principal's Name"]=self.df["Principal's Name"].str.replace("\n","").str.replace("\r","").str.replace("\t","").str.strip()
         self.df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
 

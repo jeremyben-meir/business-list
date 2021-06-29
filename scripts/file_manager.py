@@ -1,12 +1,14 @@
 import pandas as pd
 from datetime import date
 from scripts.common import DirectoryFields
+import os
 from os import listdir
 from os.path import isfile, join
 import pickle
 import csv
 import requests
 import time
+import glob
 
 class FileManager:
 
@@ -15,6 +17,7 @@ class FileManager:
         self.department = department
         self.df_list = []
         self.outname = outname
+        self.update_relevance()
 
     def read_txt(self, path):
         textfile = open(path, "r")
@@ -41,21 +44,31 @@ class FileManager:
         csv_file.write(url_content)
         csv_file.close()
 
-    def check_relevance(self,filename):
+    def update_relevance(self):
+        df = self.get_df()
+        for filename in self.filenames:
+            list_of_files = glob.glob(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/{filename}/*")
+            latest_file = max(list_of_files, key=os.path.getctime)
+            df.loc[(self.department,filename),'last_retrieved'] = latest_file
+        df.to_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/data-relevance.csv")
+
+    def get_df(self):
         df = pd.read_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/data-relevance.csv")
         df = df.set_index(['department','filename'])
         df['last_retrieved']=df['last_retrieved'].astype('datetime64[D]')
         df['api']=df['api'].astype(str)
         df['scrape_py']=df['scrape_py'].astype(str)
         df['FOIL']=df['FOIL'].astype(str)
+        return df
+
+    def check_relevance(self,filename):
+        df = self.get_df()
         row = df.loc[(self.department,filename)]
         exp_date = row['last_retrieved'] + pd.Timedelta(days=row['retrieval_freq'])
         if exp_date <= date.today():
             if len(row['api']) > 0 and row['api'] != 'nan':
                 print(f"Fetching from {row['api']}")
                 self.fetch_api(row['api'],filename)
-                df.loc[(self.department,filename),'last_retrieved'] = date.today()
-                df.to_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/data-relevance.csv")
             elif len(row['scrape_py']) > 0 and row['scrape_py'] != 'nan':
                 print(f"Running {row['scrape_py']}")
             elif len(row['FOIL']) > 0 and row['FOIL'] != 'nan':
@@ -79,3 +92,6 @@ class FileManager:
     def save_csv(self,df):
         cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/{self.outname}.csv"
         df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
+
+if __name__ == "__main__":
+    file_manager = FileManager('dca',['application'],"")
