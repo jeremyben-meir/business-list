@@ -166,12 +166,13 @@ class LiquorScrape():
             for url in urls:
                 tasks.append(self.fetch(session, url))
             htmls = await asyncio.gather(*tasks)
-            # for html in htmls:
-            #     if html is not None:
-            #         print(len(html))
-            # print(len(htmls))
-            self.df=pd.DataFrame(htmls, columns=self.df.columns).append(self.df, ignore_index=True)
-            print(self.df)
+            for html in htmls:
+                if html is not None:
+                    try:
+                        row = pd.Series(row, index=self.df.columns)
+                        self.df=self.df.append(row,ignore_index=True)
+                    except Exception as e:
+                        print(f"translate error:  {e}")
             
     def get_data(self):
         self.links = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/links-liqour-0", "rb"))
