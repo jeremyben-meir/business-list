@@ -27,6 +27,7 @@ class LiquorScrape():
         row = pd.Series(index=self.df.columns, dtype = 'object')
         row.loc["URL"] = url
         counter = 0
+        error_msg = ""
         while counter<5:
             try:
                 async with session.get(url) as response:
@@ -34,8 +35,10 @@ class LiquorScrape():
                     full_row = await self.extract_tags(text,row)
                     return full_row
             except Exception as e:
+                time.sleep(.5)
+                error_msg = e
                 counter+=1
-        print(f"get error:  {e}")
+        print(f"get error:  {error_msg}")
         return row
             
     async def extract_tags(self, text, row):
