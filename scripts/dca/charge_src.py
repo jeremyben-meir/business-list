@@ -23,7 +23,6 @@ class DCAChargeSrcFile(SourceFile):
 
         for df_val in range(len(df_list)):
             df = df_list[df_val]
-            print(df.columns.to_list())
             columns = df.columns.tolist()
             if columns == column_0:
                 df_list[df_val] = self.apply_template(df,0)
