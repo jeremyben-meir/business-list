@@ -35,7 +35,6 @@ class LiquorScrape():
                     full_row = await self.extract_tags(text,row)
                     return full_row
             except Exception as e:
-                time.sleep(.5)
                 error_msg = e
                 counter+=1
         print(f"get error:  {error_msg}")
@@ -76,7 +75,7 @@ class LiquorScrape():
         self.links = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/links-liqour-0", "rb"))
         # self.links = self.links[12:143]
         print(len(self.links))
-        segment_size = 1000
+        segment_size = 100
         for ticker in range (0,len(self.links),segment_size):
             bot_index = ticker+segment_size if ticker+segment_size < len(self.links) else len(self.links)
             asyncio.run(self.main(self.links[ticker:bot_index]))
