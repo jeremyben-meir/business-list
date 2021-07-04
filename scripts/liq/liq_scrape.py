@@ -27,7 +27,6 @@ class LiquorScrape():
         row = pd.Series(index=self.df.columns, dtype = 'object')
         row.loc["URL"] = url
         counter = 0
-        error_msg = ""
         while counter<5:
             try:
                 async with session.get(url) as response:
@@ -35,9 +34,8 @@ class LiquorScrape():
                     full_row = await self.extract_tags(text,row)
                     return full_row
             except Exception as e:
-                error_msg = e
                 counter+=1
-        print(f"get error:  {error_msg}")
+        print(f"get error:  {e}")
         return row
             
     async def extract_tags(self, text, row):
@@ -75,12 +73,12 @@ class LiquorScrape():
         self.links = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/links-liqour-0", "rb"))
         # self.links = self.links[12:143]
         print(len(self.links))
-        segment_size = 100
+        segment_size = 1000
         for ticker in range (0,len(self.links),segment_size):
             bot_index = ticker+segment_size if ticker+segment_size < len(self.links) else len(self.links)
             asyncio.run(self.main(self.links[ticker:bot_index]))
             pickle.dump(self.df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/df-liqour-0", "wb"))
-        cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/liq/liq/liq_scrape.csv"
+        cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/liq/temp/liq_scrape.csv"
         self.df["Principal's Name"]=self.df["Principal's Name"].str.replace("\n","").str.replace("\r","").str.replace("\t","").str.strip()
         self.df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
 
