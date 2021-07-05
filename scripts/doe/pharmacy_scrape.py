@@ -12,6 +12,7 @@ import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
 from lxml import etree
+from datetime import date
 
 class PharmacyScraper():
     def __init__(self):
@@ -19,6 +20,7 @@ class PharmacyScraper():
         self.countylist =['//*[@id="content_column"]/div[4]/form/div[4]/select/option[42]','//*[@id="content_column"]/div[4]/form/div[4]/select/option[4]','//*[@id="content_column"]/div[4]/form/div[4]/select/option[25]','//*[@id="content_column"]/div[4]/form/div[4]/select/option[32]','//*[@id="content_column"]/div[4]/form/div[4]/select/option[44]']
         self.charlist = 'abcdefghijklmnopqrstuvwxy1234567890!@#$%^&*()'
         self.url = "http://www.op.nysed.gov/opsearches#"
+        self.department = "doe"
 
     def start_scrape(self):
         self.driver = webdriver.Chrome(DirectoryFields.LOCAL_WEBDRIVER_PATH)
@@ -130,7 +132,7 @@ class PharmacyScraper():
                         pass
                     
         self.driver.close()
-        self.df.to_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doe/pharmacy/pharmacy_scrape_1.csv", index=False, quoting=csv.QUOTE_ALL)
+        self.df.to_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doe/pharmacy/{self.department}_pharmacy_{date.today()}_scrape.csv", index=False, quoting=csv.QUOTE_ALL)
 
 if __name__ == '__main__':
     scraper = PharmacyScraper()
