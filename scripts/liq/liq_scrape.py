@@ -15,7 +15,7 @@ from datetime import date
 class LiquorScrape():
     def __init__(self):
         self.county_list = ['QUEENS','RICHMOND','KINGS','BRONX','NEW YORK']
-        self.df = pd.DataFrame(columns=["Premises Name","Trade Name","Zone","Address","County","Serial Number","License Type","License Status","Credit Group","Filing Date","Effective Date","Expiration Date","Principal's Name","URL"])#,"Serial 2","License Class"])
+        self.df = pd.DataFrame(columns=["Premises Name","Trade Name","Zone","Address","Zip","County","Serial Number","License Type","License Status","Credit Group","Filing Date","Effective Date","Expiration Date","Principal's Name","URL"])#,"Serial 2","License Class"])
         self.segment_size = 100
         self.department = 'liq'
         try:
@@ -26,34 +26,42 @@ class LiquorScrape():
             self.links = []
             self.start_clicks = (0,2)
     
-    async def fetch(self, session, row):
-        error_msg = ""
+    async def fetch(self, session, index, row):
+        success = False
+        err_msg = ""
         for _ in range(5):
             try:
                 async with session.get(row["URL"]) as response:
                     text = await response.text()
-                    full_row = await self.extract_tags(text,row)
-                    return full_row
+                    await self.extract_tags(text,index)
+                    success = True
+                    break
             except Exception as e:
-                error_msg = e
-        print(f"get error:  {error_msg}")
-        row["Premises Name"] = "FAILURE"
-        return row
+                err_msg = e
+        if not success:
+            print(f"get error: {err_msg}")
+            self.df.loc[index,"License Number"] = "FAILURE"
             
-    async def extract_tags(self, text, row):
+    async def extract_tags(self, text, index):
         try:
             soup = BeautifulSoup(text, 'html.parser')
             tree = etree.HTML(str(soup))
             labels = tree.xpath('//*[@class="displaylabel"]')
             values = tree.xpath('//*[@class="displayvalue"]')
+            if labels[0].text.strip(":") != "Serial Number":
+                self.df.loc[index,"Serial Number"] = tree.xpath('//*[@class="instructions"]/a')[0].text
             counter = 1
             for item in labels:
-                row.loc[item.text.strip(":")] = values[counter].text
-                counter += 2
+                if item.text.strip(":") == "Address":
+                    self.df.loc[index,"Address"] = values[counter].text
+                    self.df.loc[index,"Zip"] = values[counter+4].text.split(" ")[-1][:5]
+                    counter += 6
+                else:
+                    self.df.loc[index,item.text.strip(":")] = values[counter].text
+                    counter += 2
         except Exception as e:
             print(f"extract error:  {e}")
-            row["Premises Name"] = "FAILURE"
-        return row
+            self.df.loc[index,"Premises Name"] = "FAILURE"
 
     async def main(self, top_index, bot_index):
         tasks = list()
@@ -64,7 +72,7 @@ class LiquorScrape():
             'Accept-Language': 'en-US, en;q=0.5'})
         async with aiohttp.ClientSession(headers=headers) as session:
             while top_index <= bot_index and top_index - start_index < self.segment_size:
-                task = self.fetch(session, self.df.loc[top_index])
+                task = asyncio.ensure_future(self.fetch(session, top_index, self.df.loc[top_index]))
                 tasks.append(task)
                 top_index+=1
             await asyncio.gather(*tasks)          
@@ -74,11 +82,11 @@ class LiquorScrape():
         # self.links = self.links[12:143]
         self.df["URL"] = self.links
         if overwrite == False:
-            self.df = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/df-liqour-0", "rb"))
-            self.df = self.df[self.df["Premises Name"].eq("FAILURE")]
+            self.df = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/df-liqour-0", "rb")) 
             self.org_df = self.df[~(self.df["Premises Name"].eq("FAILURE"))]
+            self.df = self.df[self.df["Premises Name"].eq("FAILURE")]
         print(len(self.df))
-        self.df.reset_index(drop=True)
+        self.df=self.df.reset_index(drop=True)
         
         top_index = self.df.iloc[0].name
         bot_index = self.df.iloc[-1].name
@@ -92,7 +100,6 @@ class LiquorScrape():
 
         pickle.dump(self.df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/df-liqour-0", "wb"))
         cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/liq/liq/{self.department}_liquor_{date.today()}_scrape.csv"
-        self.df["Principal's Name"]=self.df["Principal's Name"].str.replace("\n","").str.replace("\r","").str.replace("\t","").str.strip()
         self.df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
 
     def save_pages(self):
@@ -139,4 +146,4 @@ class LiquorScrape():
 if __name__ == '__main__':
     scraper = LiquorScrape()
     # scraper.start_scrape()
-    scraper.get_data(overwrite = False)
+    scraper.get_data(overwrite = True)

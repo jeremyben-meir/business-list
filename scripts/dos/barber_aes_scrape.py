@@ -15,7 +15,7 @@ from datetime import date
 class BarberAESScrape():
     def __init__(self, industry):
         self.county_list = ['QUEENS','RICHMOND','KINGS','BRONX','NEW YORK']
-        self.df = pd.DataFrame(columns=["License Number","Name","Business Name","Address","Phone","County","License State","License Issue Date","Current Term Effective Date","Expiration Date","Agency","License Status","Industry","URL"])
+        self.df = pd.DataFrame(columns=["License Number","Name","Business Name","Address","Zip","Phone","County","License State","License Issue Date","Current Term Effective Date","Expiration Date","Agency","License Status","Industry","URL"])
         self.timeout = 100
         self.segment_size = 100
         self.industry = industry
@@ -27,42 +27,44 @@ class BarberAESScrape():
             self.links = []
             self.start_clicks = 1
     
-    async def fetch(self, session, row):
-        error_msg = ""
+    async def fetch(self, session, index, row):
+        success = False
+        err_msg = ""
         for _ in range(5):
             try:
                 async with session.get(row["URL"]) as response:
                     text = await response.text()
-                    full_row = await self.extract_tags(text,row)
-                    return full_row
+                    await self.extract_tags(text,index)
+                    success = True
+                    break
             except Exception as e:
-                error_msg = e
-        print(f"get error: {error_msg}")
-        row["License Number"] = "FAILURE"
-        return row
+                err_msg = e
+        if not success:
+            print(f"get error: {err_msg}")
+            self.df.loc[index,"License Number"] = "FAILURE"
             
-    async def extract_tags(self, text, row):
+    async def extract_tags(self, text, index):
         try:
             soup = BeautifulSoup(text, 'html.parser')
             tree = etree.HTML(str(soup))
-            row["License Number"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblLicenseeNumber_value"]')[0].text
-            row["Name"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblContactName_value"]')[0].text
-            row["Business Name"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblLicenseeBusinessName_value"]')[0].text
+            self.df.loc[index,"License Number"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblLicenseeNumber_value"]')[0].text
+            self.df.loc[index,"Name"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblContactName_value"]')[0].text
+            self.df.loc[index,"Business Name"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblLicenseeBusinessName_value"]')[0].text
             addr_list = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblLicenseeAddress_value"]/text()')
             addr_list = [addr.replace(u'\xa0', u' ').strip() for addr in addr_list]
-            row["Address"] = "\n".join(addr_list)
-            row["Phone"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblLicenseeTelephone1_value"]')[0].text
-            row["County"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblLicenseeTitle_value"]')[0].text
-            row["License State"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblLicenseeState_value"]')[0].text
-            row["License Issue Date"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblLicenseIssueDate_value"]')[0].text
-            row["Current Term Effective Date"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblBusinessExpirationDate_value"]')[0].text
-            row["Expiration Date"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblExpirationDate_value"]')[0].text
-            row["Agency"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblLicenseeBoard_value"]')[0].text
-            row["License Status"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblBusinessName2_value"]')[0].text
+            self.df.loc[index,"Address"] = addr_list[0]
+            self.df.loc[index,"Zip"] = addr_list[1].split(" ")[-1][:5]
+            self.df.loc[index,"Phone"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblLicenseeTelephone1_value"]')[0].text
+            self.df.loc[index,"County"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblLicenseeTitle_value"]')[0].text
+            self.df.loc[index,"License State"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblLicenseeState_value"]')[0].text
+            self.df.loc[index,"License Issue Date"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblLicenseIssueDate_value"]')[0].text
+            self.df.loc[index,"Current Term Effective Date"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblBusinessExpirationDate_value"]')[0].text
+            self.df.loc[index,"Expiration Date"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblExpirationDate_value"]')[0].text
+            self.df.loc[index,"Agency"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblLicenseeBoard_value"]')[0].text
+            self.df.loc[index,"License Status"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblBusinessName2_value"]')[0].text
         except Exception as e:
             print(f"extract error:  {e}")
-            row["License Number"] = "FAILURE"
-        return row
+            self.df.loc[index,"License Number"] = "FAILURE"
 
     async def main(self, top_index, bot_index):
         tasks = list()
@@ -73,9 +75,10 @@ class BarberAESScrape():
             'Accept-Language': 'en-US, en;q=0.5'})
         async with aiohttp.ClientSession(headers=headers) as session:
             while top_index <= bot_index and top_index - start_index < self.segment_size:
-                task = self.fetch(session, self.df.loc[top_index])
+                task = asyncio.ensure_future(self.fetch(session, top_index, self.df.loc[top_index]))
                 tasks.append(task)
                 top_index+=1
+                # print(top_index)
             await asyncio.gather(*tasks)
             
     def get_data(self, overwrite = True):
@@ -85,10 +88,10 @@ class BarberAESScrape():
         self.df["Industry"] = self.industry
         if overwrite == False:
             self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dos/temp/df-{self.industry}-0", "rb"))
-            self.df = self.df[self.df["License Number"].eq("FAILURE")]
             self.org_df = self.df[~(self.df["License Number"].eq("FAILURE"))]
+            self.df = self.df[self.df["License Number"].eq("FAILURE")]
         print(len(self.df))
-        self.df.reset_index(drop=True)
+        self.df=self.df.reset_index(drop=True)
         
         top_index = self.df.iloc[0].name
         bot_index = self.df.iloc[-1].name
@@ -171,4 +174,4 @@ class BarberAESScrape():
 if __name__ == '__main__':
     scraper = BarberAESScrape('barber')
     # scraper.load_links()
-    scraper.get_data()
+    scraper.get_data(overwrite=True)

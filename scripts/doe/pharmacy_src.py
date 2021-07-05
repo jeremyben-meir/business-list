@@ -38,47 +38,38 @@ class DOEPharmacySrcFile(SourceFile):
             stopwords = ['FL', 'STORE', 'BSMT','RM','UNIT','STE','APT','APT#','FRNT','#','MEZZANINE','LOBBY','GROUND','FLOOR','SUITE','LEVEL']
             stopwords1 = ["1ST FLOOR", "1ST FL","2ND FLOOR", "2ND FL","3RD FLOOR", "3RD FL","4TH FLOOR", "4TH FL","5TH FLOOR", "5TH FL","6TH FLOOR", "6TH FL","7TH FLOOR", "7TH FL","8TH FLOOR", "8TH FL","9TH FLOOR", "9TH FL","10TH FLOOR", "10TH FL"]
             endwords = ["AVE","AVENUE","ST","STREET","ROAD","RD","PLACE","PL","BOULEVARD","BLVD"]
-           
-            if len(row['Address'])==1:
-                row['Address'] = row['Address'][0]
-                row['Zip'] = row['Address'].split(', NY     ')[-1][:5]
-                row['City'] = row['Address'].split('     ')[-2].replace(', NY','')
-                row['Street'] = row['Address'].split(', NY     ')[-2].split(' ')
-                row['Street'] = (' ').join(row['Street'][:-1])
+    
+            row['Zip'] = row['Address'][-2].split('     ')[-1][:5]
+            row['City'] = row['Address'][-2].split('     ')[0].replace(', NY','')
             
-            else:
-                row['Zip'] = row['Address'][-2].split('     ')[-1][:5]
-                row['City'] = row['Address'][-2].split('     ')[0].replace(', NY','')
-                
-                if row['Address'][-3].split(' ')[0][:2].isdigit():
-                    row['Building Number'] = row['Address'][-3].split(' ')[0].split('/')[0]
-                    street = row['Address'][-3].split(' ')[1:-1]
-                    street = (' ').join(street)
+            if row['Address'][-3].split(' ')[0][:2].isdigit():
+                row['Building Number'] = row['Address'][-3].split(' ')[0].split('/')[0]
+                street = row['Address'][-3].split(' ')[1:]
+                street = (' ').join(street)
 
-                    for word in stopwords1:
-                        if word in street.upper():
-                            street = street[:street.upper().index(word)]
+                for word in stopwords1:
+                    if word in street.upper():
+                        street = street[:street.upper().index(word)]
 
-                    if any(word in street.upper() for word in stopwords):
-                        mylist = street.split(" ")
-                        for x in range(0, len(mylist)):
-                            if mylist[x].upper() in stopwords:
-                                mylist = mylist[:x]
-                                street = " ".join(mylist)
-                                break
-                        
+                if any(word in street.upper() for word in stopwords):
                     mylist = street.split(" ")
                     for x in range(0, len(mylist)):
-                        if mylist[x].upper() in endwords:
-                            mylist = mylist[:x+1]
+                        if mylist[x].upper() in stopwords:
+                            mylist = mylist[:x]
                             street = " ".join(mylist)
                             break
-
-                    row['Street'] = street
-                
-                else:
-                    row['Building Number'] = ''
-                    row['Street']= row['Address'][-3]
+                    
+                mylist = street.split(" ")
+                for x in range(0, len(mylist)):
+                    if mylist[x].upper() in endwords:
+                        mylist = mylist[:x+1]
+                        street = " ".join(mylist)
+                        break
+                row['Street'] = street
+            
+            else:
+                row['Building Number'] = ''
+                row['Street']= row['Address'][-3]
             
             row['Building Number'] = row['Building Number'].strip(" ")
             row['Street'] = row['Street'].strip(" ")
