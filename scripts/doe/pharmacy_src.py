@@ -38,38 +38,47 @@ class DOEPharmacySrcFile(SourceFile):
             stopwords = ['FL', 'STORE', 'BSMT','RM','UNIT','STE','APT','APT#','FRNT','#','MEZZANINE','LOBBY','GROUND','FLOOR','SUITE','LEVEL']
             stopwords1 = ["1ST FLOOR", "1ST FL","2ND FLOOR", "2ND FL","3RD FLOOR", "3RD FL","4TH FLOOR", "4TH FL","5TH FLOOR", "5TH FL","6TH FLOOR", "6TH FL","7TH FLOOR", "7TH FL","8TH FLOOR", "8TH FL","9TH FLOOR", "9TH FL","10TH FLOOR", "10TH FL"]
             endwords = ["AVE","AVENUE","ST","STREET","ROAD","RD","PLACE","PL","BOULEVARD","BLVD"]
-            
-            row['Zip'] = row['Address'][-1].split('     ')[-1][:5]
-            row['City'] = row['Address'][-1].split('     ')[0].replace(', NY','')
-            if row['Address'][-2].split(' ')[0][:2].isdigit():
-                row['Building Number'] = row['Address'][-2].split(' ')[0].split('/')[0]
-                street = row['Address'][-2].split(' ')[1:-1]
-                street = (' ').join(street)
-
-                for word in stopwords1:
-                    if word in street.upper():
-                        street = street[:street.upper().index(word)]
-
-                if any(word in street.upper() for word in stopwords):
-                    mylist = street.split(" ")
-                    for x in range(0, len(mylist)):
-                        if mylist[x].upper() in stopwords:
-                            mylist = mylist[:x]
-                            street = " ".join(mylist)
-                            break
-                    
-                mylist = street.split(" ")
-                for x in range(0, len(mylist)):
-                    if mylist[x].upper() in endwords:
-                        mylist = mylist[:x+1]
-                        street = " ".join(mylist)
-                        break
-
-                row['Street'] = street
+           
+            if len(row['Address'])==1:
+                row['Address'] = row['Address'][0]
+                row['Zip'] = row['Address'].split(', NY     ')[-1][:5]
+                row['City'] = row['Address'].split('     ')[-2].replace(', NY','')
+                row['Street'] = row['Address'].split(', NY     ')[-2].split(' ')
+                row['Street'] = (' ').join(row['Street'][:-1])
             
             else:
-                row['Building Number'] = ''
-                row['Street']= row['Address'][-2]
+                row['Zip'] = row['Address'][-2].split('     ')[-1][:5]
+                row['City'] = row['Address'][-2].split('     ')[0].replace(', NY','')
+                
+                if row['Address'][-3].split(' ')[0][:2].isdigit():
+                    row['Building Number'] = row['Address'][-3].split(' ')[0].split('/')[0]
+                    street = row['Address'][-3].split(' ')[1:-1]
+                    street = (' ').join(street)
+
+                    for word in stopwords1:
+                        if word in street.upper():
+                            street = street[:street.upper().index(word)]
+
+                    if any(word in street.upper() for word in stopwords):
+                        mylist = street.split(" ")
+                        for x in range(0, len(mylist)):
+                            if mylist[x].upper() in stopwords:
+                                mylist = mylist[:x]
+                                street = " ".join(mylist)
+                                break
+                        
+                    mylist = street.split(" ")
+                    for x in range(0, len(mylist)):
+                        if mylist[x].upper() in endwords:
+                            mylist = mylist[:x+1]
+                            street = " ".join(mylist)
+                            break
+
+                    row['Street'] = street
+                
+                else:
+                    row['Building Number'] = ''
+                    row['Street']= row['Address'][-3]
             
             row['Building Number'] = row['Building Number'].strip(" ")
             row['Street'] = row['Street'].strip(" ")
@@ -88,7 +97,6 @@ class DOEPharmacySrcFile(SourceFile):
         
         self.df["Address"] = self.df["Address"].apply(lambda x : x.split("\n"))
         self.df = self.df.apply(lambda row : clean_addr(row), axis=1)
-        print(self.df['Building Number'])
         
         self.df['Contact Phone'] = ''
         self.df['Record ID Successor'] = self.df['Record ID Successor'].astype(str)        
@@ -100,15 +108,15 @@ class DOEPharmacySrcFile(SourceFile):
         self.df = self.df[~(self.df['Industry']=='MANUFACTURER') | ~(self.df['Industry']=='OUTSOURCE FACILITY')]
         self.df['LIC Start Date'] = self.df['LIC Start Date'].apply(lambda x: '' if x=='Not on file' else x)
         self.df['Business Name 2'] = self.df['Business Name 2'].astype(str)
-        self.df['LIC First Start Date'] = self.df['LIC First Start Date'].astype('datetime64[D]')
+        # self.df['LIC First Start Date'] = self.df['LIC First Start Date'].astype('datetime64[D]')
         self.df['LIC Start Date'] = self.df['LIC Start Date'].astype('datetime64[D]')
         self.df['LIC Exp Date'] = self.df['LIC Exp Date'].astype('datetime64[D]')
-        self.df['Establishment Status'] = self.df['Establishment Status'].astype('datetime64[D]')
+        self.df['Establishment Status'] = self.df['Establishment Status'].astype(str)
         self.df['Record ID Successor'] = self.df['Record ID Successor'].astype(str)
 
         # self.type_cast()
         # self.clean_zip_city()
-        self.df = self.df.drop_duplicates()
+        # self.df = self.df.drop_duplicates()
 
         # self.file_manager.store_pickle(self.df,0)
         

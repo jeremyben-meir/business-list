@@ -4,6 +4,8 @@ import time
 from selenium import webdriver
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 import csv
 import pandas as pd
 import aiohttp
@@ -32,7 +34,7 @@ class PharmacyScraper():
 
                 self.driver.find_element_by_xpath(y).click()
                 self.driver.find_element_by_xpath('//*[@id="content_column"]/div[4]/form/div[6]/input[1]').click()
-                WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, '/html/body/div/div[3]/div[2]/div[2]/a[1]')))
+                WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, '//*[@id="content_column"]/h1')))
                 isPresent = 1
                 while isPresent > 0:
                     isPresent = len(self.driver.find_elements_by_xpath('/html/body/div/div[3]/div[2]/div[2]/form/input[7]'))
@@ -64,8 +66,10 @@ class PharmacyScraper():
                                 index_street = [i for i, s in enumerate(given_text) if 'Street Address' in s][0]
                                 index_reg = [i for i, s in enumerate(given_text) if 'Registration No' in s][0]
                                 ad = ''
-                                for i in range(index_street+1,index_reg):
-                                    ad += ('\n'+given_text[i])
+                                for q in range(index_street+1,index_reg):
+                                    new = '\n'+given_text[q]
+                                    ad += new
+
                             except:
                                 ad = None
                             
