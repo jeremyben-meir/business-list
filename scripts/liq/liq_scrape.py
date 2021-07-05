@@ -10,11 +10,14 @@ import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
 from lxml import etree
+from datetime import date
 
 class LiquorScrape():
     def __init__(self):
         self.county_list = ['QUEENS','RICHMOND','KINGS','BRONX','NEW YORK']
         self.df = pd.DataFrame(columns=["Premises Name","Trade Name","Zone","Address","County","Serial Number","License Type","License Status","Credit Group","Filing Date","Effective Date","Expiration Date","Principal's Name","URL"])#,"Serial 2","License Class"])
+        self.segment_size = 100
+        self.department = 'liq'
         try:
             # self.df = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/df-liqour-0", "rb"))
             self.links = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/links-liqour-0", "rb"))
@@ -23,21 +26,18 @@ class LiquorScrape():
             self.links = []
             self.start_clicks = (0,2)
     
-    async def fetch(self, session, url):
-        row = pd.Series(index=self.df.columns, dtype = 'object')
-        row.loc["URL"] = url
-        counter = 0
+    async def fetch(self, session, row):
         error_msg = ""
-        while counter<5:
+        for _ in range(5):
             try:
-                async with session.get(url) as response:
+                async with session.get(row["URL"]) as response:
                     text = await response.text()
                     full_row = await self.extract_tags(text,row)
                     return full_row
             except Exception as e:
                 error_msg = e
-                counter+=1
         print(f"get error:  {error_msg}")
+        row["Premises Name"] = "FAILURE"
         return row
             
     async def extract_tags(self, text, row):
@@ -52,35 +52,46 @@ class LiquorScrape():
                 counter += 2
         except Exception as e:
             print(f"extract error:  {e}")
+            row["Premises Name"] = "FAILURE"
         return row
 
-    async def main(self, urls):
-        tasks = []
+    async def main(self, top_index, bot_index):
+        tasks = list()
+        start_index = top_index
         headers = ({'User-Agent':
             'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
             (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36',\
             'Accept-Language': 'en-US, en;q=0.5'})
         async with aiohttp.ClientSession(headers=headers) as session:
-            for url in urls:
-                tasks.append(self.fetch(session, url))
-            rows = await asyncio.gather(*tasks)
-            for row in rows:
-                try:
-                    self.df=self.df.append(row,ignore_index=True)
-                except Exception as e:
-                    print(f"translate error:  {e}")
-            print(self.df)            
+            while top_index <= bot_index and top_index - start_index < self.segment_size:
+                task = self.fetch(session, self.df.loc[top_index])
+                tasks.append(task)
+                top_index+=1
+            await asyncio.gather(*tasks)          
             
-    def get_data(self):
+    def get_data(self, overwrite = True):
         self.links = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/links-liqour-0", "rb"))
         # self.links = self.links[12:143]
-        print(len(self.links))
-        segment_size = 100
-        for ticker in range (0,len(self.links),segment_size):
-            bot_index = ticker+segment_size if ticker+segment_size < len(self.links) else len(self.links)
-            asyncio.run(self.main(self.links[ticker:bot_index]))
-            pickle.dump(self.df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/df-liqour-0", "wb"))
-        cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/liq/liq/liq_scrape.csv"
+        self.df["URL"] = self.links
+        if overwrite == False:
+            self.df = pickle.load(open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/df-liqour-0", "rb"))
+            self.df = self.df[self.df["Premises Name"].eq("FAILURE")]
+            self.org_df = self.df[~(self.df["Premises Name"].eq("FAILURE"))]
+        print(len(self.df))
+        self.df.reset_index(drop=True)
+        
+        top_index = self.df.iloc[0].name
+        bot_index = self.df.iloc[-1].name
+        while top_index <= bot_index:
+            asyncio.run(self.main(top_index,bot_index))
+            top_index+=self.segment_size
+            print(top_index)
+
+        if overwrite == False:
+            self.df = pd.concat([self.org_df,self.df], ignore_index=True)
+
+        pickle.dump(self.df, open(DirectoryFields.LOCAL_LOCUS_PATH + "data/liq/temp/df-liqour-0", "wb"))
+        cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/liq/liq/{self.department}_liquor_{date.today()}_scrape.csv"
         self.df["Principal's Name"]=self.df["Principal's Name"].str.replace("\n","").str.replace("\r","").str.replace("\t","").str.strip()
         self.df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
 
@@ -128,4 +139,4 @@ class LiquorScrape():
 if __name__ == '__main__':
     scraper = LiquorScrape()
     # scraper.start_scrape()
-    scraper.get_data()
+    scraper.get_data(overwrite = False)
