@@ -64,6 +64,7 @@ class SourceFile:
         self.df['Zip'] = self.df['Zip'].replace(['N/A','NULL','nan','NaN'],'')
         self.df["Zip"] = self.df["Zip"].fillna("")
         self.df["Zip"] = self.df["Zip"].apply(lambda x: x.strip(' '))
+        
         def fix_zip(x):
             try:
                 res = str(int(float(x)))

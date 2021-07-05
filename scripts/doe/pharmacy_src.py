@@ -86,9 +86,8 @@ class DOEPharmacySrcFile(SourceFile):
 
             return row
         
-        self.df = self.df.rename(columns={"Registration No": "Record ID", 'Legal Name':'Business Name', 'Trade Name':'Business Name 2', 'Date First Registered':'LIC First Start Date', 'Registration Begins':'LIC Start Date','Registered through':'LIC Exp Date', 'Type':'Industry', 'Successor':'Record ID Successor'})
-        
-        
+        self.df = self.df.rename(columns={"Registration No": "Record ID", 'Legal Name':'Business Name', 'Trade Name':'Business Name 2', 'Establishment Status':'LIC Status','Date First Registered':'LIC First Start Date', 'Registration Begins':'LIC Start Date','Registered through':'LIC Exp Date', 'Type':'Industry', 'Successor':'Record ID Successor'})
+
 
         self.df["Building Number"] = ""
         self.df["Street"] = ""
@@ -111,7 +110,7 @@ class DOEPharmacySrcFile(SourceFile):
         # self.df['LIC First Start Date'] = self.df['LIC First Start Date'].astype('datetime64[D]')
         self.df['LIC Start Date'] = self.df['LIC Start Date'].astype('datetime64[D]')
         self.df['LIC Exp Date'] = self.df['LIC Exp Date'].astype('datetime64[D]')
-        self.df['Establishment Status'] = self.df['Establishment Status'].astype(str)
+        self.df['LIC Status'] = self.df['LIC Status'].astype(str)
         self.df['Record ID Successor'] = self.df['Record ID Successor'].astype(str)
 
         # self.type_cast()
