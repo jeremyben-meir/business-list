@@ -1,49 +1,16 @@
 from scripts.common import DirectoryFields
-import pickle
-import time
 from selenium import webdriver
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
-import csv
-import pandas as pd
-import aiohttp
-import asyncio
 from bs4 import BeautifulSoup
 from lxml import etree
-from datetime import date
-import sys
+from scripts.scrape_file import ScrapeFile, pd, sys, time
 
-class BarberAESScrape():
-    def __init__(self, industry):
-        self.county_list = ['QUEENS','RICHMOND','KINGS','BRONX','NEW YORK']
-        self.df = pd.DataFrame(columns=["License Number","Name","Business Name","Address","Zip","Phone","County","License State","License Issue Date","Current Term Effective Date","Expiration Date","Agency","License Status","Industry","URL"])
-        self.timeout = 100
-        self.segment_size = 100
-        self.industry = industry
-        self.department = 'dos'
-        try:
-            self.links = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dos/temp/links-{self.industry}-0", "rb"))
-            self.start_clicks = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dos/temp/var-{self.industry}-0", "rb"))
-        except:
-            self.links = []
-            self.start_clicks = 1
-    
-    async def fetch(self, session, index, row):
-        success = False
-        err_msg = ""
-        for _ in range(5):
-            try:
-                async with session.get(row["URL"]) as response:
-                    text = await response.text()
-                    await self.extract_tags(text,index)
-                    success = True
-                    break
-            except Exception as e:
-                err_msg = e
-        if not success:
-            print(f"get error: {err_msg}")
-            self.df.loc[index,"License Number"] = "FAILURE"
-            
+class BarberAESScrape(ScrapeFile):
+    def __init__(self, filename):
+        df = pd.DataFrame(columns=["License Number","Name","Business Name","Address","Zip","Phone","County","License State","License Issue Date","Current Term Effective Date","Expiration Date","Agency","License Status","Industry","URL"])
+        super().__init__(df=df,timeout=100,segment_size=100, department = 'dos', filename = filename)
+
     async def extract_tags(self, text, index):
         try:
             soup = BeautifulSoup(text, 'html.parser')
@@ -63,68 +30,14 @@ class BarberAESScrape():
             self.df.loc[index,"Expiration Date"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblExpirationDate_value"]')[0].text
             self.df.loc[index,"Agency"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblLicenseeBoard_value"]')[0].text
             self.df.loc[index,"License Status"] = tree.xpath('//*[@id="ctl00_PlaceHolderMain_licenseeGeneralInfo_lblBusinessName2_value"]')[0].text
+            self.df.loc[index,"Industry"] = self.filename
         except Exception as e:
             print(f"extract error:  {e}")
             self.df.loc[index,"License Number"] = "FAILURE"
 
-    async def main(self, top_index, bot_index):
-        tasks = list()
-        start_index = top_index
-        headers = ({'User-Agent':
-            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
-            (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36',\
-            'Accept-Language': 'en-US, en;q=0.5'})
-        async with aiohttp.ClientSession(headers=headers) as session:
-            while top_index <= bot_index and top_index - start_index < self.segment_size:
-                task = asyncio.ensure_future(self.fetch(session, top_index, self.df.loc[top_index]))
-                tasks.append(task)
-                top_index+=1
-                # print(top_index)
-            await asyncio.gather(*tasks)
-            
-    def get_data(self, overwrite = True):
-        self.links = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dos/temp/links-{self.industry}-0", "rb"))
-        self.links = self.links[12:143]
-        self.df["URL"] = self.links
-        self.df["Industry"] = self.industry
-        if overwrite == False:
-            self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dos/temp/df-{self.industry}-0", "rb"))
-            self.org_df = self.df[~(self.df["License Number"].eq("FAILURE"))]
-            self.df = self.df[self.df["License Number"].eq("FAILURE")]
-        print(len(self.df))
-        self.df=self.df.reset_index(drop=True)
-        
-        top_index = self.df.iloc[0].name
-        bot_index = self.df.iloc[-1].name
-        while top_index <= bot_index:
-            asyncio.run(self.main(top_index,bot_index))
-            top_index+=self.segment_size
-            print(top_index)
-
-        if overwrite == False:
-            self.df = pd.concat([self.org_df,self.df], ignore_index=True)
-
-        pickle.dump(self.df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dos/temp/df-{self.industry}-0", "wb"))
-        cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dos/{self.industry}/{self.department}_{self.industry}_{date.today()}_scrape.csv"
-        self.df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
-
-    def save_pages(self):
-        pickle.dump(self.links, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dos/temp/links-{self.industry}-0", "wb"))
-        pickle.dump(self.start_clicks, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dos/temp/var-{self.industry}-0", "wb"))
-        print(self.start_clicks)
-        print(len(self.links))
-
-    def wait_until_click(self, elem):
-        for _ in range(self.timeout):
-            try:
-                self.driver.find_element_by_xpath(elem).click()
-                return True
-            except:
-                time.sleep(1)
-        return False
-
     def load_links(self):
-        for county in self.county_list:
+        county_list = ['QUEENS','RICHMOND','KINGS','BRONX','NEW YORK']
+        for county in county_list:
             self.driver = webdriver.Chrome(DirectoryFields.LOCAL_WEBDRIVER_PATH)
             url = "https://aca.licensecenter.ny.gov/aca/GeneralProperty/PropertyLookUp.aspx?isLicensee=Y"
             wait = WebDriverWait(self.driver, self.timeout)
@@ -133,7 +46,7 @@ class BarberAESScrape():
 
             wait.until(lambda driver:self.driver.find_element_by_id('ctl00_PlaceHolderMain_refLicenseeSearchForm_ddlLicenseType').is_displayed() == True)
             select_license = Select(self.driver.find_element_by_id('ctl00_PlaceHolderMain_refLicenseeSearchForm_ddlLicenseType'))
-            select_license.select_by_index(4 if self.industry == 'aes' else 11)
+            select_license.select_by_index(4 if self.filename == 'aes' else 11)
         
             try:
                 input_city = self.driver.find_element_by_xpath('//*[@id="ctl00_PlaceHolderMain_refLicenseeSearchForm_txtTitle"]')
@@ -178,4 +91,4 @@ class BarberAESScrape():
 if __name__ == '__main__':
     scraper = BarberAESScrape('barber')
     scraper.load_links()
-    scraper.get_data(overwrite=True)
+    # scraper.get_data(overwrite=True)
