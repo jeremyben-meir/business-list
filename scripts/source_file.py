@@ -36,6 +36,51 @@ class SourceFile:
         self.file_manager.store_pickle(self.df,1)
 
     # CITY SETTING #########################################################################################
+    
+    def stop_end_words(self, row):
+        stopwords = ['FL', 'STORE', 'BSMT','RM','UNIT','STE','APT','APT#','FRNT','#','MEZZANINE','LOBBY','GROUND','FLOOR','SUITE','LEVEL']
+        stopwords1 = ["1ST FLOOR", "1ST FL","2ND FLOOR", "2ND FL","3RD FLOOR", "3RD FL","4TH FLOOR", "4TH FL","5TH FLOOR", "5TH FL","6TH FLOOR", "6TH FL","7TH FLOOR", "7TH FL","8TH FLOOR", "8TH FL","9TH FLOOR", "9TH FL","10TH FLOOR", "10TH FL"]
+        endwords = ["AVE","AVENUE","ST","STREET","ROAD","RD","PLACE","PL","BOULEVARD","BLVD"]
+        avenuewords = ['EAST','WEST','SOUTH','NORTH','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','X','Y','Z']
+        avenuewords1 = ['OF THE FINEST','OF THE STRONGEST','ST JOHN','ST. JOHN','OF AFRICA','OF ASIA','OF COMMERCE','OF PEACE','OF PROGRESS','OF DISCOVERY','OF RESEARCH','OF THE AMERICAS','OF THE STATES','OF TRANSPORTATION']
+
+        row["Street"] = row["Street"].replace(",","")
+        row["Street"] = row["Street"].replace(".","")
+        row["Street"] = row["Street"].replace("\"","")
+        row["Street"] = row["Street"].replace("-","")
+        row["Street"] = row["Street"].strip(" ")
+        row["Street"] = row["Street"].upper()
+
+        for word in stopwords1:
+            if word in row["Street"]:
+                row["Street"] = row["Street"][:row["Street"].index(word)]
+
+        if any(word in row["Street"] for word in stopwords):
+            mylist = row["Street"].split(" ")
+            for x in range(0, len(mylist)):
+                if mylist[x] in stopwords:
+                    mylist = mylist[:x]
+                    row["Street"] = " ".join(mylist)
+                    break
+        
+        mylist = row["Street"].split(" ")
+        for x in range(0, len(mylist)):
+            if mylist[x] in endwords:
+                if len(mylist)>=x+2 and mylist[x+1] in avenuewords:
+                    mylist = mylist[:x+2]
+                    row["Street"] = " ".join(mylist)
+                elif any(avenueword in " ".join(mylist[x+1:]) for avenueword in avenuewords1):
+                    for avenueword in avenuewords1:
+                        if avenueword in " ".join(mylist[x+1:]):
+                            row["Street"] = " ".join(mylist)
+                            row["Street"] = row["Street"][:row["Street"].index(avenueword)+len(avenueword)]
+                            break
+                else:
+                    mylist = mylist[:x+1]
+                    row["Street"] = " ".join(mylist)
+                break
+
+        return row
 
     def type_cast(self):
         print("Type casting")

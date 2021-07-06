@@ -35,41 +35,16 @@ class DOEPharmacySrcFile(SourceFile):
 
     def instantiate_file(self):
         def clean_addr(row):
-            stopwords = ['FL', 'STORE', 'BSMT','RM','UNIT','STE','APT','APT#','FRNT','#','MEZZANINE','LOBBY','GROUND','FLOOR','SUITE','LEVEL']
-            stopwords1 = ["1ST FLOOR", "1ST FL","2ND FLOOR", "2ND FL","3RD FLOOR", "3RD FL","4TH FLOOR", "4TH FL","5TH FLOOR", "5TH FL","6TH FLOOR", "6TH FL","7TH FLOOR", "7TH FL","8TH FLOOR", "8TH FL","9TH FLOOR", "9TH FL","10TH FLOOR", "10TH FL"]
-            endwords = ["AVE","AVENUE","ST","STREET","ROAD","RD","PLACE","PL","BOULEVARD","BLVD"]
-    
-            row['Zip'] = row['Address'][-2].split('     ')[-1][:5]
-            row['City'] = row['Address'][-2].split('     ')[0].replace(', NY','')
+            row['Zip'] = row['Address'][-1].split('     ')[-1][:5]
+            row['City'] = row['Address'][-1].split('     ')[0].replace(', NY','')
             
-            if row['Address'][-3].split(' ')[0][:2].isdigit():
-                row['Building Number'] = row['Address'][-3].split(' ')[0].split('/')[0]
-                street = row['Address'][-3].split(' ')[1:]
-                street = (' ').join(street)
-
-                for word in stopwords1:
-                    if word in street.upper():
-                        street = street[:street.upper().index(word)]
-
-                if any(word in street.upper() for word in stopwords):
-                    mylist = street.split(" ")
-                    for x in range(0, len(mylist)):
-                        if mylist[x].upper() in stopwords:
-                            mylist = mylist[:x]
-                            street = " ".join(mylist)
-                            break
-                    
-                mylist = street.split(" ")
-                for x in range(0, len(mylist)):
-                    if mylist[x].upper() in endwords:
-                        mylist = mylist[:x+1]
-                        street = " ".join(mylist)
-                        break
-                row['Street'] = street
-            
+            if row['Address'][0].split(' ')[0][:2].isdigit():
+                row['Building Number'] = row['Address'][0].split(' ')[0].split('/')[0]
+                row['Street'] = row['Address'][0].split(' ')[1:]
+                row = self.stop_end_words(row)
             else:
                 row['Building Number'] = ''
-                row['Street']= row['Address'][-3]
+                row['Street']= row['Address'][0]
             
             row['Building Number'] = row['Building Number'].strip(" ")
             row['Street'] = row['Street'].strip(" ")
@@ -84,8 +59,20 @@ class DOEPharmacySrcFile(SourceFile):
         self.df["Street"] = ""
         self.df["Zip"] = ""
         self.df['State'] = 'NY'
+
+        def addr_list(address_list):
+            address_list = address_list.strip().strip("\n").split("\n")
+            address_list = [address.strip() for address in address_list]
+            delelt = list()
+            for elt in range(len(address_list)):
+                if "AIRPORT" in address_list[elt] or "AIRLINE" in address_list[elt]or "JFK" in address_list[elt] or "LAGUARDIA" in address_list[elt] or "LA GUARDIA" in address_list[elt]:
+                    pass
+                elif len(address_list[elt]) < 5 or not any (char.isdigit() for char in address_list[elt]):
+                    delelt.append(elt)
+            address_list = [i for j, i in enumerate(address_list) if j not in delelt]
+            return address_list
         
-        self.df["Address"] = self.df["Address"].apply(lambda x : x.split("\n"))
+        self.df["Address"] = self.df["Address"].apply(lambda x : addr_list(x))
         self.df = self.df.apply(lambda row : clean_addr(row), axis=1)
         
         self.df['Contact Phone'] = ''

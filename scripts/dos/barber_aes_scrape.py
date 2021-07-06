@@ -11,6 +11,7 @@ import asyncio
 from bs4 import BeautifulSoup
 from lxml import etree
 from datetime import date
+import sys
 
 class BarberAESScrape():
     def __init__(self, industry):
@@ -83,7 +84,7 @@ class BarberAESScrape():
             
     def get_data(self, overwrite = True):
         self.links = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/dos/temp/links-{self.industry}-0", "rb"))
-        # self.links = self.links[12:143]
+        self.links = self.links[12:143]
         self.df["URL"] = self.links
         self.df["Industry"] = self.industry
         if overwrite == False:
@@ -132,11 +133,14 @@ class BarberAESScrape():
 
             wait.until(lambda driver:self.driver.find_element_by_id('ctl00_PlaceHolderMain_refLicenseeSearchForm_ddlLicenseType').is_displayed() == True)
             select_license = Select(self.driver.find_element_by_id('ctl00_PlaceHolderMain_refLicenseeSearchForm_ddlLicenseType'))
-            select_license.select_by_index(4 if self.industry == 'barber' else 11)
+            select_license.select_by_index(4 if self.industry == 'aes' else 11)
         
-            input_city = self.driver.find_element_by_xpath('//*[@id="ctl00_PlaceHolderMain_refLicenseeSearchForm_txtTitle"]')
-            input_city.send_keys(county)
-            self.driver.find_element_by_id('ctl00_PlaceHolderMain_btnNewSearch').click()
+            try:
+                input_city = self.driver.find_element_by_xpath('//*[@id="ctl00_PlaceHolderMain_refLicenseeSearchForm_txtTitle"]')
+                input_city.send_keys(county)
+                self.driver.find_element_by_id('ctl00_PlaceHolderMain_btnNewSearch').click()
+            except:
+                sys.exit("County option not present")
 
             wait.until(lambda driver:self.driver.find_element_by_xpath(f'//*[@id="ctl00_PlaceHolderMain_refLicenseeList_gdvRefLicenseeList"]/tbody/tr[1]').is_displayed() == True)
 
@@ -173,5 +177,5 @@ class BarberAESScrape():
 
 if __name__ == '__main__':
     scraper = BarberAESScrape('barber')
-    # scraper.load_links()
+    scraper.load_links()
     scraper.get_data(overwrite=True)

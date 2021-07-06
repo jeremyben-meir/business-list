@@ -36,10 +36,6 @@ class LIQLicenseSrcFile(SourceFile):
 
     def instantiate_file(self):
         def clean_addr(row):
-            stopwords = ['FL', 'STORE', 'BSMT','RM','UNIT','STE','APT','APT#','FRNT','#','MEZZANINE','LOBBY','GROUND','FLOOR','SUITE','LEVEL']
-            stopwords1 = ["1ST FLOOR", "1ST FL","2ND FLOOR", "2ND FL","3RD FLOOR", "3RD FL","4TH FLOOR", "4TH FL","5TH FLOOR", "5TH FL","6TH FLOOR", "6TH FL","7TH FLOOR", "7TH FL","8TH FLOOR", "8TH FL","9TH FLOOR", "9TH FL","10TH FLOOR", "10TH FL"]
-            endwords = ["AVE","AVENUE","ST","STREET","ROAD","RD","PLACE","PL","BOULEVARD","BLVD"]
-           
             row['Address'] = row['Address'].split(' ')
             if len(row['Address'])>1:    
                 if row['Address'][0][0].isdigit():
@@ -53,12 +49,7 @@ class LIQLicenseSrcFile(SourceFile):
                     row['Building Number'] = ''
                     row['Street'] = (' ').join(row['Address'])
                 
-                mylist = row['Street'].split(" ")
-                for x in range(0, len(mylist)):
-                    if mylist[x].upper() in endwords:
-                        mylist = mylist[:x+1]
-                        row['Street'] = " ".join(mylist)
-                        break
+                row = self.stop_end_words(row)
             return row
         
         self.df = self.df.rename(columns={'Premises Name':'Business Name', 'Trade Name':'Business Name 2', 'County':'City', 'Serial Number':'Record ID', 'License Type':'Industry', 'License Status':'LIC Status', 'Filing Date':'LIC Filing Date', 'Effective Date':'LIC Start Date', 'Expiration Date':'LIC Exp Date'})
