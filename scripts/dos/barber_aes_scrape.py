@@ -73,7 +73,7 @@ class BarberAESScrape(ScrapeFile):
                 counter = 3
                 while num_elts > 3:
                     text = self.driver.find_element_by_xpath(f'//*[@id="ctl00_PlaceHolderMain_refLicenseeList_gdvRefLicenseeList"]/tbody/tr[{counter}]/td[1]/div/a').text
-                    link = f"https://aca.licensecenter.ny.gov/aca/GeneralProperty/LicenseeDetail.aspx?LicenseeNumber={text}&LicenseeType=Appearance%20Enhancement%20Business"
+                    link = f"https://aca.licensecenter.ny.gov/aca/GeneralProperty/LicenseeDetail.aspx?LicenseeNumber={text}&LicenseeType={'Appearance Enhancement Business' if self.filename == 'aes' else 'Barber Shop'}"
                     num_elts -= 1
                     counter += 1
                     self.links.append(link)
@@ -89,6 +89,6 @@ class BarberAESScrape(ScrapeFile):
         print("done")
 
 if __name__ == '__main__':
-    scraper = BarberAESScrape('barber')
-    scraper.load_links()
-    # scraper.get_data(overwrite=True)
+    scraper = BarberAESScrape('aes')
+    # scraper.load_links()
+    scraper.get_data(overwrite=True)

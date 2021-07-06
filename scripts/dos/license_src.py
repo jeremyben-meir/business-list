@@ -53,8 +53,6 @@ class DOSLicensesSrcFile(SourceFile):
                 row['Street'] = " ".join(row["Street"].split(" ")[1:]) 
 
             row = self.stop_end_words(row)
-
-            print(row["Street"])  
             
             if "1/2" in row['Street']:
                 row['Street'] = row['Street'][row['Street'].index("1/2")+3:]
@@ -77,6 +75,7 @@ class DOSLicensesSrcFile(SourceFile):
         self.df = self.df.apply(lambda row : clean_addr(row), axis=1)
 
         del self.df["Agency"]
+        del self.df["URL"]
 
         self.type_cast()
         self.clean_zip_city()
