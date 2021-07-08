@@ -88,5 +88,5 @@ class DCALicenseSrcFile(SourceFile):
 if __name__ == '__main__':
     source = DCALicenseSrcFile()
     source.instantiate_file()
-    # source.add_bbl_async()
+    source.add_bbl_async()
     source.save_csv()

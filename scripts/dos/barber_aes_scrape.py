@@ -90,5 +90,9 @@ class BarberAESScrape(ScrapeFile):
 
 if __name__ == '__main__':
     scraper = BarberAESScrape('aes')
-    # scraper.load_links()
-    scraper.get_data(overwrite=True)
+    scraper.load_links()
+    scraper.get_data(overwrite=False)
+
+    scraper = BarberAESScrape('barber')
+    scraper.load_links()
+    scraper.get_data(overwrite=False)

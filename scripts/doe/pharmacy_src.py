@@ -40,7 +40,7 @@ class DOEPharmacySrcFile(SourceFile):
             
             if row['Address'][0].split(' ')[0][:2].isdigit():
                 row['Building Number'] = row['Address'][0].split(' ')[0].split('/')[0]
-                row['Street'] = row['Address'][0].split(' ')[1:]
+                row['Street'] = " ".join(row['Address'][0].split(' ')[1:])
                 row = self.stop_end_words(row)
             else:
                 row['Building Number'] = ''
@@ -85,20 +85,22 @@ class DOEPharmacySrcFile(SourceFile):
         self.df = self.df[~(self.df['Industry']=='MANUFACTURER') | ~(self.df['Industry']=='OUTSOURCE FACILITY')]
         self.df['LIC Start Date'] = self.df['LIC Start Date'].apply(lambda x: '' if x=='Not on file' else x)
         self.df['Business Name 2'] = self.df['Business Name 2'].astype(str)
-        # self.df['LIC First Start Date'] = self.df['LIC First Start Date'].astype('datetime64[D]')
-        self.df['LIC Start Date'] = self.df['LIC Start Date'].astype('datetime64[D]')
+        self.df['LIC First Start Date'] = pd.to_datetime(self.df['LIC First Start Date'], errors='coerce')
+        self.df['LIC Start Date'] = pd.to_datetime(self.df['LIC Start Date'], errors='coerce')
         self.df['LIC Exp Date'] = self.df['LIC Exp Date'].astype('datetime64[D]')
         self.df['LIC Status'] = self.df['LIC Status'].astype(str)
         self.df['Record ID Successor'] = self.df['Record ID Successor'].astype(str)
 
-        # self.type_cast()
-        # self.clean_zip_city()
-        # self.df = self.df.drop_duplicates()
+        del self.df["Address"]
 
-        # self.file_manager.store_pickle(self.df,0)
+        self.type_cast()
+        self.clean_zip_city()
+        self.df = self.df.drop_duplicates()
+
+        self.file_manager.store_pickle(self.df,0)
         
 if __name__ == '__main__':
     source = DOEPharmacySrcFile()
     source.instantiate_file()
-    # source.add_bbl_async()
+    source.add_bbl_async()
     source.save_csv()
