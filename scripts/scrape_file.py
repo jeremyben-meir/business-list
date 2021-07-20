@@ -50,6 +50,9 @@ class ScrapeFile:
             print(f"get error: {err_msg}")
             self.df.loc[index,self.first_col] = "FAILURE"
 
+    async def extract_tags(self, text, index):
+        sys.exit("Accessing parent class. Should instead call child class.")
+
     async def main(self, top_index, bot_index):
         tasks = list()
         start_index = top_index

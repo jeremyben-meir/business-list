@@ -70,7 +70,6 @@ class Merge():
                 if row0["Record ID"] == row1["Record ID"] or row0["Business Name"] == row1["Business Name"] or self.phones_to_match(row0["Contact Phone"],row1["Contact Phone"]) or (self.names_to_match(row0["Business Name"],row1["Business Name"],row0["Street"],row1["Street"]) > 80 and self.industry_to_match(row0['Industry'],row1['Industry'])):
                     indexlist = self.find_llid_sets(index1,row1,group,indexlist)
         return indexlist
-            
 
     def add_llid(self, bbl):
         self.df = self.df.reset_index(drop=True)
