@@ -244,3 +244,4 @@ class SourceFile:
 
     def save_csv(self):
         self.file_manager.save_csv(self.df)
+        self.file_manager.store_pickle(self.df,"source")

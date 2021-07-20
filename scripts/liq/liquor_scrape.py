@@ -17,6 +17,9 @@ class LiquorScrape(ScrapeFile):
             tree = etree.HTML(str(soup))
             labels = tree.xpath('//*[@class="displaylabel"]')
             values = tree.xpath('//*[@class="displayvalue"]')
+            print([label.text for label in labels])
+            if len(labels) == 0:
+                print(self.df.loc[index,"URL"])
             if labels[0].text.strip(":") != "Serial Number":
                 self.df.loc[index,"Serial Number"] = tree.xpath('//*[@class="instructions"]/a')[0].text
             counter = 1
@@ -30,12 +33,17 @@ class LiquorScrape(ScrapeFile):
                     counter += 2
         except Exception as e:
             print(f"extract error:  {e}")
-            self.df.loc[index,"Premises Name"] = "FAILURE"
+            print(type(e).__name__)
+            if type(e).__name__ == "IndexError":
+                del self.df.loc[index]
+            else:
+                self.df.loc[index,"Premises Name"] = "FAILURE"
 
     def load_links(self):
         county_list = ['QUEENS','RICHMOND','KINGS','BRONX','NEW YORK']
         self.driver = webdriver.Chrome(DirectoryFields.LOCAL_WEBDRIVER_PATH)
 
+        print(self.start_clicks)
         for county in county_list:
             if county == county_list[self.start_clicks[0]]:
                 url = "https://www.tran.sla.ny.gov/JSP/query/PublicQueryPremisesSearchPage.jsp"
@@ -68,5 +76,5 @@ class LiquorScrape(ScrapeFile):
 
 if __name__ == '__main__':
     scraper = LiquorScrape()
-    scraper.load_links()
-    scraper.get_data(overwrite = True)
+    # scraper.load_links()
+    scraper.get_data(overwrite = False)
