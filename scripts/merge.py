@@ -67,7 +67,7 @@ class Merge():
         indexlist.append(index0)
         for index1,row1 in group.iterrows():
             if index1 not in indexlist:
-                if row0["Record ID"] == row1["Record ID"] or row0["Business Name"] == row1["Business Name"] or self.phones_to_match(row0["Contact Phone"],row1["Contact Phone"]) or (self.(row0["Business Name"],row1["Business Name"],row0["Street"],row1["Street"]) > 80 and self.industry_to_match(row0['Industry'],row1['Industry'])):
+                if row0["Record ID"] == row1["Record ID"] or row0["Business Name"] == row1["Business Name"] or self.phones_to_match(row0["Contact Phone"],row1["Contact Phone"]) or (self.names_to_match(row0["Business Name"],row1["Business Name"],row0["Street"],row1["Street"]) > 80 and self.industry_to_match(row0['Industry'],row1['Industry'])):
                     indexlist = self.find_llid_sets(index1,row1,group,indexlist)
         return indexlist
             
@@ -98,7 +98,7 @@ class Merge():
             curlist.append(index1)
         for index1,row1 in group.iterrows():
             if index1 not in indexlist:
-                indexlist = self.find_lbid_sets_RecID(index1,row1,self.df,indexlist+curlist)
+                indexlist = self.find_lbid_sets_RecID(index1,row1,indexlist+curlist)
         return indexlist
 
     def find_lbid_sets_RecID(self, index0, row0, indexlist):
@@ -108,7 +108,7 @@ class Merge():
             curlist.append(index1)
         for index1,row1 in group.iterrows():
             if index1 not in indexlist:
-                indexlist = self.find_lbid_sets_llid(index1,row1,self.df,indexlist+curlist)
+                indexlist = self.find_lbid_sets_llid(index1,row1,indexlist+curlist)
         return indexlist
 
     def add_lbid(self):
@@ -123,7 +123,7 @@ class Merge():
             for index0,row0 in group.iterrows():
                 indexlist.append(index0)
             for index0,row0 in group.iterrows():
-                indexlist += self.find_lbid_sets_RecID(index0, row0, self.df, indexlist)
+                indexlist += self.find_lbid_sets_RecID(index0, row0, indexlist)
             self.df.loc[indexlist,"LBID"] = str(uuid.uuid4()) 
         
         print("added LBIDS")
