@@ -48,7 +48,7 @@ class Merge():
 
     def load_source_files(self):
         filelist = [("dca","charge"),("dca","inspection"),("dca","application"),("dca","license"),("doa","inspection"),
-                    ("doe","pharmacy"),("doh","inspection"),("dos","license"),("liq","liquor")]
+                    ("doe","pharmacy"),("doh","inspection"),("dos","license"),("liq","license")]
         df_list = [pickle.load( open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{res[0]}/temp/df-{res[1]}-source.p", "rb" )) for res in filelist]
 
         df = pd.concat(df_list, axis=0, join='outer', ignore_index=False)
@@ -58,6 +58,10 @@ class Merge():
         
         self.store_pickle(df,0)
         print("load done")
+
+        print(set(df["Industry"].unique()))
+        print()
+        print(df.columns.tolist())
 
         return df
 
@@ -143,9 +147,9 @@ class Merge():
 
 if __name__ == '__main__':
     merge = Merge()
-    merge.add_llid(bbl=True)
+    # merge.add_llid(bbl=True)
     # merge.add_llid(bbl=False)
-    merge.add_lbid()
-    merge.save_csv()
+    # merge.add_lbid()
+    # merge.save_csv()
 
     
