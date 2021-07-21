@@ -17,9 +17,6 @@ class LiquorScrape(ScrapeFile):
             tree = etree.HTML(str(soup))
             labels = tree.xpath('//*[@class="displaylabel"]')
             values = tree.xpath('//*[@class="displayvalue"]')
-            print([label.text for label in labels])
-            if len(labels) == 0:
-                print(self.df.loc[index,"URL"])
             if labels[0].text.strip(":") != "Serial Number":
                 self.df.loc[index,"Serial Number"] = tree.xpath('//*[@class="instructions"]/a')[0].text
             counter = 1
@@ -33,9 +30,8 @@ class LiquorScrape(ScrapeFile):
                     counter += 2
         except Exception as e:
             print(f"extract error:  {e}")
-            print(type(e).__name__)
             if type(e).__name__ == "IndexError":
-                del self.df.loc[index]
+                self.df = self.df.drop(index)
             else:
                 self.df.loc[index,"Premises Name"] = "FAILURE"
 
