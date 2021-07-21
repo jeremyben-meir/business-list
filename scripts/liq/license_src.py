@@ -8,7 +8,7 @@ from scripts.source_file import SourceFile, pd, sys
 class LIQLicenseSrcFile(SourceFile):
 
     def __init__(self):
-        file_manager = FileManager('liq',['liq'], 'license')
+        file_manager = FileManager('liq',['liquor'], 'license')
         super().__init__(self.retrieve_file(file_manager), file_manager)
 
     def apply_template(self, df, template):
@@ -36,6 +36,7 @@ class LIQLicenseSrcFile(SourceFile):
 
     def instantiate_file(self):
         def clean_addr(row):
+            row['Address'] = row['Address'].strip(' ')
             row['Address'] = row['Address'].split(' ')
             if len(row['Address'])>1:    
                 if row['Address'][0][0].isdigit():
@@ -73,14 +74,14 @@ class LIQLicenseSrcFile(SourceFile):
         del self.df['Principal\'s Name']
         del self.df['URL']
 
-        # self.type_cast()
-        # self.clean_zip_city()
-        # self.df = self.df.drop_duplicates()
+        self.type_cast()
+        self.clean_zip_city()
+        self.df = self.df.drop_duplicates()
 
         self.file_manager.store_pickle(self.df,0)
         
 if __name__ == '__main__':
     source = LIQLicenseSrcFile()
     source.instantiate_file()
-    # source.add_bbl_async()
+    source.add_bbl_async()
     source.save_csv()
