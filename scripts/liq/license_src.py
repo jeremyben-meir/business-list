@@ -57,6 +57,7 @@ class LIQLicenseSrcFile(SourceFile):
 
         self.df["Building Number"] = ""
         self.df["Street"] = ""
+        self.df["Contact Phone"] = ""
         self.df['State'] = 'NY'
 
         self.df['Address'] = self.df['Address'].astype(str)
@@ -64,9 +65,9 @@ class LIQLicenseSrcFile(SourceFile):
 
         self.df['Business Name 2'] = self.df['Business Name 2'].astype(str)
         self.df['LIC Status'] = self.df['LIC Status'].astype(str)
-        self.df['LIC Filing Date'] = self.df['LIC Filing Date'].astype('datetime64[D]')
-        self.df['LIC Start Date'] = self.df['LIC Start Date'].astype('datetime64[D]')
-        self.df['LIC Exp Date'] = self.df['LIC Exp Date'].astype('datetime64[D]')
+        self.df['LIC Start Date'] = pd.to_datetime(self.df['LIC Start Date'], errors = 'coerce')
+        self.df['LIC Exp Date'] = pd.to_datetime(self.df['LIC Exp Date'], errors = 'coerce')
+        self.df['LIC Filing Date'] = pd.to_datetime(self.df['LIC Filing Date'], errors = 'coerce')
 
         del self.df['Address']
         del self.df['Zone']
