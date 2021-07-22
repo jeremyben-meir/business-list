@@ -52,7 +52,7 @@ class DOEPharmacySrcFile(SourceFile):
 
             return row
         
-        self.df = self.df.rename(columns={"Registration No": "Record ID", 'Legal Name':'Business Name', 'Trade Name':'Business Name 2', 'Establishment Status':'LIC Status','Date First Registered':'LIC First Start Date', 'Registration Begins':'LIC Start Date','Registered through':'LIC Exp Date', 'Type':'Industry', 'Successor':'Record ID Successor'})
+        self.df = self.df.rename(columns={"Registration No": "Record ID", 'Legal Name':'Business Name', 'Trade Name':'Business Name 2', 'Establishment Status':'LIC Status','Date First Registered':'LIC First Start Date', 'Registration Begins':'LIC Start Date','Registered through':'LIC Exp Date', 'Type':'Industry', 'Successor':'Record ID 2'})
 
 
         self.df["Building Number"] = ""
@@ -76,9 +76,9 @@ class DOEPharmacySrcFile(SourceFile):
         self.df = self.df.apply(lambda row : clean_addr(row), axis=1)
         
         self.df['Contact Phone'] = ''
-        self.df['Record ID Successor'] = self.df['Record ID Successor'].astype(str)        
-        self.df['Record ID Successor'] = self.df['Record ID Successor'].apply(lambda x: x.split(' ')[0])
-        self.df['Record ID Successor'] = self.df['Record ID Successor'].apply(lambda x: str(int(float(x))) if x[:4].isdigit() else '' )
+        self.df['Record ID 2'] = self.df['Record ID 2'].astype(str)        
+        self.df['Record ID 2'] = self.df['Record ID 2'].apply(lambda x: x.split(' ')[0])
+        self.df['Record ID 2'] = self.df['Record ID 2'].apply(lambda x: str(int(float(x))) if x[:4].isdigit() else '' )
         self.df['Industry'] = self.df['Industry'].astype(str)
         self.df['Industry'] = self.df['Industry'].replace('PHARMACY','Pharmacy')
         self.df['Industry'] = self.df['Industry'].replace(['WHOLESALER','WHOLESALER/REPACKER'], 'Drug Wholesaler')
@@ -89,7 +89,7 @@ class DOEPharmacySrcFile(SourceFile):
         self.df['LIC Start Date'] = pd.to_datetime(self.df['LIC Start Date'], errors='coerce')
         self.df['LIC Exp Date'] = self.df['LIC Exp Date'].astype('datetime64[D]')
         self.df['LIC Status'] = self.df['LIC Status'].astype(str)
-        self.df['Record ID Successor'] = self.df['Record ID Successor'].astype(str)
+        self.df['Record ID 2'] = self.df['Record ID 2'].astype(str)
 
         del self.df["Address"]
 

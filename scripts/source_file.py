@@ -243,5 +243,6 @@ class SourceFile:
         self.df = self.df.reset_index(drop=True)
 
     def save_csv(self):
+        self.df["source"] = f"{self.file_manager.department}/{self.file_manager.outname}"
         self.file_manager.save_csv(self.df)
         self.file_manager.store_pickle(self.df,"source")
