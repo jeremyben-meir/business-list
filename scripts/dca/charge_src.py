@@ -37,10 +37,12 @@ class DCAChargeSrcFile(SourceFile):
         return pd.concat(df_list, ignore_index=True)
 
     def instantiate_file(self):
-
         self.df = self.df.rename(columns={"Violation Date": "CHRG Date"})
 
+        industry_dict = {'3' : 'Tickets-Live Perf - 260','420':'Shoe Store', '53': 'Hardware Retail', '72' : 'Tickets-Live Perf - 260', '114': 'Auto Repair', '115': 'Electronic & Home Appliance Service Dealer', '119':'Dealer In Products For The Disabled', 'C73' : 'Event Space', 'E75':'CATERING ESTABLISHMENT', 'H27':'Barber', 'H29':'Pet Store', 'H92':'Healthcare', 'H90':'Healthcare', 'H98':'Healthcare', 'H99':'Healthcare', 'SD6':'Auto Parts'}
+
         self.df['Contact Phone'] = ""
+        self.df["Industry"] = self.df["Industry"].replace(industry_dict.keys(),industry_dict.values())
         self.df['CHRG Date'] = self.df['CHRG Date'].astype('datetime64[D]')
         self.df['Street 2'] = self.df['Street 2'].astype(str)
         self.df['Unit Type'] = self.df['Unit Type'].astype(str)

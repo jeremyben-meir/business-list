@@ -52,7 +52,7 @@ class DOEPharmacySrcFile(SourceFile):
 
             return row
         
-        self.df = self.df.rename(columns={"Registration No": "Record ID", 'Legal Name':'Business Name', 'Trade Name':'Business Name 2', 'Establishment Status':'LIC Status','Date First Registered':'LIC First Start Date', 'Registration Begins':'LIC Start Date','Registered through':'LIC Exp Date', 'Type':'Industry', 'Successor':'Record ID 2'})
+        self.df = self.df.rename(columns={"Registration No": "Record ID", 'Legal Name':'Business Name', 'Trade Name':'Business Name 2', 'Establishment Status':'LIC Status','Date First Registered':'LIC Issue Date', 'Registration Begins':'LIC Start Date','Registered through':'LIC Exp Date', 'Type':'Industry', 'Successor':'Record ID 2'})
 
 
         self.df["Building Number"] = ""
@@ -85,7 +85,7 @@ class DOEPharmacySrcFile(SourceFile):
         self.df = self.df[~(self.df['Industry']=='MANUFACTURER') | ~(self.df['Industry']=='OUTSOURCE FACILITY')]
         self.df['LIC Start Date'] = self.df['LIC Start Date'].apply(lambda x: '' if x=='Not on file' else x)
         self.df['Business Name 2'] = self.df['Business Name 2'].astype(str)
-        self.df['LIC First Start Date'] = pd.to_datetime(self.df['LIC First Start Date'], errors='coerce')
+        self.df['LIC Issue Date'] = pd.to_datetime(self.df['LIC Issue Date'], errors='coerce')
         self.df['LIC Start Date'] = pd.to_datetime(self.df['LIC Start Date'], errors='coerce')
         self.df['LIC Exp Date'] = self.df['LIC Exp Date'].astype('datetime64[D]')
         self.df['LIC Status'] = self.df['LIC Status'].astype(str)

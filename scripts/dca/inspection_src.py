@@ -47,9 +47,11 @@ class DCAInspectionSrcFile(SourceFile):
         self.df = self.df.rename(columns={"Inspection Date": "INSP Date", 'Inspection Result':"INSP Result"})
 
         business_indicators_noninformative = ["Business Padlocked", "Unable to Locate", "Unable to Complete Inspection", "Unable to Seize Vehicle"]
+        industry_dict = {'3' : 'Tickets-Live Perf - 260','420':'Shoe Store', '53': 'Hardware Retail', '72' : 'Tickets-Live Perf - 260', '114': 'Auto Repair', '115': 'Electronic & Home Appliance Service Dealer', '119':'Dealer In Products For The Disabled', 'C73' : 'Event Space', 'E75':'CATERING ESTABLISHMENT', 'H27':'Barber', 'H29':'Pet Store', 'H92':'Healthcare', 'H90':'Healthcare', 'H98':'Healthcare', 'H99':'Healthcare', 'SD6':'Auto Parts'}
 
         self.df['Contact Phone'] = ""
         self.df["INSP Result"] = self.df["INSP Result"].astype(str)
+        self.df["Industry"] = self.df["Industry"].replace(industry_dict.keys(),industry_dict.values())
         self.df = self.df[~self.df["INSP Result"].isin(business_indicators_noninformative)]
         self.df["INSP Date"] = self.df["INSP Date"].astype('datetime64[D]')
         self.df['Street 2'] = self.df['Street 2'].astype(str)

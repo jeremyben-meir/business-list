@@ -31,7 +31,7 @@ class DOHInspectionSrcFile(SourceFile):
             df['Industry'] = df['Industry'].apply(lambda x: x.strip('        '))
 
         elif template == 1:
-            df = df.rename(columns={"camis": "Record ID", 'dba':'Business Name', 'boro':'City', 'building': 'Building Number', 'street':'Street', 'zipcode':'Zip','phone':'Contact Phone', 'cuisine_description':'Industry','inspection_date':'INSP Date','grade':'Grade','grade_date':'Grade Date','inspection_type':'Inspection Type','bbl':'BBL'})
+            df = df.rename(columns={"camis": "Record ID", 'dba':'Business Name', 'boro':'City', 'building': 'Building Number', 'street':'Street', 'zipcode':'Zip','phone':'Contact Phone', 'cuisine_description':'Industry','inspection_date':'INSP Date','grade':'Grade','grade_date':'Grade Date','inspection_type':'INSP Type','bbl':'BBL'})
             df['Industry'] = df['Industry'].astype(str)
             df['Industry'] = df['Industry'].replace(['N/A','NULL','nan','NaN'],'')
             df['Industry'] = df['Industry'].apply(lambda x: "Restaurant-"+x)
@@ -62,7 +62,7 @@ class DOHInspectionSrcFile(SourceFile):
 
         self.df['State'] = 'NY'
         self.df['INSP Date'] = self.df['INSP Date'].astype('datetime64[D]')
-        self.df['Inspection Type'] = self.df['Inspection Type'].astype(str)
+        self.df['INSP Type'] = self.df['INSP Type'].astype(str)
         self.df['Case Dec. Date'] = self.df['Case Dec. Date'].replace(['N/A','NULL','nan'],'')
         self.df['Case Dec. Date'] = self.df['Case Dec. Date'].astype('datetime64[D]')
         self.df['Grade'] = self.df['Grade'].astype(str)

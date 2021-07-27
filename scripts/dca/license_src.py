@@ -59,7 +59,10 @@ class DCALicenseSrcFile(SourceFile):
         return pd.concat(df_list, ignore_index=True)
 
     def instantiate_file(self):
-        self.df['LIC Type'] = self.df['LIC Type'].astype(str)	
+        industry_dict = {'3' : 'Tickets-Live Perf - 260','420':'Shoe Store', '53': 'Hardware Retail', '72' : 'Tickets-Live Perf - 260', '114': 'Auto Repair', '115': 'Electronic & Home Appliance Service Dealer', '119':'Dealer In Products For The Disabled', 'C73' : 'Event Space', 'E75':'CATERING ESTABLISHMENT', 'H27':'Barber', 'H29':'Pet Store', 'H92':'Healthcare', 'H90':'Healthcare', 'H98':'Healthcare', 'H99':'Healthcare', 'SD6':'Auto Parts'}
+
+        self.df['LIC Type'] = self.df['LIC Type'].astype(str)
+        self.df["Industry"] = self.df["Industry"].replace(industry_dict.keys(),industry_dict.values())
         self.df['LIC Expiration Date'] = self.df['LIC Expiration Date'].astype('datetime64[D]')
         self.df['LIC Status'] = self.df['LIC Status'].astype(str)
         self.df['LIC Start Date'] = self.df['LIC Start Date'].astype('datetime64[D]')

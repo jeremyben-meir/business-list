@@ -70,6 +70,7 @@ class DOAInspectionSrcFile(SourceFile):
         return pd.concat(df_list, ignore_index=True)
 
     def instantiate_file(self):
+        industry_dict = {'A':'Store','B':'Bakery','C':'Food Manufacturer','D':'Food Warehouse','E':'Beverage Plant','F':'Feed Mill/Non-Medicated','G':'Processing Plant','H':'Wholesale Manufacturer','I':'Refrigerated Warehouse','J':'Multiple Operations','K':'Vehicle','L':'Produce Refrigerated Warehouse','M':'Salvage Dealer','N':'Wholesale Produce Packer','O':'Produce Grower/Packer/Broker,Storage','P':'C.A. Room','Q':'Feed Mill/Medicated','R':'Pet Food Manufacturer','S':'Feed Warehouse and/or Distributor','T':'Disposal Plant','U':'Disposal Plant/Transportation Service','V':'Slaughterhouse','W':'Farm Winery-Exempt 20-C, for OCR Use','Z':'Farm Product Use'}
 
         self.df = self.df.rename(columns={"ESTABNO": "Record ID", 'TRADENAME':'Business Name','OWNNAME':'Business Name 2', 'CITY':'City', 'ZIP':'Zip','PHONE':'Contact Phone', 'INSPDATE':'INSP Date',	'LICDATE':'LIC Exp Date',	'SANDATE01':'Last INSP Date',	'NOFTEMP':'# FT Employees',	'NOPTEMP':'# PT Employees',	'NOSQFT':'# Sq. Ft.',	'OOBDATE':'Out of Business Date'})
     
@@ -77,7 +78,8 @@ class DOAInspectionSrcFile(SourceFile):
         self.df['STREET'] = self.df['STREET'].apply(lambda x: str(x).replace('#',''))
         self.df['Building Number'] = self.df['STREET'].apply(lambda x: x.split(" ")[0])
         self.df['Street'] = self.df['STREET'].apply(lambda x: " ".join(x.split(" ")[1:]))
-        self.df['Industry'] = self.df.apply(lambda row: f"FPE-{row['ESTABTYPE1']},{row['ESTABTYPE2']},{row['ESTABTYPE3']},{row['ESTABTYPE4']},{row['ESTABTYPE5']},{row['ESTABTYPE6']}", axis=1)
+        self.df['Industry'] = self.df.apply(lambda row: f"{row['ESTABTYPE1']},{row['ESTABTYPE2']},{row['ESTABTYPE3']},{row['ESTABTYPE4']},{row['ESTABTYPE5']},{row['ESTABTYPE6']}", axis=1)
+        self.df["Industry"] = self.df["Industry"].apply(lambda x: "FPE-" + ','.join([industry_dict.get(i, i) for i in x.split(",")]))
 
         self.df['Business Name 2'] = self.df['Business Name 2'].astype(str)
         self.df['INSP Date'] = self.df['INSP Date'].astype('datetime64[D]')

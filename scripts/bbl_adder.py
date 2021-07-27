@@ -48,7 +48,10 @@ class BBLAdder:
             except:
                 return "AUTH_FAILURE"
             try:
-                return results['results'][0]['response']['bbl']
+                bbl = results['results'][0]['response']['bbl']
+                if bbl == "0":
+                    return "NO_BBL"
+                return bbl
             except:
                 return "NO_BBL"
 

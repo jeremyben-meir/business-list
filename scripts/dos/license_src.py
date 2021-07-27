@@ -62,7 +62,7 @@ class DOSLicensesSrcFile(SourceFile):
 
             return row
 
-        self.df = self.df.rename(columns={"License Number": "Record ID", 'Name':'Business Name 2', 'County':'City','Address':'Street', 'License State':'State' ,'Phone':'Contact Phone', 'License Issue Date':'LIC Issue Date', 'Current Term Effective Date':'LIC Current Issue Date', 'Expiration Date':'LIC Exp Date', 'License Status':'LIC Status'})
+        self.df = self.df.rename(columns={"License Number": "Record ID", 'Name':'Business Name 2', 'County':'City','Address':'Street', 'License State':'State' ,'Phone':'Contact Phone', 'License Issue Date':'LIC Issue Date', 'Current Term Effective Date':'LIC Start Date', 'Expiration Date':'LIC Exp Date', 'License Status':'LIC Status'})
         
         self.df["Record ID"] = self.df["Record ID"].apply(lambda x : x.replace(" ",""))
         self.df["Record ID"] = self.df["Record ID"].astype(str)
