@@ -27,7 +27,7 @@ class DOHInspectionSrcFile(SourceFile):
                     x=x.replace(key,ind_dict[key])
                 return x
             df['Industry'] = df['Industry'].apply(lambda x: replace_key(x))
-            df['Industry'] = df['Industry'].apply(lambda x: "Restaurant-"+x)
+            df['Industry'] = df['Industry'].apply(lambda x: "Restaurant - "+x)
             df['Industry'] = df['Industry'].apply(lambda x: x.strip('        '))
 
         elif template == 1:
@@ -101,5 +101,5 @@ class DOHInspectionSrcFile(SourceFile):
 if __name__ == '__main__':
     source = DOHInspectionSrcFile()
     source.instantiate_file()
-    source.add_bbl_async()
+    source.add_bbl_async(overwrite=False)
     source.save_csv()
