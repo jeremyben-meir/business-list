@@ -2,6 +2,8 @@
 
 from scripts.file_manager import FileManager
 from scripts.source_file import SourceFile, pd, sys
+from datetime import datetime
+import math
 
 #######FUNCTION DEFINITIONS#########
 
@@ -46,7 +48,7 @@ class DOTApplicationSrcFile(SourceFile):
         self.df['Business Name 2'] = self.df['Business Name 2'].astype(str)
         self.df['Sidewalk Seating Flag'] = self.df['Sidewalk Seating Flag'].replace(['yes','no'],['1','0'])
         self.df['Roadway Seating Flag'] = self.df['Roadway Seating Flag'].replace(['yes','no'],['1','0'])
-        self.df['Record ID 3'] = self.df['Record ID 3'].astype(str)
+        self.df['Record ID 3'] = self.df['Record ID 3'].apply(lambda x: str(x).split(';')[0] if str(x).split(';')[0].isdigit() else  '')
         self.df['APP Start Date'] = self.df['APP Start Date'].astype('datetime64[D]')
 
         del self.df['objectid']
