@@ -94,6 +94,6 @@ class DCAApplicationSrcFile(SourceFile):
         
 if __name__ == '__main__':
     source = DCAApplicationSrcFile()
-    # source.instantiate_file()
-    # source.add_bbl_async()
+    source.instantiate_file()
+    source.add_bbl_async()
     source.save_csv()

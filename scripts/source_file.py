@@ -8,6 +8,7 @@ import pandas as pd
 import csv
 import re
 import sys
+import math
 
 class SourceFile:
 
@@ -87,7 +88,7 @@ class SourceFile:
         
         if 'BBL' in self.df.columns.to_list():
             self.df['BBL'] = self.df['BBL'].astype(str)
-            self.df['BBL'] = self.df['BBL'].apply(lambda x: '' if ~x.isnumeric() else x)
+            self.df['BBL'] = self.df['BBL'].apply(lambda x: '' if math.isnan(float(x.replace('-','').replace('/',''))) else ( (str(int(float(x.replace('-','').replace('/','')))) if str(int(float(x.replace('-','').replace('/','')))).isdigit() and len(str(int(float(x.replace('-','').replace('/','')))))>9  else "")))
         else:
             self.df['BBL'] = ""
         
