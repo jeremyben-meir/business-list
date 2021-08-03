@@ -88,7 +88,7 @@ class SourceFile:
         
         if 'BBL' in self.df.columns.to_list():
             self.df['BBL'] = self.df['BBL'].astype(str)
-            self.df['BBL'] = self.df['BBL'].apply(lambda x: '' if math.isnan(float(x.replace('-','').replace('/',''))) else ( (str(int(float(x.replace('-','').replace('/','')))) if str(int(float(x.replace('-','').replace('/','')))).isdigit() and len(str(int(float(x.replace('-','').replace('/','')))))>9  else "")))
+            self.df['BBL'] = self.df['BBL'].apply(lambda x: '' if math.isnan(float(x.replace('-','').replace('/',''))) else (str(int(float(x.replace('-','').replace('/','')))) if str(int(float(x.replace('-','').replace('/','')))).isdigit() and len(str(int(float(x.replace('-','').replace('/','')))).strip(" "))==10  else ""))
         else:
             self.df['BBL'] = ""
         
