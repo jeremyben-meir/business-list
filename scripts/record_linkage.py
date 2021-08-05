@@ -89,12 +89,19 @@ class CompareNames(BaseCompareFeature):
 
     def _compute_vectorized(self, bn0_0, bn0_1, bn1_0, bn1_1):
 
-        # conc = pd.Series(list(zip(bn0, bn1)))
-        conc = pd.Series(list(itertools.product([bn0_0,bn0_1],[bn1_0,bn1_1])))
+        conc = pd.Series(list(zip(bn0_0, bn0_1, bn1_0, bn1_1)))
         
         def wratio_apply(x):
-            return self.calculate_cosine_similarity(x[0],x[1])
-            # return fuzz.WRatio(x[0],x[1])/100.0
+            maxlist = [0]
+            if not (np.linalg.norm(x[0]) == 0.0 or np.linalg.norm(x[2]) == 0.0):
+                maxlist.append(self.calculate_cosine_similarity(x[0],x[2]))
+            if not (np.linalg.norm(x[0]) == 0.0 or np.linalg.norm(x[3]) == 0.0):
+                maxlist.append(self.calculate_cosine_similarity(x[0],x[3]))
+            if not (np.linalg.norm(x[1]) == 0.0 or np.linalg.norm(x[2]) == 0.0):
+                maxlist.append(self.calculate_cosine_similarity(x[1],x[2]))
+            if not (np.linalg.norm(x[1]) == 0.0 or np.linalg.norm(x[3]) == 0.0):
+                maxlist.append(self.calculate_cosine_similarity(x[1],x[3]))
+            return max(maxlist)
 
         return conc.apply(wratio_apply)
 
@@ -131,12 +138,10 @@ class Merge():
         return text
 
     def prepare_business_names(self,row):
-        bn_list = []
         if isinstance(row["Business Name"],str):
-            bn_list.append(self.text_prepare(row["Business Name"],row["Street"]))
+            row["bn0"] = self.text_prepare(row["Business Name"],row["Street"])
         if isinstance(row["Business Name 2"],str):
-            bn_list.append(self.text_prepare(row["Business Name 2"],row["Street"]))
-        row["bn"] = " ".join(bn_list)
+            row["bn1"] = self.text_prepare(row["Business Name 2"],row["Street"])
         return row
 
     def type_cast(self, df):
@@ -151,9 +156,6 @@ class Merge():
         return df
 
     def load_source_files(self, loaded = True):
-
-        sys.setrecursionlimit(3629)
-        print(sys.getrecursionlimit())
         
         if not loaded:
             filelist = [("dca","charge"),("dca","inspection"),("dca","application"),("dca","license"),("doa","inspection"),
@@ -165,11 +167,6 @@ class Merge():
             df["LLID"] = ""
             df["LBID"] = ""
 
-            
-            # df = df.sort_values(["BBL"])##
-            # df = df.iloc[:1000]##
-            # df = df.apply(lambda row: self.prepare_business_names(row), axis=1)
-
             bblmask = (df['BBL'].str.len() == 10) & (df['BBL']!="0000000000") & (df['BBL'].str.isdigit())
             df = df[bblmask]
             df = df.drop_duplicates()
@@ -178,20 +175,29 @@ class Merge():
             df = df.replace("NaN", np.nan, regex=True)
             df = df.replace("nan", np.nan, regex=True)
 
+            df = df.sort_values(["BBL"])##
+            df = df.iloc[:5000]##
+            df = df.apply(lambda row: self.prepare_business_names(row), axis=1)
+
             self.store_pickle(df,0)
 
         else:
 
             df = self.load_pickle(0)
 
+        if not df["BBL"].mode().empty:
+            common_bbl = df["BBL"].mode().iloc[0]
+            sys.setrecursionlimit(len(df[df["BBL"] == common_bbl]))
+        print(sys.getrecursionlimit())
+
+
         print("loaded data")
         return df
 
     def add_llid(self):
 
-        self.df = self.df.sample(5000)
-
         self.df = self.type_cast(self.df)
+        self.df = self.df.reset_index(drop=True)
 
         def ngrams(string, n=3):
             string = re.sub(r'[,-./]|\sBD',r'', string)
@@ -199,19 +205,17 @@ class Merge():
             return [''.join(ngram) for ngram in ngrams]
 
         def similarity(df):
+            df["bn0"] =  df["bn0"].replace(np.nan, "", regex=True)
+            df["bn1"] =  df["bn1"].replace(np.nan, "", regex=True)
             vectorizer = TfidfVectorizer(min_df=1, analyzer=ngrams)
-            tf_idf_matrix = vectorizer.fit_transform(df["Business Name"]).toarray()
-            tf_idf_matrix2 = vectorizer.fit_transform(df["Business Name 2"]).toarray()
-            print((tf_idf_matrix))
-            print((tf_idf_matrix[0]))
-            df["TFIDF"] = pd.DataFrame([tf_idf_matrix])
-            df["TFIDF"] = np.apply_along_axis(lambda x:x, 1, tf_idf_matrix)
-            df["TFIDF 2"] = pd.DataFrame([tf_idf_matrix2])
+            tf_idf_matrix = vectorizer.fit_transform(pd.concat([df["bn0"],df["bn1"]])).toarray()
+            tfidf0 = tf_idf_matrix[:int(tf_idf_matrix.shape[0]/2)]
+            tfidf1 = tf_idf_matrix[int(tf_idf_matrix.shape[0]/2):]
+            df["TFIDF0"] = list(tfidf0)
+            df["TFIDF1"] = list(tfidf1)
             return df
         
         self.df = similarity(self.df)
-        print(self.df["TFIDF"])
-        print(self.df["TFIDF 2"])
 
         indexer = recordlinkage.Index()
         indexer.block(on='BBL')
@@ -222,7 +226,7 @@ class Merge():
         compare_cl.add(ComparePhones('Contact Phone','Contact Phone'))
         compare_cl.add(CompareRecordIDs(('Record ID','Record ID 2'),('Record ID','Record ID 2')))
         compare_cl.add(CompareIndustries('Industry','Industry'))
-        compare_cl.add(CompareNames(('TFIDF','TFIDF 2'),('TFIDF','TFIDF 2')))
+        compare_cl.add(CompareNames(('TFIDF0','TFIDF1'),('TFIDF0','TFIDF1')))
 
         features = compare_cl.compute(candidate_links, self.df)
 
@@ -236,14 +240,13 @@ class Merge():
         matches = classifier.fit_predict(features)
         print(matches)
 
+        print(len(self.df.index))
         g = Graph(len(self.df.index))
         g.addEdges(matches.tolist())
         cc = g.connectedComponents()
         
         for indexlist in cc:
             self.df.loc[indexlist,"LLID"] = str(uuid.uuid4())
-
-        del self.df["bn"]
 
         self.store_pickle(self.df,1)
 
@@ -288,10 +291,10 @@ class Merge():
 if __name__ == '__main__':
     merge = Merge()
 
-    # start = time.time()
+    start = time.time()
     merge.add_llid()
-    # end = time.time()
-    # print(end - start)
+    end = time.time()
+    print(end - start)
 
     # merge.add_lbid()
 
