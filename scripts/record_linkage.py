@@ -16,6 +16,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import math
 from scipy import spatial
 import itertools
+from sklearn import mixture
 
 class Graph:
  
@@ -93,14 +94,16 @@ class CompareNames(BaseCompareFeature):
         
         def wratio_apply(x):
             maxlist = [0]
-            if not (np.linalg.norm(x[0]) == 0.0 or np.linalg.norm(x[2]) == 0.0):
-                maxlist.append(self.calculate_cosine_similarity(x[0],x[2]))
-            if not (np.linalg.norm(x[0]) == 0.0 or np.linalg.norm(x[3]) == 0.0):
-                maxlist.append(self.calculate_cosine_similarity(x[0],x[3]))
-            if not (np.linalg.norm(x[1]) == 0.0 or np.linalg.norm(x[2]) == 0.0):
-                maxlist.append(self.calculate_cosine_similarity(x[1],x[2]))
-            if not (np.linalg.norm(x[1]) == 0.0 or np.linalg.norm(x[3]) == 0.0):
-                maxlist.append(self.calculate_cosine_similarity(x[1],x[3]))
+            if not np.linalg.norm(x[0]) == 0.0:
+                if not np.linalg.norm(x[2]) == 0.0:
+                    maxlist.append(self.calculate_cosine_similarity(x[0],x[2]))
+                if not np.linalg.norm(x[3]) == 0.0:
+                    maxlist.append(self.calculate_cosine_similarity(x[0],x[3]))
+            if not np.linalg.norm(x[1]) == 0.0:
+                if not np.linalg.norm(x[2]) == 0.0:
+                    maxlist.append(self.calculate_cosine_similarity(x[1],x[2]))
+                if not np.linalg.norm(x[3]) == 0.0:
+                    maxlist.append(self.calculate_cosine_similarity(x[1],x[3]))
             return max(maxlist)
 
         return conc.apply(wratio_apply)
@@ -153,6 +156,9 @@ class Merge():
         df["Business Name 2"] = df["Business Name 2"].astype(str)
         df["Contact Phone"] = df["Contact Phone"].astype(str)
         df["Industry"] = df["Industry"].astype(str)
+        df = df.replace("", np.nan, regex=True)
+        df = df.replace("NaN", np.nan, regex=True)
+        df = df.replace("nan", np.nan, regex=True)
         return df
 
     def load_source_files(self, loaded = True):
@@ -171,9 +177,8 @@ class Merge():
             df = df[bblmask]
             df = df.drop_duplicates()
             df = df.reset_index(drop=True)
-            df = df.replace("", np.nan, regex=True)
-            df = df.replace("NaN", np.nan, regex=True)
-            df = df.replace("nan", np.nan, regex=True)
+
+            df = self.type_cast(df)
 
             df = df.sort_values(["BBL"])##
             df = df.iloc[:5000]##
@@ -190,14 +195,13 @@ class Merge():
             sys.setrecursionlimit(len(df[df["BBL"] == common_bbl]))
         print(sys.getrecursionlimit())
 
-
         print("loaded data")
         return df
 
     def add_llid(self):
 
-        self.df = self.type_cast(self.df)
         self.df = self.df.reset_index(drop=True)
+        self.df = self.type_cast(self.df)
 
         def ngrams(string, n=3):
             string = re.sub(r'[,-./]|\sBD',r'', string)
@@ -229,26 +233,34 @@ class Merge():
         compare_cl.add(CompareNames(('TFIDF0','TFIDF1'),('TFIDF0','TFIDF1')))
 
         features = compare_cl.compute(candidate_links, self.df)
-
-        print(features)
+        pd.set_option('display.max_rows', 20)#########
+        print(features)#########
 
         # classifier = recordlinkage.ECMClassifier(init="random")
         # probs = classifier.prob(features)
         # print(probs)
 
-        classifier = recordlinkage.KMeansClassifier()
-        matches = classifier.fit_predict(features)
-        print(matches)
+        # classifier = recordlinkage.KMeansClassifier()
+        # matches = classifier.fit_predict(features)
+        # print(matches)
 
-        print(len(self.df.index))
-        g = Graph(len(self.df.index))
-        g.addEdges(matches.tolist())
-        cc = g.connectedComponents()
+        g = mixture.GaussianMixture(n_components=2)
+        np_to_predict = features.to_numpy()
+        print(np_to_predict)
+        result = g.fit_predict(np_to_predict)
+        features["pred"] = list(result)
+        print(features)
         
-        for indexlist in cc:
-            self.df.loc[indexlist,"LLID"] = str(uuid.uuid4())
+        # self.save_csv()##########
+        # print(len(self.df.index))
+        # g = Graph(len(self.df.index))
+        # g.addEdges(matches.tolist())
+        # cc = g.connectedComponents()
+        
+        # for indexlist in cc:
+        #     self.df.loc[indexlist,"LLID"] = str(uuid.uuid4())
 
-        self.store_pickle(self.df,1)
+        # self.store_pickle(self.df,1)
 
     def add_lbid(self):
         self.df = self.load_pickle("merged")
@@ -272,7 +284,7 @@ class Merge():
         cc = g.connectedComponents()
 
         for indexlist in cc:
-            self.df.loc[indexlist,"LLID"] = str(uuid.uuid4())
+            self.df.loc[indexlist,"LBID"] = str(uuid.uuid4())
 
         self.store_pickle(self.df,2)
 
