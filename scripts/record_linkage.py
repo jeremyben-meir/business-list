@@ -192,8 +192,8 @@ class Merge():
 
         if not df["BBL"].mode().empty:
             common_bbl = df["BBL"].mode().iloc[0]
-            sys.setrecursionlimit(len(df[df["BBL"] == common_bbl]))
-        print(sys.getrecursionlimit())
+            sys.setrecursionlimit(max(1000,len(df[df["BBL"] == common_bbl])))
+        print(f"recursion depth: {sys.getrecursionlimit()}")
 
         print("loaded data")
         return df
@@ -233,34 +233,28 @@ class Merge():
         compare_cl.add(CompareNames(('TFIDF0','TFIDF1'),('TFIDF0','TFIDF1')))
 
         features = compare_cl.compute(candidate_links, self.df)
-        pd.set_option('display.max_rows', 20)#########
-        print(features)#########
 
-        # classifier = recordlinkage.ECMClassifier(init="random")
-        # probs = classifier.prob(features)
-        # print(probs)
-
+        # # Alternate classifier (K-means)
         # classifier = recordlinkage.KMeansClassifier()
         # matches = classifier.fit_predict(features)
         # print(matches)
 
-        g = mixture.GaussianMixture(n_components=2)
+        g = mixture.GaussianMixture(n_components=2,random_state=43)
         np_to_predict = features.to_numpy()
-        print(np_to_predict)
         result = g.fit_predict(np_to_predict)
         features["pred"] = list(result)
-        print(features)
-        
-        # self.save_csv()##########
-        # print(len(self.df.index))
-        # g = Graph(len(self.df.index))
-        # g.addEdges(matches.tolist())
-        # cc = g.connectedComponents()
-        
-        # for indexlist in cc:
-        #     self.df.loc[indexlist,"LLID"] = str(uuid.uuid4())
+        matches = features[features["pred"]==1].index
 
-        # self.store_pickle(self.df,1)
+        print(features)
+
+        g = Graph(len(self.df.index))
+        g.addEdges(matches.tolist())
+        cc = g.connectedComponents()
+        
+        for indexlist in cc:
+            self.df.loc[indexlist,"LLID"] = str(uuid.uuid4())
+
+        self.store_pickle(self.df,1)
 
     def add_lbid(self):
         self.df = self.load_pickle("merged")
@@ -295,7 +289,7 @@ class Merge():
         return pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-{num}.p", "rb" ))
 
     def save_csv(self):
-        self.df = self.df.sort_values("BBL")
+        # self.df = self.df.sort_values("BBL")
         cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/merged.csv"
         self.df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
         self.store_pickle(self.df,"merged")
