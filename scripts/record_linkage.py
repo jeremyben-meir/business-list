@@ -110,9 +110,10 @@ class CompareNames(BaseCompareFeature):
 
 class CompareRecordIDs(BaseCompareFeature):
 
-    def _compute_vectorized(self, record_id_0_0, record_id_0_1, record_id_1_0, record_id_1_1):
-        sim = ((((record_id_0_0 == record_id_1_0) | (record_id_0_0 == record_id_1_1)) & (~record_id_0_0.isna())) |
-               (((record_id_0_1 == record_id_1_0) | (record_id_0_1 == record_id_1_1)) & (~record_id_0_1.isna()))).astype(float)
+    def _compute_vectorized(self, record_id_0_0, record_id_0_1, record_id_0_2, record_id_1_0, record_id_1_1, record_id_1_2):
+        sim = ((((record_id_0_0 == record_id_1_0) | (record_id_0_0 == record_id_1_1) | (record_id_0_0 == record_id_1_2)) & (~record_id_0_0.isna())) |
+               (((record_id_0_1 == record_id_1_0) | (record_id_0_1 == record_id_1_1) | (record_id_0_1 == record_id_1_2)) & (~record_id_0_1.isna())) |
+               (((record_id_0_2 == record_id_1_0) | (record_id_0_2 == record_id_1_1) | (record_id_0_2 == record_id_1_2)) & (~record_id_0_2.isna()))).astype(float)
         return sim
 
 class ComparePhones(BaseCompareFeature):
@@ -147,7 +148,7 @@ class Merge():
             row["bn1"] = self.text_prepare(row["Business Name 2"],row["Street"])
         return row
 
-    def type_cast(self, df):
+    def type_cast(self, df, replace_nan = True):
         df["Record ID"] = df["Record ID"].astype(str)
         df["Record ID 2"] = df["Record ID 2"].astype(str)
         df["Record ID 3"] = df["Record ID 3"].astype(str)
@@ -156,12 +157,13 @@ class Merge():
         df["Business Name 2"] = df["Business Name 2"].astype(str)
         df["Contact Phone"] = df["Contact Phone"].astype(str)
         df["Industry"] = df["Industry"].astype(str)
-        df = df.replace("", np.nan, regex=True)
-        df = df.replace("NaN", np.nan, regex=True)
-        df = df.replace("nan", np.nan, regex=True)
+        if replace_nan:
+            df = df.replace("", np.nan, regex=True)
+            df = df.replace("NaN", np.nan, regex=True)
+            df = df.replace("nan", np.nan, regex=True)
         return df
 
-    def load_source_files(self, loaded = True):
+    def load_source_files(self, loaded = False):
         
         if not loaded:
             filelist = [("dca","charge"),("dca","inspection"),("dca","application"),("dca","license"),("doa","inspection"),
@@ -172,16 +174,18 @@ class Merge():
 
             df["LLID"] = ""
             df["LBID"] = ""
+            df["bn0"] = ""
+            df["bn1"] = ""
 
             bblmask = (df['BBL'].str.len() == 10) & (df['BBL']!="0000000000") & (df['BBL'].str.isdigit())
             df = df[bblmask]
             df = df.drop_duplicates()
             df = df.reset_index(drop=True)
 
-            df = self.type_cast(df)
+            df = self.type_cast(df, replace_nan = False)
 
             df = df.sort_values(["BBL"])##
-            df = df.iloc[:5000]##
+            df = df.iloc[:50000]##
             df = df.apply(lambda row: self.prepare_business_names(row), axis=1)
 
             self.store_pickle(df,0)
@@ -228,7 +232,7 @@ class Merge():
         compare_cl = recordlinkage.Compare()
 
         compare_cl.add(ComparePhones('Contact Phone','Contact Phone'))
-        compare_cl.add(CompareRecordIDs(('Record ID','Record ID 2'),('Record ID','Record ID 2')))
+        compare_cl.add(CompareRecordIDs(('Record ID','Record ID 2','Record ID 3'),('Record ID','Record ID 2','Record ID 3')))
         compare_cl.add(CompareIndustries('Industry','Industry'))
         compare_cl.add(CompareNames(('TFIDF0','TFIDF1'),('TFIDF0','TFIDF1')))
 
@@ -289,7 +293,6 @@ class Merge():
         return pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-{num}.p", "rb" ))
 
     def save_csv(self):
-        # self.df = self.df.sort_values("BBL")
         cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/merged.csv"
         self.df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
         self.store_pickle(self.df,"merged")
