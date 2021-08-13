@@ -64,12 +64,12 @@ class Graph:
 
 class CompareIndustries(BaseCompareFeature):
 
-    food = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/food.txt', 'r').readlines())
-    aes = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/aes.txt', 'r').readlines())
-    retail = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/retail.txt', 'r').readlines())
-    laundry = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/laundry.txt', 'r').readlines())
-    cars = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/cars.txt', 'r').readlines())
-    misc = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/misc.txt', 'r').readlines())
+    food = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/food.txt', 'r').read().splitlines())
+    aes = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/aes.txt', 'r').read().splitlines())
+    retail = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/retail.txt', 'r').read().splitlines())
+    laundry = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/laundry.txt', 'r').read().splitlines())
+    cars = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/cars.txt', 'r').read().splitlines())
+    misc = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/misc.txt', 'r').read().splitlines())
     dictlist = [food,aes,retail,laundry,cars,misc]
 
     def _compute_vectorized(self, industry_0, industry_1):
@@ -129,13 +129,15 @@ class Merge():
         self.df = self.load_source_files()
 
     def text_prepare(self, text, street0):
-        STOPWORDS = ["nan","corp", "corp.", 'corporation', "inc", "inc.", "incorporated", "airlines", "llc", "llc.", "laundromat", "laundry", 'deli', 'grocery', 'market', 'wireless', 'auto', 'pharmacy', 'cleaners', 'parking', 'repair', 'electronics','salon','smoke','pizza','of','the', 'retail', 'new', 'news', 'food', 'group']
+        # STOPWORDS = ["nan","corp", "corp.", 'corporation', "inc", "inc.", "incorporated", "airlines", "llc", "llc.", "laundromat", "laundry", 'deli', 'grocery', 'market', 'wireless', 'auto', 'pharmacy', 'cleaners', 'parking', 'repair', 'electronics','salon','smoke','pizza','of','the', 'retail', 'new', 'news', 'food', 'group']
+        STOPWORDS = ["nan","corp", "corp.", 'corporation', "inc", "inc.", "incorporated", "llc", "llc." 'group']
         if street0:
             street0 = street0.lower()
             if len(street0) > 2:
                 STOPWORDS += street0.split(" ")
-        text = re.sub(re.compile('[\n\"\'/(){}[]|@,;.#]'), '', text)
-        text = re.sub(' +', ' ', text)
+        text = re.sub(r"[^a-zA-Z0-9]+", ' ', text)
+        # text = re.sub(re.compile('[\n\"\'/(){}[]|@,;.#]'), '', text)
+        # text = re.sub(' +', ' ', text)
         text = text.lower()
         text = ' '.join([word for word in text.split() if word not in STOPWORDS]) 
         text = text.strip()
@@ -163,7 +165,7 @@ class Merge():
             df = df.replace("nan", np.nan, regex=True)
         return df
 
-    def load_source_files(self, loaded = False):
+    def load_source_files(self, loaded = True):
         
         if not loaded:
             filelist = [("dca","charge"),("dca","inspection"),("dca","application"),("dca","license"),("doa","inspection"),
@@ -184,8 +186,8 @@ class Merge():
 
             df = self.type_cast(df, replace_nan = False)
 
-            df = df.sort_values(["BBL"])##
-            df = df.iloc[:50000]##
+            # df = df.sort_values(["BBL"])##
+            # df = df.iloc[:250000]##
             df = df.apply(lambda row: self.prepare_business_names(row), axis=1)
 
             self.store_pickle(df,0)
@@ -223,8 +225,10 @@ class Merge():
             df["TFIDF1"] = list(tfidf1)
             return df
         
+        print("vectorizing")
         self.df = similarity(self.df)
 
+        print("blocking")
         indexer = recordlinkage.Index()
         indexer.block(on='BBL')
         candidate_links = indexer.index(self.df)
@@ -236,6 +240,7 @@ class Merge():
         compare_cl.add(CompareIndustries('Industry','Industry'))
         compare_cl.add(CompareNames(('TFIDF0','TFIDF1'),('TFIDF0','TFIDF1')))
 
+        print("computing")
         features = compare_cl.compute(candidate_links, self.df)
 
         # # Alternate classifier (K-means)
@@ -243,13 +248,19 @@ class Merge():
         # matches = classifier.fit_predict(features)
         # print(matches)
 
-        g = mixture.GaussianMixture(n_components=2,random_state=43)
+        print("classifying")
+        g = mixture.GaussianMixture(n_components=2,random_state=43,init_params='random')
         np_to_predict = features.to_numpy()
         result = g.fit_predict(np_to_predict)
         features["pred"] = list(result)
-        matches = features[features["pred"]==1].index
+        match_val = 1 - (features["pred"].mode().iloc[0])
+        print(f"MATCHING ON {match_val}")
+        matches = features[features["pred"]==match_val].index
 
+        pd.set_option('display.max_rows', 500)
         print(features)
+        print(matches)
+        features.to_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/features-temp.csv")
 
         g = Graph(len(self.df.index))
         g.addEdges(matches.tolist())
@@ -261,8 +272,10 @@ class Merge():
         self.store_pickle(self.df,1)
 
     def add_lbid(self):
-        self.df = self.load_pickle("merged")
+        self.df = self.load_pickle(1)
         self.df = self.df.reset_index(drop=True)
+        self.df = self.type_cast(self.df)
+
         exp_llid = set()
         exp_rid = set()
         exp_rid2 = set()
@@ -271,11 +284,12 @@ class Merge():
             subdf = self.df[(self.df.index != row.name) &
                            (((~self.df["LLID"].isin(exp_llid))&(self.df["LLID"]==row["LLID"]))
                            |((~self.df["Record ID"].isin(exp_rid))&(self.df["Record ID"]==row["Record ID"]))
-                           |((~self.df["Record ID"].isin(exp_rid2))&(self.df["Record ID 2"]==row["Record ID 2"])))]
+                           |((~self.df["Record ID 2"].isin(exp_rid2))&(self.df["Record ID 2"]==row["Record ID 2"]))
+                           |((~self.df["Record ID 3"].isin(exp_rid2))&(self.df["Record ID 3"]==row["Record ID 3"])))]
             exp_llid.add(row["LLID"])
             exp_rid.add(row["Record ID"])
             exp_rid2.add(row["Record ID 2"])
-            matches += [(row.name,val) for val in subdf.index.values.tolist()]
+            matches += [(row.name,val) for val in subdf.index.tolist()]
         
         g = Graph(len(self.df.index))
         g.addEdges(matches)
@@ -303,10 +317,13 @@ if __name__ == '__main__':
     start = time.time()
     merge.add_llid()
     end = time.time()
-    print(end - start)
+    print(f"LLID adding: {end - start} seconds")
 
-    # merge.add_lbid()
-
+    start = time.time()
+    merge.add_lbid()
+    end = time.time()
+    print(f"LBID adding: {end - start} seconds")
+    
     merge.save_csv()
 
     
