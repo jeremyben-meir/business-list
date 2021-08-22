@@ -46,17 +46,27 @@ class BBLAdder:
             try:
                 results = await response.json()
             except:
-                return "AUTH_FAILURE"
+                return "AUTH_FAILURE", "", ""
             try:
                 bbl = results['results'][0]['response']['bbl']
+                try:
+                    longitude = results['results'][0]['response']['longitude']
+                    latitude = results['results'][0]['response']['latitude']
+                except:
+                    longitude = ""
+                    latitude = ""
                 if bbl == "0":
-                    return "NO_BBL"
-                return bbl
+                    return "NO_BBL", "", ""
+                return bbl, longitude, latitude
             except:
-                return "NO_BBL"
+                return "NO_BBL", "", ""
 
     async def decide_result(self, session, index, row): 
-        self.df.loc[index,"BBL"] = await self.get_result(session, f"{row['Building Number']} {row['Street']} {row['Zip'] if self.overwrite else row['City']}")
+        bbl, longitude, latitude = await self.get_result(session, f"{row['Building Number']} {row['Street']} {row['Zip'] if self.overwrite else row['City']}")
+        self.df.loc[index,"BBL"] = bbl
+        self.df.loc[index,"Longitude"] = longitude
+        self.df.loc[index,"Latitude"] = latitude
+        
         if self.id == 0:
             self.progress_meter.tick()
 

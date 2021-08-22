@@ -1,7 +1,6 @@
 ####### IMPORTS #######
 
-from scripts.common import DirectoryFields
-from fuzzywuzzy import fuzz
+from common import DirectoryFields
 import pickle
 import re
 import pandas as pd
@@ -13,10 +12,9 @@ import time
 import sys
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
-import math
 from scipy import spatial
-import itertools
 from sklearn import mixture
+# import concurrent.futures
 
 class Graph:
  
@@ -128,16 +126,42 @@ class Merge():
     def __init__(self):
         self.df = self.load_source_files()
 
+    def split_dataframes(self, df, segment_num, split_col):
+        df_list = list()
+        col_num = int(df[split_col].nunique()/segment_num)
+        for _ in range(segment_num):
+            sampled_col = np.random.choice(df[split_col].unique(), col_num)
+            df_list.append(df[df[split_col].isin(sampled_col)])
+            df = df[~df[split_col].isin(sampled_col)]
+        df_list.append(df)
+        return df_list
+
+        # df = df.sort_values("BBL", ignore_index=True)
+        # # print(df["source"])
+        # df_list = list()
+        # segment_size = len(df.index)/segment_num
+        # print(f"Segment size {segment_size}")
+        
+        # while len(df.index)>int(segment_size):
+        #     sub_df = df.iloc[:int(segment_size)]
+        #     df = df.iloc[int(segment_size):]
+        #     df = df.reset_index(drop=True)
+        #     sub_df = sub_df.reset_index(drop=True)
+        #     end_bbl = sub_df.iloc[-1]["BBL"]
+        #     sub_df = sub_df.append(df.loc[df["BBL"] == end_bbl])
+        #     df = df[df["BBL"] != end_bbl]
+        #     df_list.append(sub_df)
+        # df_list.append(df)
+        # print(df_list)
+        # return df_list
+
     def text_prepare(self, text, street0):
-        # STOPWORDS = ["nan","corp", "corp.", 'corporation', "inc", "inc.", "incorporated", "airlines", "llc", "llc.", "laundromat", "laundry", 'deli', 'grocery', 'market', 'wireless', 'auto', 'pharmacy', 'cleaners', 'parking', 'repair', 'electronics','salon','smoke','pizza','of','the', 'retail', 'new', 'news', 'food', 'group']
         STOPWORDS = ["nan","corp", "corp.", 'corporation', "inc", "inc.", "incorporated", "llc", "llc." 'group']
         if street0:
             street0 = street0.lower()
             if len(street0) > 2:
                 STOPWORDS += street0.split(" ")
         text = re.sub(r"[^a-zA-Z0-9]+", ' ', text)
-        # text = re.sub(re.compile('[\n\"\'/(){}[]|@,;.#]'), '', text)
-        # text = re.sub(' +', ' ', text)
         text = text.lower()
         text = ' '.join([word for word in text.split() if word not in STOPWORDS]) 
         text = text.strip()
@@ -187,7 +211,7 @@ class Merge():
             df = self.type_cast(df, replace_nan = False)
 
             # df = df.sort_values(["BBL"])##
-            # df = df.iloc[:250000]##
+            # df = df.iloc[:10000]##
             df = df.apply(lambda row: self.prepare_business_names(row), axis=1)
 
             self.store_pickle(df,0)
@@ -204,10 +228,32 @@ class Merge():
         print("loaded data")
         return df
 
-    def add_llid(self):
+    def add_llid_async(self):
+        
+        df_list = self.split_dataframes(self.df,15,"BBL")
+        print("Dataframes split")
+        future_list = list()
+        # with concurrent.futures.ThreadPoolExecutor() as executor:
+        #     for df in df_list:
+        #         future = executor.submit(self.add_llid, df)
+        #         future_list.append(future.result())
+        for df in df_list:
+            future_list.append(self.add_llid(df))
+            break
+        print(future_list)
+        self.df = pd.concat(future_list)
+        self.store_pickle(self.df,1)
+        print(self.df)
 
-        self.df = self.df.reset_index(drop=True)
-        self.df = self.type_cast(self.df)
+    def add_llid(self, df):
+
+        df = df.reset_index(drop=True)
+        df = self.type_cast(df)
+
+        # process = psutil.Process(os.getpid())
+        # print(psutil.cpu_percent(4))
+        # process = psutil.Process(os.getpid())
+        # print(process.memory_info().rss/(10.0**9))
 
         def ngrams(string, n=3):
             string = re.sub(r'[,-./]|\sBD',r'', string)
@@ -226,12 +272,12 @@ class Merge():
             return df
         
         print("vectorizing")
-        self.df = similarity(self.df)
+        df = similarity(df)
 
         print("blocking")
         indexer = recordlinkage.Index()
         indexer.block(on='BBL')
-        candidate_links = indexer.index(self.df)
+        candidate_links = indexer.index(df)
 
         compare_cl = recordlinkage.Compare()
 
@@ -241,35 +287,69 @@ class Merge():
         compare_cl.add(CompareNames(('TFIDF0','TFIDF1'),('TFIDF0','TFIDF1')))
 
         print("computing")
-        features = compare_cl.compute(candidate_links, self.df)
+        features = compare_cl.compute(candidate_links, df)
+        
+        print("classifying")
+        def make_prediction(row):
+            if row[0] == 1:
+                return 1
+            if row[1] == 1:
+                return 1
+            if row[3] > .75:
+                return 1
+            if row[2] == 1 and row[3] > .5:
+                return 1
+            return 0
+
+        features["pred"] = features.apply(lambda row: make_prediction(row), axis=1)
+        matches = features[features["pred"]==1].index
+
+        ################################################
 
         # # Alternate classifier (K-means)
         # classifier = recordlinkage.KMeansClassifier()
         # matches = classifier.fit_predict(features)
         # print(matches)
 
-        print("classifying")
-        g = mixture.GaussianMixture(n_components=2,random_state=43,init_params='random')
-        np_to_predict = features.to_numpy()
-        result = g.fit_predict(np_to_predict)
-        features["pred"] = list(result)
-        match_val = 1 - (features["pred"].mode().iloc[0])
-        print(f"MATCHING ON {match_val}")
-        matches = features[features["pred"]==match_val].index
+        ################################################
 
-        pd.set_option('display.max_rows', 500)
+        # np_to_predict = features.to_numpy()
+
+        # g = mixture.GaussianMixture(n_components=2,random_state=43,init_params='random')
+        # result = g.fit_predict(np_to_predict)
+
+        # features["pred"] = list(result)
+        # features["business 0 n0"] = ""
+        # features["business 1 n0"] = ""
+        # features["business 0 n1"] = ""
+        # features["business 1 n1"] = ""
+        # def setindex(row):
+        #     row["business 0 n0"] = df.loc[row.name[0], "bn0"]
+        #     row["business 1 n0"] = df.loc[row.name[1], "bn0"]
+        #     row["business 0 n1"] = df.loc[row.name[0], "bn1"]
+        #     row["business 1 n1"] = df.loc[row.name[1], "bn1"]
+        #     return row
+        # features = features.apply(lambda row: setindex(row),axis=1)
+        # cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/features.csv"
+        # features.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
+
+        # match_val = 1 - (features["pred"].mode().iloc[0])
+        # print(f"MATCHING ON {match_val}")
+        # matches = features[features["pred"]==match_val].index
+
+        ###########################################
+
         print(features)
         print(matches)
-        features.to_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/features-temp.csv")
 
-        g = Graph(len(self.df.index))
+        g = Graph(len(df.index))
         g.addEdges(matches.tolist())
         cc = g.connectedComponents()
         
         for indexlist in cc:
-            self.df.loc[indexlist,"LLID"] = str(uuid.uuid4())
+            df.loc[indexlist,"LLID"] = str(uuid.uuid4())
 
-        self.store_pickle(self.df,1)
+        return df
 
     def add_lbid(self):
         self.df = self.load_pickle(1)
@@ -315,15 +395,13 @@ if __name__ == '__main__':
     merge = Merge()
 
     start = time.time()
-    merge.add_llid()
+    merge.add_llid_async()
     end = time.time()
     print(f"LLID adding: {end - start} seconds")
 
-    start = time.time()
-    merge.add_lbid()
-    end = time.time()
-    print(f"LBID adding: {end - start} seconds")
+    # start = time.time()
+    # merge.add_lbid()
+    # end = time.time()
+    # print(f"LBID adding: {end - start} seconds")
     
     merge.save_csv()
-
-    

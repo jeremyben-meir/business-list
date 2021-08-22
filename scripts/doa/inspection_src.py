@@ -79,7 +79,7 @@ class DOAInspectionSrcFile(SourceFile):
         self.df['Building Number'] = self.df['STREET'].apply(lambda x: x.split(" ")[0])
         self.df['Street'] = self.df['STREET'].apply(lambda x: " ".join(x.split(" ")[1:]))
         self.df['Industry'] = self.df.apply(lambda row: f"{row['ESTABTYPE1']},{row['ESTABTYPE2']},{row['ESTABTYPE3']},{row['ESTABTYPE4']},{row['ESTABTYPE5']},{row['ESTABTYPE6']}", axis=1)
-        self.df["Industry"] = self.df["Industry"].apply(lambda x: "Food Processing Establishment - " + ','.join([industry_dict.get(i, i) for i in x.split(",")]))
+        self.df["Industry"] = self.df["Industry"].apply(lambda x: "Food Processing Establishment - " + ', '.join([industry_dict.get(i, i) for i in x.split(",")]))
 
         self.df['Business Name 2'] = self.df['Business Name 2'].astype(str)
         self.df['INSP Date'] = self.df['INSP Date'].astype('datetime64[D]')

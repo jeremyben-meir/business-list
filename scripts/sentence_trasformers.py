@@ -5,6 +5,7 @@ import csv
 import pickle
 import time
 from scripts.common import DirectoryFields
+import concurrent.futures
 
 def industry_assign(inp_list):
     model_name = 'paraphrase-MiniLM-L6-v2'
@@ -30,6 +31,48 @@ def industry_assign(inp_list):
     question_embedding = model.encode(inp, convert_to_tensor=True)
     hits = util.semantic_search(question_embedding, corpus_embeddings)
     return naics.iloc[hits[0][0]['corpus_id']]
+
+def split_dataframes(df, segment_num, split_col):
+    df_list = list()
+    col_list = sorted(df[split_col].unique())
+    segment_size = len(df.index)/segment_num
+    print(f"Segment size {segment_size}")
+
+    while len(col_list)>0:
+        sub_df = pd.DataFrame(columns=df.columns)
+        sub_col_list = list()
+        while len(sub_df.index) < segment_size:
+            if len(col_list)>0:
+                sub_col_list.append(col_list[0])
+                col_list.pop(0)
+            else:
+                break
+            sub_df = df[df[split_col].isin(sub_col_list)]
+        df_list.append(sub_df)
+    return df_list
+
+def apply_st_async(df):
+    df_list = split_dataframes(df,15,"LBID")
+    future_list = list()
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        for df in df_list:
+            future = executor.submit(apply_st, df)
+            future_list.append(future.result())
+        df = pd.concat(future_list)
+    return df
+    
+def apply_st(df):
+    df["NAICS"] = ""
+    df["NAICS Title"] = ""
+    unique_lbid = sorted(df["LBID"].unique)
+    for lbid in unique_lbid:
+        industry_list = df.loc[df["LBID"]==lbid,"Industry"].tolist()
+        naics_return = industry_assign(industry_list)
+        naics_code = naics_return.loc["Code"]
+        naics_title = naics_return.loc["Title"]
+        df.loc[df["LBID"]==lbid,"NAICS"] = naics_code
+        df.loc[df["LBID"]==lbid,"NAICS Title"] = naics_title
+    return df
 
 # print(industry_assign(['Cattle farmer','Cattle farmer','Soy farmer','Milk store']))
 
