@@ -13,7 +13,7 @@ class DCALicenseSrcFile(SourceFile):
 
     def apply_template(self, df, template):
         if template == 0:
-            df = df.rename(columns={"license_nbr": "Record ID",'license_type':'LIC Type','lic_expir_dd':'LIC Expiration Date','license_status':'LIC Status','license_creation_date':'LIC Start Date','industry':'Industry','business_name':'Business Name','business_name_2':'Business Name 2', 'address_building':'Building Number', 'address_street_name':'Street', 'address_city':'City', 'address_state':'State','address_zip':'Zip', 'contact_phone':'Contact Phone', 'bbl':'BBL'})
+            df = df.rename(columns={"license_nbr": "Record ID",'license_type':'LIC Type','lic_expir_dd':'LIC Exp Date','license_status':'LIC Status','license_creation_date':'LIC Start Date','industry':'Industry','business_name':'Business Name','business_name_2':'Business Name 2', 'address_building':'Building Number', 'address_street_name':'Street', 'address_city':'City', 'address_state':'State','address_zip':'Zip', 'contact_phone':'Contact Phone', 'bbl':'BBL'})
 
         if template == 1:
             df = df.rename(columns={'dca_license_number':'Record ID','business_name':'Business Name','business_name_2':'Business Name 2','industry':'Industry','event_type':'RSS', 'event_date':'RSS Date','status':'LIC Status'})
@@ -63,7 +63,7 @@ class DCALicenseSrcFile(SourceFile):
 
         self.df['LIC Type'] = self.df['LIC Type'].astype(str)
         self.df["Industry"] = self.df["Industry"].replace(industry_dict.keys(),industry_dict.values())
-        self.df['LIC Expiration Date'] = self.df['LIC Expiration Date'].astype('datetime64[D]')
+        self.df['LIC Exp Date'] = self.df['LIC Exp Date'].astype('datetime64[D]')
         self.df['LIC Status'] = self.df['LIC Status'].astype(str)
         self.df['LIC Start Date'] = self.df['LIC Start Date'].astype('datetime64[D]')
         self.df['RSS'] = self.df['RSS'].astype(str)
