@@ -239,7 +239,6 @@ class Merge():
         #         future_list.append(future.result())
         for df in df_list:
             future_list.append(self.add_llid(df))
-            break
         print(future_list)
         self.df = pd.concat(future_list)
         self.store_pickle(self.df,1)
@@ -288,6 +287,9 @@ class Merge():
 
         print("computing")
         features = compare_cl.compute(candidate_links, df)
+
+        del df["TFIDF0"]
+        del df["TFIDF1"]
         
         print("classifying")
         def make_prediction(row):
