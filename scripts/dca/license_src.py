@@ -56,7 +56,7 @@ class DCALicenseSrcFile(SourceFile):
     def retrieve_file(self,file_manager):
         df_list = file_manager.retrieve_df() 
         df_list = self.get_template(df_list) 
-        return pd.concat(df_list, ignore_index=True).sample(30000)
+        return pd.concat(df_list, ignore_index=True)
 
     def instantiate_file(self):
         industry_dict = {'3' : 'Tickets-Live Perf - 260','420':'Shoe Store', '53': 'Hardware Retail', '72' : 'Tickets-Live Perf - 260', '114': 'Auto Repair', '115': 'Electronic & Home Appliance Service Dealer', '119':'Dealer In Products For The Disabled', 'C73' : 'Event Space', 'E75':'CATERING ESTABLISHMENT', 'H27':'Barber', 'H29':'Pet Store', 'H92':'Healthcare', 'H90':'Healthcare', 'H98':'Healthcare', 'H99':'Healthcare', 'SD6':'Auto Parts'}
