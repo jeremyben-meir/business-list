@@ -69,9 +69,7 @@ class DOHInspectionSrcFile(SourceFile):
         self.df['Grade Date'] = self.df['Grade Date'].replace(['N/A','NULL','nan'],'')
         self.df['Grade Date'] = self.df['Grade Date'].astype('datetime64[D]')
 
-        print(self.df.loc[self.df["INSP Date"].dt.year == 1900,"INSP Date"])
         self.df['INSP Date'] = self.df['INSP Date'].apply(lambda date: pd.to_datetime("today") if date.year == 1900 else date)
-        print(self.df.loc[self.df["INSP Date"].dt.year == 1900,"INSP Date"])
 
         del self.df['ADDRESS']
         del self.df['ACTION']
