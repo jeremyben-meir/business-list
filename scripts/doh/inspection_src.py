@@ -31,7 +31,7 @@ class DOHInspectionSrcFile(SourceFile):
             df['Industry'] = df['Industry'].apply(lambda x: x.strip('        '))
 
         elif template == 1:
-            df = df.rename(columns={"camis": "Record ID", 'dba':'Business Name', 'boro':'City', 'building': 'Building Number', 'street':'Street', 'zipcode':'Zip','phone':'Contact Phone', 'cuisine_description':'Industry','inspection_date':'INSP Date','grade':'Grade','grade_date':'Grade Date','inspection_type':'INSP Type','bbl':'BBL'})
+            df = df.rename(columns={"camis": "Record ID", 'dba':'Business Name', 'boro':'City', 'building': 'Building Number', 'street':'Street', 'zipcode':'Zip','phone':'Contact Phone', 'cuisine_description':'Industry','inspection_date':'INSP Date','grade':'Grade','grade_date':'Grade Date','inspection_type':'INSP Type','bbl':'BBL','longitude':'Longitude','latitude':'Latitude'})
             df['Industry'] = df['Industry'].astype(str)
             df['Industry'] = df['Industry'].replace(['N/A','NULL','nan','NaN'],'')
             df['Industry'] = df['Industry'].apply(lambda x: "Restaurant-"+x)
@@ -69,6 +69,8 @@ class DOHInspectionSrcFile(SourceFile):
         self.df['Grade Date'] = self.df['Grade Date'].replace(['N/A','NULL','nan'],'')
         self.df['Grade Date'] = self.df['Grade Date'].astype('datetime64[D]')
 
+        self.df['INSP Date'] = self.df['INSP Date'].apply(lambda date: pd.to_datetime("today") if date.year == 1900 else date)
+
         del self.df['ADDRESS']
         del self.df['ACTION']
         del self.df['PROGRAM']
@@ -83,8 +85,6 @@ class DOHInspectionSrcFile(SourceFile):
         del self.df['critical_flag']
         del self.df['action']
         del self.df['score']
-        del self.df['latitude']
-        del self.df['longitude']
         del self.df['community_board']
         del self.df['council_district']
         del self.df['census_tract']
@@ -101,5 +101,5 @@ class DOHInspectionSrcFile(SourceFile):
 if __name__ == '__main__':
     source = DOHInspectionSrcFile()
     source.instantiate_file()
-    source.add_bbl_async(overwrite=False)
+    source.add_bbl_async()
     source.save_csv()

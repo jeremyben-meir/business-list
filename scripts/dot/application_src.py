@@ -37,7 +37,7 @@ class DOTApplicationSrcFile(SourceFile):
 
     def instantiate_file(self):
 
-        self.df = self.df.rename(columns={ 'globalid':'Record ID', 'restaurant_name':'Business Name', 'legal_business_name':'Business Name 2', 'bulding_number':'Building Number', 'street':'Street', 'borough':'City', 'zip':'Zip', 'food_service_establishment':'Record ID 2', 'approved_for_sidewalk_seating':'Sidewalk Seating Flag', 'approved_for_roadway_seating':'Roadway Seating Flag', 'sla_serial_number':'Record ID 3', 'time_of_submission':'APP Start Date', 'bbl':'BBL'})
+        self.df = self.df.rename(columns={ 'globalid':'Record ID', 'restaurant_name':'Business Name', 'legal_business_name':'Business Name 2', 'bulding_number':'Building Number', 'street':'Street', 'borough':'City', 'zip':'Zip', 'food_service_establishment':'Record ID 2', 'approved_for_sidewalk_seating':'Sidewalk Seating Flag', 'approved_for_roadway_seating':'Roadway Seating Flag', 'sla_serial_number':'Record ID 3', 'time_of_submission':'APP Start Date', 'bbl':'BBL', 'longitude':'Longitude', 'latitude':'Latitude'})
 
         self.df['State'] = 'NY'
         self.df['Contact Phone'] = ''
@@ -66,8 +66,6 @@ class DOTApplicationSrcFile(SourceFile):
         del self.df['landmark_district_or_building']
         del self.df['landmarkdistrict_terms']
         del self.df['healthcompliance_terms'] 
-        del self.df['latitude']
-        del self.df['longitude']
         del self.df['community_board']
         del self.df['council_district']
         del self.df['census_tract']
@@ -83,5 +81,5 @@ class DOTApplicationSrcFile(SourceFile):
 if __name__ == '__main__':
     source = DOTApplicationSrcFile()
     source.instantiate_file()
-    source.add_bbl_async(overwrite=False)
+    source.add_bbl_async()
     source.save_csv()

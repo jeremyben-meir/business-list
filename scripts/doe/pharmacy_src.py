@@ -90,6 +90,8 @@ class DOEPharmacySrcFile(SourceFile):
         self.df['LIC Status'] = self.df['LIC Status'].astype(str)
         self.df['Record ID 2'] = self.df['Record ID 2'].astype(str)
 
+        self.df['LIC Issue Date'] = self.df['LIC Issue Date'].apply(lambda date: date if date.year < 2030 else date + pd.tseries.offsets.DateOffset(years=-100))
+
         del self.df["Address"]
 
         self.type_cast()

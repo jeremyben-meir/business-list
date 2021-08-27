@@ -28,12 +28,10 @@ class SourceFile:
 
     # ADD BBL ##############################################################################################
 
-    def add_bbl_async(self, overwrite=True):
+    def add_bbl_async(self):
         self.df = self.file_manager.load_pickle(0)
         self.df = self.df.reset_index(drop=True)
-        if overwrite:
-            self.df = BBLAdder(self.df, self.keylist, overwrite=True, id_ = 0).add_bbl_starter()
-        self.df = BBLAdder(self.df, self.keylist, overwrite=False, id_ = 0).add_bbl_starter()
+        self.df = BBLAdder(self.df, self.keylist).add_bbl_starter()
         self.file_manager.store_pickle(self.df,1)
 
     # CITY SETTING #########################################################################################
@@ -91,6 +89,13 @@ class SourceFile:
             self.df['BBL'] = self.df['BBL'].apply(lambda x: '' if math.isnan(float(x.replace('-','').replace('/',''))) else (str(int(float(x.replace('-','').replace('/','')))) if str(int(float(x.replace('-','').replace('/','')))).isdigit() and len(str(int(float(x.replace('-','').replace('/','')))).strip(" "))==10  else ""))
         else:
             self.df['BBL'] = ""
+
+        if 'Longitude' in self.df.columns.to_list() and 'Latitude' in self.df.columns.to_list():
+            self.df['Longitude'] = self.df['Longitude'].astype(float)
+            self.df['Latitude'] = self.df['Latitude'].astype(float)
+        else:
+            self.df['Longitude'] = 0.0
+            self.df['Latitude'] = 0.0
         
         self.df['Record ID'] = self.df['Record ID'].astype(str)
 

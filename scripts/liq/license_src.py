@@ -69,6 +69,8 @@ class LIQLicenseSrcFile(SourceFile):
         self.df['LIC Exp Date'] = pd.to_datetime(self.df['LIC Exp Date'], errors = 'coerce')
         self.df['LIC Filing Date'] = pd.to_datetime(self.df['LIC Filing Date'], errors = 'coerce')
 
+        self.df['LIC Exp Date'] = self.df['LIC Exp Date'].apply(lambda date: date if date.year <= 2024 else pd.NaT)
+
         del self.df['Address']
         del self.df['Zone']
         del self.df['Credit Group']
