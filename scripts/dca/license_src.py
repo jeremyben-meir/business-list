@@ -13,7 +13,7 @@ class DCALicenseSrcFile(SourceFile):
 
     def apply_template(self, df, template):
         if template == 0:
-            df = df.rename(columns={"license_nbr": "Record ID",'license_type':'LIC Type','lic_expir_dd':'LIC Exp Date','license_status':'LIC Status','license_creation_date':'LIC Start Date','industry':'Industry','business_name':'Business Name','business_name_2':'Business Name 2', 'address_building':'Building Number', 'address_street_name':'Street', 'address_city':'City', 'address_state':'State','address_zip':'Zip', 'contact_phone':'Contact Phone', 'bbl':'BBL'})
+            df = df.rename(columns={"license_nbr": "Record ID",'license_type':'LIC Type','lic_expir_dd':'LIC Exp Date','license_status':'LIC Status','license_creation_date':'LIC Start Date','industry':'Industry','business_name':'Business Name','business_name_2':'Business Name 2', 'address_building':'Building Number', 'address_street_name':'Street', 'address_city':'City', 'address_state':'State','address_zip':'Zip', 'contact_phone':'Contact Phone', 'bbl':'BBL', 'longitude':'Longitude', 'latitude':'Latitude'})
 
         if template == 1:
             df = df.rename(columns={'dca_license_number':'Record ID','business_name':'Business Name','business_name_2':'Business Name 2','industry':'Industry','event_type':'RSS', 'event_date':'RSS Date','status':'LIC Status'})
@@ -56,7 +56,7 @@ class DCALicenseSrcFile(SourceFile):
     def retrieve_file(self,file_manager):
         df_list = file_manager.retrieve_df() 
         df_list = self.get_template(df_list) 
-        return pd.concat(df_list, ignore_index=True)
+        return pd.concat(df_list, ignore_index=True).sample(30000)
 
     def instantiate_file(self):
         industry_dict = {'3' : 'Tickets-Live Perf - 260','420':'Shoe Store', '53': 'Hardware Retail', '72' : 'Tickets-Live Perf - 260', '114': 'Auto Repair', '115': 'Electronic & Home Appliance Service Dealer', '119':'Dealer In Products For The Disabled', 'C73' : 'Event Space', 'E75':'CATERING ESTABLISHMENT', 'H27':'Barber', 'H29':'Pet Store', 'H92':'Healthcare', 'H90':'Healthcare', 'H98':'Healthcare', 'H99':'Healthcare', 'SD6':'Auto Parts'}
@@ -78,8 +78,6 @@ class DCALicenseSrcFile(SourceFile):
         del self.df['nta']
         del self.df['census_tract']
         del self.df['detail_2']
-        del self.df['longitude']
-        del self.df['latitude']
         del self.df['location']
 
         self.type_cast()
@@ -91,5 +89,5 @@ class DCALicenseSrcFile(SourceFile):
 if __name__ == '__main__':
     source = DCALicenseSrcFile()
     source.instantiate_file()
-    source.add_bbl_async(overwrite=False)
+    source.add_bbl_async()
     source.save_csv()

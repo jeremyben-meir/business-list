@@ -194,6 +194,8 @@ class Merge():
         if not loaded:
             filelist = [("dca","charge"),("dca","inspection"),("dca","application"),("dca","license"),("doa","inspection"),
                         ("doe","pharmacy"),("doh","inspection"),("dos","license"),("liq","license"),("doh","license"),("dot","application"),("dot","inspection")]
+            filelist = [("dca","charge"),("dca","application")]
+            
             df_list = [pickle.load( open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{res[0]}/temp/df-{res[1]}-source.p", "rb" )) for res in filelist]
 
             df = pd.concat(df_list, axis=0, join='outer', ignore_index=False)

@@ -18,21 +18,18 @@ class DCAApplicationSrcFile(SourceFile):
             df['Status Date'] = df['Status Date'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
             df['License Start'] = df['License Start'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
             df['Expiration Date'] = df['Expiration Date'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
-            df.columns = ['Application ID', 'License Number', 'License Type', 'Application or Renewal', 'Business Name', 'Status', 'Status Date', 'Start Date', 'End Date', 'License Start', 'Expiration Date', 'Temp Op Letter Issued', 'Temp Op Letter Expiration', 'License Category', 'Application Category', 'Building Number', 'Street', 'Street 2', 'Unit Type', 'Unit', 'Description', 'City', 'State', 'Zip', 'Contact Phone', 'Last Update Date']
         elif template == 1:
-            del df['Longitude']
-            del df['Latitude']
-            df.columns = ['Application ID', 'License Number', 'License Type', 'Application or Renewal', 'Business Name', 'Status', 'Status Date', 'Start Date', 'End Date', 'License Start', 'Expiration Date', 'Temp Op Letter Issued', 'Temp Op Letter Expiration', 'License Category', 'Application Category', 'Building Number', 'Street', 'Street 2', 'Unit Type', 'Unit', 'Description', 'City', 'State', 'Zip', 'Contact Phone', 'Last Update Date']
+            pass
         elif template == 2:
-            del df['longitude']
-            del df['latitude']
             del df['active_vehicles']
             df['Status Date'] = ''
             df['License Start'] = ''
             df['Expiration Date'] = ''
             df['Last Update Date'] = ''
             df = df[['application_id', 'license_number', 'license_type', 'application_or_renewal', 'business_name', 'status','Status Date', 'start_date', 'end_date', 'License Start', 'Expiration Date', 'temp_op_letter_issued', 'temp_op_letter_expiration', 'license_category', 'application_category', 'building_number', 'street', 'street_2', 'unit_type', 'unit', 'description', 'city', 'state', 'zip', 'contact_phone', 'Last Update Date']]
-            df.columns = ['Application ID', 'License Number', 'License Type', 'Application or Renewal', 'Business Name', 'Status', 'Status Date', 'Start Date', 'End Date', 'License Start', 'Expiration Date', 'Temp Op Letter Issued', 'Temp Op Letter Expiration', 'License Category', 'Application Category', 'Building Number', 'Street', 'Street 2', 'Unit Type', 'Unit', 'Description', 'City', 'State', 'Zip', 'Contact Phone', 'Last Update Date']
+        
+        df.columns = ['Application ID', 'License Number', 'License Type', 'Application or Renewal', 'Business Name', 'Status', 'Status Date', 'Start Date', 'End Date', 'License Start', 'Expiration Date', 'Temp Op Letter Issued', 'Temp Op Letter Expiration', 'License Category', 'Application Category', 'Building Number', 'Street', 'Street 2', 'Unit Type', 'Unit', 'Description', 'City', 'State', 'Zip', 'Contact Phone', 'Last Update Date',"Longitude", "Latitude"]
+        
         return df
 
     def get_template(self,df_list):

@@ -57,8 +57,6 @@ class DCAChargeSrcFile(SourceFile):
         del self.df["Counts Settled"]
         del self.df["Counts Guilty"]
         del self.df["Counts Not Guilty"]
-        del self.df["Longitude"]
-        del self.df["Latitude"]
 
         self.type_cast()
         self.clean_zip_city()

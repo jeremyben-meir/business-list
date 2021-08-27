@@ -84,5 +84,5 @@ class DOHLicenseSrcFile(SourceFile):
 if __name__ == '__main__':
     source = DOHLicenseSrcFile()
     source.instantiate_file()
-    source.add_bbl_async(overwrite=False)
+    source.add_bbl_async()
     source.save_csv()

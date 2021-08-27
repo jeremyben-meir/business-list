@@ -54,7 +54,7 @@ class DOTInspectionSrcFile(SourceFile):
             row = self.stop_end_words(row)
             return row
 
-        self.df = self.df.rename(columns={'borough':'City', 'restaurantname':'Business Name', 'legalbusinessname':'Business Name 2', 'restaurantinspectionid':'Record ID', 'inspectedon':'INSP Date', 'postcode':'Zip', 'bbl':'BBL'})
+        self.df = self.df.rename(columns={'borough':'City', 'restaurantname':'Business Name', 'legalbusinessname':'Business Name 2', 'restaurantinspectionid':'Record ID', 'inspectedon':'INSP Date', 'postcode':'Zip', 'bbl':'BBL', 'longitude':'Longitude', 'latitude':'Latitude'})
 
         self.df["Building Number"] = ""
         self.df["Street"] = ""
@@ -73,8 +73,6 @@ class DOTInspectionSrcFile(SourceFile):
         del self.df['isroadwaycompliant']
         del self.df['skippedreason']
         del self.df['agencycode']
-        del self.df['latitude']
-        del self.df['longitude']
         del self.df['communityboard']
         del self.df['councildistrict']
         del self.df['censustract']
@@ -90,5 +88,5 @@ class DOTInspectionSrcFile(SourceFile):
 if __name__ == '__main__':
     source = DOTInspectionSrcFile()
     source.instantiate_file()
-    # source.add_bbl_async(overwrite=False)
+    source.add_bbl_async()
     source.save_csv()

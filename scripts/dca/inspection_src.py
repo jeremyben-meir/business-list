@@ -61,8 +61,6 @@ class DCAInspectionSrcFile(SourceFile):
 
         del self.df["Certificate Number"]
         del self.df["Borough"]
-        del self.df["Longitude"]
-        del self.df["Latitude"]
 
         self.type_cast()
         self.clean_zip_city()
