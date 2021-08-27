@@ -3,42 +3,100 @@ from common import DirectoryFields
 import pandas as pd
 import csv
 
-def extract_dates(row):
-    pass
+def get_lim_date_from_cols(curgrp,col_list,is_maximum):
+    lim_date = [(curgrp[date].max() if is_maximum else curgrp[date].min()) for date in col_list]
+    lim_list = [date for date in lim_date if not pd.isnull(date)]
+    if len(lim_list) == 0:
+        return pd.NaT
+    return max(lim_list) if is_maximum else min(lim_list)
 
-def get_dates():
-    df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-merged.p", "rb" ))
+def get_max_end(curgrp):
+    maxdate_list = list()
+    date_list = ["CHRG Date","INSP Date","Last INSP Date","Case Dec. Date","Temp Op Letter Expiration","APP End Date"]
+    maxdate_list.append(get_lim_date_from_cols(curgrp,date_list,True) + pd.Timedelta(days=-550))
+    date_list = ["LIC Exp Date","RSS Date"]
+    maxdate_list.append(get_lim_date_from_cols(curgrp,date_list,True))
+    date_list = ["INSP Date","Out of Business Date"]
+    maxdate_list.append(get_lim_date_from_cols(curgrp,date_list,False))
+    return min(maxdate_list) if min(maxdate_list) < pd.to_datetime("today") else pd.to_datetime("today")
+
+def type_cast(df, all_date_list):
     df["Business Name"] = df["Business Name"].fillna("")
     df["Business Name 2"] = df["Business Name 2"].fillna("")
     df["Building Number"] = df["Building Number"].fillna("")
     df["Street"] = df["Street"].fillna("")
-    # df["Longitude"] = df["Longitude"].fillna(0)
-    # df["Latitude"] = df["Latitude"].fillna(0)
-    date_list = ["Out of Business Date","INSP Date","INSP Result","Last INSP Date","Case Dec. Date","LIC Issue Date","LIC Filing Date","LIC Expiration Date","LIC Status","LIC Start Date","LIC Exp Date","RSS","RSS Date","Application or Renewal","APP Status","APP Status Date","APP Start Date","APP End Date","Temp Op Letter Issued","Temp Op Letter Expiration"]
-    for date in date_list:
+    df["Longitude"] = df["Longitude"].fillna(0.0)
+    df["Latitude"] = df["Latitude"].fillna(0.0)
+
+    for date in all_date_list:
         df[date] = pd.to_datetime(df[date], errors = 'coerce')
+    
+    return df
+
+def get_dates():
+    df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-merged.p", "rb" ))
+    
+    all_date_list = ["CHRG Date","INSP Date","Last INSP Date","Out of Business Date","Case Dec. Date","APP Status Date","APP Start Date","APP End Date","Temp Op Letter Issued","Temp Op Letter Expiration","LIC Start Date","LIC Exp Date","LIC Issue Date","LIC Filing Date","RSS Date"]
+    df = type_cast(df,all_date_list)
+    
     date_df = pd.DataFrame(columns=["Name","Start Date","End Date","Longitude","Latitude"])
-    group = df.groupby("LLID")
-    for llid, curgrp in group:
+    
+    lbid_group = df.groupby("LBID")
+    for _ , out_group in lbid_group:
 
-        name = max(curgrp["Business Name"].max(),curgrp["Business Name 2"].max())
-        address = f'{curgrp["Building Number"].max()} {curgrp["Street"].max()}'
-        longitude = 0#curgrp["Longitude"].max()
-        latitude = 0#curgrp["Latitude"].max()
+        name = max(out_group["Business Name"].max(),out_group["Business Name 2"].max())
 
-        mindate = [curgrp[date].min() for date in date_list]
-        maxdate = [curgrp[date].max() for date in date_list]
+        if out_group["LLID"].nunique() == 1:
 
-        mindate = [date for date in mindate if not pd.isnull(date)]
-        maxdate = [date for date in maxdate if not pd.isnull(date)]
+            address = f'{out_group["Building Number"].max()} {out_group["Street"].max()}'
+            longitude = out_group["Longitude"].max()
+            latitude = out_group["Latitude"].max()
+            llid = out_group["LLID"].max()
 
-        if len(mindate) > 0:
-            new_row = {'Name': name, 'Start Date': min(mindate), "Address": address, 'End Date': max(maxdate), 'Longitude': longitude, 'Latitude': latitude}
+            mindate = get_lim_date_from_cols(out_group,all_date_list,False)
+            maxdate = get_max_end(out_group)
+
+            new_row = {'Name': name, 'LLID': llid, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude}
             date_df = date_df.append(new_row, ignore_index = True)
-            if len(date_df) >= 500:
-                cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/timeline.csv"
-                date_df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
-                break
+        else:
+            llid_ordered = list()
+            date_list = ["CHRG Date","INSP Date","Last INSP Date","Out of Business Date","Case Dec. Date","APP Status Date","APP Start Date","APP End Date","Temp Op Letter Issued","Temp Op Letter Expiration"]
+
+            for _, llid in out_group["LLID"].items():
+                in_group = out_group[out_group["LLID" == llid]]
+                mindate = get_lim_date_from_cols(in_group,date_list,False)
+                llid_ordered.append((llid,mindate))
+                
+            llid_ordered = llid_ordered.sort(key=lambda y: y[1],reverse=True)
+            llid_ordered = [llid for llid,_ in llid_ordered]
+
+            prevmin = pd.to_datetime("today")
+
+            for llid_val in range(len(llid_ordered)):
+                in_group = out_group[out_group["LLID" == llid]]
+
+                address = f'{in_group["Building Number"].max()} {in_group["Street"].max()}'
+                longitude = in_group["Longitude"].max()
+                latitude = in_group["Latitude"].max()
+                llid = llid_ordered[llid_val]
+
+                if llid_val == len(llid_ordered)-1:
+                    mindate = get_lim_date_from_cols(out_group,all_date_list,False)
+                else:
+                    mindate = get_lim_date_from_cols(in_group,date_list,False)
+
+                if llid_val == 0:
+                    maxdate = get_max_end(out_group)
+                else:
+                    maxdate = prevmin
+
+                prevmin = mindate
+
+                new_row = {'Name': name, 'LLID': llid, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude}
+                date_df = date_df.append(new_row, ignore_index = True)
+        
+    cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/timeline.csv"
+    date_df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
 
 if __name__ == "__main__":
     get_dates()
