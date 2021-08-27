@@ -67,6 +67,7 @@ class BBLAdder:
         self.df.loc[index,"Longitude"] = longitude
         self.df.loc[index,"Latitude"] = latitude
         
+        
         if self.id == 0:
             self.progress_meter.tick()
 
