@@ -8,14 +8,6 @@ with open(f'{DirectoryFields.LOCAL_LOCUS_PATH}/data/temp/timeline.csv', newline=
     reader = csv.reader(csvfile, delimiter=',')
     next(reader)
     for name,mindate,maxdate,longitude,latitude,address,llid in reader:
-        # print(line)
-        # print(name)
-        # print(llid)
-        # print(address)
-        # print(mindate)
-        # print(maxdate)
-        # print(longitude)
-        # print(latitude)
         latitude, longitude = map(float, (latitude, longitude))
         features.append(
             Feature(

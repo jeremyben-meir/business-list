@@ -66,6 +66,10 @@ def get_dates():
             mindate = get_lim_date_from_cols(out_group,all_date_list,False)
             maxdate = get_max_end(out_group)
 
+            if latitude != 0.0 and longitude != 0.0:
+                new_row = {'Name': name, 'LLID': llid, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude}
+                date_df = date_df.append(new_row, ignore_index = True)
+
         else:
 
             llid_ordered = list()
@@ -100,9 +104,9 @@ def get_dates():
 
                 prevmin = mindate
 
-            if latitude != 0.0 and longitude != 0.0:
-                new_row = {'Name': name, 'LLID': llid, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude}
-                date_df = date_df.append(new_row, ignore_index = True)
+                if latitude != 0.0 and longitude != 0.0:
+                    new_row = {'Name': name, 'LLID': llid, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude}
+                    date_df = date_df.append(new_row, ignore_index = True)
         
     cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/timeline.csv"
     date_df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
