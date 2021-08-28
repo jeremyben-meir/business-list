@@ -96,3 +96,4 @@ class FileManager:
 
 if __name__ == "__main__":
     file_manager = FileManager('dca',['application','charge','inspection','license'],"application")
+    
