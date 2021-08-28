@@ -189,12 +189,11 @@ class Merge():
             df = df.replace("nan", np.nan, regex=True)
         return df
 
-    def load_source_files(self, loaded = True):
+    def load_source_files(self, loaded = False):
         
         if not loaded:
             filelist = [("dca","charge"),("dca","inspection"),("dca","application"),("dca","license"),("doa","inspection"),
                         ("doe","pharmacy"),("doh","inspection"),("dos","license"),("liq","license"),("doh","license"),("dot","application"),("dot","inspection")]
-            filelist = [("dca","charge"),("dca","application")]
             
             df_list = [pickle.load( open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{res[0]}/temp/df-{res[1]}-source.p", "rb" )) for res in filelist]
 
@@ -212,8 +211,8 @@ class Merge():
 
             df = self.type_cast(df, replace_nan = False)
 
-            # df = df.sort_values(["BBL"])##
-            # df = df.iloc[:10000]##
+            df = df.sort_values(["BBL"])##
+            df = df.iloc[:10000]##
             df = df.apply(lambda row: self.prepare_business_names(row), axis=1)
 
             self.store_pickle(df,0)

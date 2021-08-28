@@ -26,7 +26,9 @@ class DCAApplicationSrcFile(SourceFile):
             df['License Start'] = ''
             df['Expiration Date'] = ''
             df['Last Update Date'] = ''
-            df = df[['application_id', 'license_number', 'license_type', 'application_or_renewal', 'business_name', 'status','Status Date', 'start_date', 'end_date', 'License Start', 'Expiration Date', 'temp_op_letter_issued', 'temp_op_letter_expiration', 'license_category', 'application_category', 'building_number', 'street', 'street_2', 'unit_type', 'unit', 'description', 'city', 'state', 'zip', 'contact_phone', 'Last Update Date']]
+            df['Longitude'] = 0.0
+            df['Latitude'] = 0.0
+            df = df[['application_id', 'license_number', 'license_type', 'application_or_renewal', 'business_name', 'status','Status Date', 'start_date', 'end_date', 'License Start', 'Expiration Date', 'temp_op_letter_issued', 'temp_op_letter_expiration', 'license_category', 'application_category', 'building_number', 'street', 'street_2', 'unit_type', 'unit', 'description', 'city', 'state', 'zip', 'contact_phone', 'Last Update Date',"Longitude","Latitude"]]
         
         df.columns = ['Application ID', 'License Number', 'License Type', 'Application or Renewal', 'Business Name', 'Status', 'Status Date', 'Start Date', 'End Date', 'License Start', 'Expiration Date', 'Temp Op Letter Issued', 'Temp Op Letter Expiration', 'License Category', 'Application Category', 'Building Number', 'Street', 'Street 2', 'Unit Type', 'Unit', 'Description', 'City', 'State', 'Zip', 'Contact Phone', 'Last Update Date',"Longitude", "Latitude"]
         
