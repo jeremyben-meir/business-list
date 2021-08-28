@@ -17,7 +17,7 @@ with open(f'{DirectoryFields.LOCAL_LOCUS_PATH}/data/temp/timeline.csv', newline=
                     'Address': address,
                     'Start Date': mindate,
                     'End Date': maxdate,
-                    'Duration': int((maxdate-mindate).days)
+                    # 'Duration': int((maxdate-mindate).days)
                 }
             )
         )

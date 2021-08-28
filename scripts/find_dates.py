@@ -1,3 +1,4 @@
+from datetime import date
 import pickle
 from common import DirectoryFields
 import pandas as pd
@@ -11,12 +12,18 @@ def get_lim_date_from_cols(curgrp,col_list,is_maximum):
     return max(lim_list) if is_maximum else min(lim_list)
 
 def get_max_end(curgrp):
+    insp_res = (curgrp["INSP Result"].max() == "Out of Business")
+    app_res = (curgrp["APP Status"].max() == "OOB")
     maxdate_list = list()
     date_list = ["CHRG Date","INSP Date","Last INSP Date","Case Dec. Date","Temp Op Letter Expiration","APP End Date"]
-    maxdate_list.append(get_lim_date_from_cols(curgrp,date_list,True) + pd.Timedelta(days=-550))
+    maxdate_list.append(get_lim_date_from_cols(curgrp,date_list,True) + pd.Timedelta(days=550))
     date_list = ["LIC Exp Date","RSS Date"]
     maxdate_list.append(get_lim_date_from_cols(curgrp,date_list,True))
-    date_list = ["INSP Date","Out of Business Date"]
+    date_list = ["Out of Business Date"]
+    if insp_res:
+        date_list.append("INSP Date")
+    if app_res:
+        date_list.append("APP Status")
     maxdate_list.append(get_lim_date_from_cols(curgrp,date_list,False))
     return min(maxdate_list) if min(maxdate_list) < pd.to_datetime("today") else pd.to_datetime("today")
 
@@ -24,6 +31,8 @@ def type_cast(df, all_date_list):
     df["Business Name"] = df["Business Name"].fillna("")
     df["Business Name 2"] = df["Business Name 2"].fillna("")
     df["Building Number"] = df["Building Number"].fillna("")
+    df["INSP Result"] = df["INSP Result"].fillna("")
+    df["APP Status"] = df["APP Status"].fillna("")
     df["Street"] = df["Street"].fillna("")
     df["Longitude"] = df["Longitude"].fillna(0.0)
     df["Latitude"] = df["Latitude"].fillna(0.0)
@@ -35,7 +44,8 @@ def type_cast(df, all_date_list):
 
 def get_dates():
     df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-merged.p", "rb" ))
-    
+
+
     all_date_list = ["CHRG Date","INSP Date","Last INSP Date","Out of Business Date","Case Dec. Date","APP Status Date","APP Start Date","APP End Date","Temp Op Letter Issued","Temp Op Letter Expiration","LIC Start Date","LIC Exp Date","LIC Issue Date","LIC Filing Date","RSS Date"]
     df = type_cast(df,all_date_list)
     
@@ -49,7 +59,7 @@ def get_dates():
         if out_group["LLID"].nunique() == 1:
 
             address = f'{out_group["Building Number"].max()} {out_group["Street"].max()}'
-            longitude = out_group["Longitude"].max()
+            longitude = out_group["Longitude"].min()
             latitude = out_group["Latitude"].max()
             llid = out_group["LLID"].max()
 
@@ -58,22 +68,23 @@ def get_dates():
 
             new_row = {'Name': name, 'LLID': llid, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude}
             date_df = date_df.append(new_row, ignore_index = True)
+
         else:
+
             llid_ordered = list()
             date_list = ["CHRG Date","INSP Date","Last INSP Date","Out of Business Date","Case Dec. Date","APP Status Date","APP Start Date","APP End Date","Temp Op Letter Issued","Temp Op Letter Expiration"]
-
-            for _, llid in out_group["LLID"].items():
-                in_group = out_group[out_group["LLID" == llid]]
+            for llid in out_group["LLID"].unique():
+                in_group = out_group[out_group["LLID"] == llid]
                 mindate = get_lim_date_from_cols(in_group,date_list,False)
                 llid_ordered.append((llid,mindate))
                 
-            llid_ordered = llid_ordered.sort(key=lambda y: y[1],reverse=True)
+            llid_ordered.sort(key=lambda y: y[1],reverse=True)
             llid_ordered = [llid for llid,_ in llid_ordered]
 
             prevmin = pd.to_datetime("today")
 
             for llid_val in range(len(llid_ordered)):
-                in_group = out_group[out_group["LLID" == llid]]
+                in_group = out_group[out_group["LLID"] == llid]
 
                 address = f'{in_group["Building Number"].max()} {in_group["Street"].max()}'
                 longitude = in_group["Longitude"].max()

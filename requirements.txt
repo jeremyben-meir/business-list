@@ -2,4 +2,4 @@ pandas
 fuzzywuzzy
 requests
 aiohttp
-python-Levenshtein
+geojson

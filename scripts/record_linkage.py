@@ -192,8 +192,20 @@ class Merge():
     def load_source_files(self, loaded = False):
         
         if not loaded:
-            filelist = [("dca","charge"),("dca","inspection"),("dca","application"),("dca","license"),("doa","inspection"),
-                        ("doe","pharmacy"),("doh","inspection"),("dos","license"),("liq","license"),("doh","license"),("dot","application"),("dot","inspection")]
+            filelist = [
+                ("dca","charge"),
+                ("dca","inspection"),
+                ("dca","application"),
+                ("dca","license"),
+                ("doa","inspection"),
+                ("doe","pharmacy"),
+                ("doh","inspection"),
+                ("dos","license"),
+                ("liq","license"),
+                ("doh","license"),
+                ("dot","application"),
+                ("dot","inspection")
+                ]
             
             df_list = [pickle.load( open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{res[0]}/temp/df-{res[1]}-source.p", "rb" )) for res in filelist]
 
@@ -231,7 +243,7 @@ class Merge():
 
     def add_llid_async(self):
         
-        df_list = self.split_dataframes(self.df,15,"BBL")
+        df_list = self.split_dataframes(self.df,1,"BBL")
         print("Dataframes split")
         future_list = list()
         # with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -402,9 +414,9 @@ if __name__ == '__main__':
     end = time.time()
     print(f"LLID adding: {end - start} seconds")
 
-    # start = time.time()
-    # merge.add_lbid()
-    # end = time.time()
-    # print(f"LBID adding: {end - start} seconds")
+    start = time.time()
+    merge.add_lbid()
+    end = time.time()
+    print(f"LBID adding: {end - start} seconds")
     
     merge.save_csv()
