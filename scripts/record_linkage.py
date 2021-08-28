@@ -14,6 +14,7 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from scipy import spatial
 from sklearn import mixture
+from datetime import datetime
 # import concurrent.futures
 
 class Graph:
@@ -183,6 +184,11 @@ class Merge():
         df["Business Name 2"] = df["Business Name 2"].astype(str)
         df["Contact Phone"] = df["Contact Phone"].astype(str)
         df["Industry"] = df["Industry"].astype(str)
+        # df["APP Start Date"] = df["APP Start Date"].apply(lambda x: datetime.fromtimestamp(x.timestamp()) if not pd.isnull(x) else pd.NaT)
+        # df["APP Start Date"] = pd.to_datetime(df["APP Start Date"], errors = 'coerce')
+        for date_col in ["INSP Date","Last INSP Date","Out of Business Date"]:
+            df[date_col] = df[date_col].apply(lambda x: datetime.fromtimestamp(x.timestamp()) if not pd.isnull(x) else pd.NaT)
+
         if replace_nan:
             df = df.replace("", np.nan, regex=True)
             df = df.replace("NaN", np.nan, regex=True)
@@ -192,8 +198,17 @@ class Merge():
     def load_source_files(self, loaded = False):
         
         if not loaded:
-            filelist = [("dca","charge"),("dca","inspection"),("dca","application"),("dca","license"),("doa","inspection"),
-                        ("doe","pharmacy"),("doh","inspection"),("dos","license"),("liq","license"),("doh","license"),("dot","application"),("dot","inspection")]
+            filelist = [
+                #("dca","charge"),("dca","inspection"),("dca","application"),("dca","license"),
+                ("doa","inspection"),
+                ("doe","pharmacy"),
+                #("doh","inspection"),
+                ("dos","license"),
+                ("liq","license"),
+                ("doh","license"),
+                ("dot","application"),
+                ("dot","inspection")
+                ]
             
             df_list = [pickle.load( open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{res[0]}/temp/df-{res[1]}-source.p", "rb" )) for res in filelist]
 
@@ -213,7 +228,7 @@ class Merge():
 
             df = df.sort_values(["BBL"])##
             df = df.iloc[:10000]##
-            df = df.apply(lambda row: self.prepare_business_names(row), axis=1)
+            df = df.apply(self.prepare_business_names,axis = 1)
 
             self.store_pickle(df,0)
 
@@ -231,7 +246,7 @@ class Merge():
 
     def add_llid_async(self):
         
-        df_list = self.split_dataframes(self.df,15,"BBL")
+        df_list = self.split_dataframes(self.df,1,"BBL")
         print("Dataframes split")
         future_list = list()
         # with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -402,9 +417,9 @@ if __name__ == '__main__':
     end = time.time()
     print(f"LLID adding: {end - start} seconds")
 
-    # start = time.time()
-    # merge.add_lbid()
-    # end = time.time()
-    # print(f"LBID adding: {end - start} seconds")
+    start = time.time()
+    merge.add_lbid()
+    end = time.time()
+    print(f"LBID adding: {end - start} seconds")
     
     merge.save_csv()
