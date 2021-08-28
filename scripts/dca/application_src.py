@@ -18,6 +18,8 @@ class DCAApplicationSrcFile(SourceFile):
             df['Status Date'] = df['Status Date'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
             df['License Start'] = df['License Start'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
             df['Expiration Date'] = df['Expiration Date'].astype(str).apply(lambda x: x[4:6]+"/"+x[6:8]+"/"+x[:4] if len(x)==10 else x)
+            df['Longitude'] = 0.0
+            df['Latitude'] = 0.0
         elif template == 1:
             pass
         elif template == 2:
