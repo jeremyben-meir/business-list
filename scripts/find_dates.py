@@ -66,9 +66,6 @@ def get_dates():
             mindate = get_lim_date_from_cols(out_group,all_date_list,False)
             maxdate = get_max_end(out_group)
 
-            new_row = {'Name': name, 'LLID': llid, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude}
-            date_df = date_df.append(new_row, ignore_index = True)
-
         else:
 
             llid_ordered = list()
@@ -87,7 +84,7 @@ def get_dates():
                 in_group = out_group[out_group["LLID"] == llid]
 
                 address = f'{in_group["Building Number"].max()} {in_group["Street"].max()}'
-                longitude = in_group["Longitude"].max()
+                longitude = in_group["Longitude"].min()
                 latitude = in_group["Latitude"].max()
                 llid = llid_ordered[llid_val]
 
@@ -103,6 +100,7 @@ def get_dates():
 
                 prevmin = mindate
 
+            if latitude != 0.0 and longitude != 0.0:
                 new_row = {'Name': name, 'LLID': llid, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude}
                 date_df = date_df.append(new_row, ignore_index = True)
         
