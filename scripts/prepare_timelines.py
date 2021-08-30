@@ -36,6 +36,7 @@ class CreateTimeline():
         df["Business Name"] = df["Business Name"].fillna("")
         df["Business Name 2"] = df["Business Name 2"].fillna("")
         df["Building Number"] = df["Building Number"].fillna("")
+        df["Contact Phone"] = df["Contact Phone"].fillna("")
         df["INSP Result"] = df["INSP Result"].fillna("")
         df["APP Status"] = df["APP Status"].fillna("")
         df["Street"] = df["Street"].fillna("")
@@ -58,7 +59,8 @@ class CreateTimeline():
         for _ , out_group in lbid_group:
 
             name = max(out_group["Business Name"].max(),out_group["Business Name 2"].max())
-            industry = out_group["NAICS Title"].max()
+            naics_code = out_group["NAICS"].max()
+            naics_title = out_group["NAICS Title"].max()
 
             if out_group["LLID"].nunique() == 1:
 
@@ -66,12 +68,14 @@ class CreateTimeline():
                 longitude = out_group["Longitude"].min()
                 latitude = out_group["Latitude"].max()
                 llid = out_group["LLID"].max()
+                bbl = out_group["BBL"].max()
+                phone_num = out_group["Contact Phone"].max()
 
                 mindate = self.get_lim_date_from_cols(out_group,all_date_list,False)
                 maxdate = self.get_max_end(out_group)
 
                 if latitude != 0.0 and longitude != 0.0:
-                    new_row = {'Name': name, 'LLID': llid, "Address": address, 'Industry': industry, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude}
+                    new_row = {'Name': name, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'NAICS Title': naics_title, 'NAICS': naics_code, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude}
                     date_df = date_df.append(new_row, ignore_index = True)
 
             else:
@@ -94,6 +98,8 @@ class CreateTimeline():
                     address = f'{in_group["Building Number"].max()} {in_group["Street"].max()}'
                     longitude = in_group["Longitude"].min()
                     latitude = in_group["Latitude"].max()
+                    bbl = in_group["BBL"].max()
+                    phone_num = in_group["Contact Phone"].max()
                     llid = llid_ordered[llid_val]
 
                     if llid_val == len(llid_ordered)-1:
@@ -109,12 +115,12 @@ class CreateTimeline():
                     prevmin = mindate
 
                     if latitude != 0.0 and longitude != 0.0:
-                        new_row = {'Name': name, 'LLID': llid, "Address": address, 'Industry': industry, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude}
+                        new_row = {'Name': name, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'NAICS Title': naics_title, 'NAICS': naics_code, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude}
                         date_df = date_df.append(new_row, ignore_index = True)
         
-        cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/timeline_lid.csv"
+        cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/timeline.csv"
         date_df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
-        pickle.dump(date_df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-timeline_lid.p", "wb" ))
+        pickle.dump(date_df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-timeline.p", "wb" ))
 
 if __name__ == "__main__":
     industry_assign = CreateTimeline()

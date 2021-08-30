@@ -8,11 +8,13 @@ import pickle
 class PrepareGeojson():
 
     def __init__(self):
-        self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-timeline_lid.p", "rb" ))
+        self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-timeline.p", "rb" ))
         self.features = list()
     
-    def create_json(self):
-        for _, row in self.df.iterrows():
+    def create_llid_json(self):
+        df = self.df
+        df = df[pd.to_datetime("today") + pd.Timedelta(days=-60) < df["End Date"]]
+        for _, row in df.iterrows():
             latitude, longitude = map(float, (row["Latitude"], row["Longitude"]))
             self.features.append(
                 Feature(
@@ -21,19 +23,21 @@ class PrepareGeojson():
                         'Name': row["Name"],
                         'LLID': row["LLID"],
                         'Address': row["Address"],
-                        'Industry': str(row["Industry"]),
+                        'NAICS': str(row["NAICS"]),
+                        'NAICS Title': str(row["NAICS Title"]),
+                        'Contact Phone': str(row["Contact Phone"]),
                         'Start Date': str(row["Start Date"]),
                         'End Date': str(row["End Date"])
                     }
                 )
             )
         collection = FeatureCollection(self.features)
-        with open(f'{DirectoryFields.LOCAL_LOCUS_PATH}/data/timeline.json', "w") as f:
+        with open(f'{DirectoryFields.LOCAL_LOCUS_PATH}/data/llid_timeline.json', "w") as f:
             f.write('%s' % collection)
 
 if __name__ == "__main__":
     prepare_geojson = PrepareGeojson()
-    prepare_geojson.create_json()
+    prepare_geojson.create_llid_json()
 
 
 
