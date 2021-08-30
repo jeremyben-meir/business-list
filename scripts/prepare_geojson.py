@@ -6,7 +6,8 @@ import pandas as pd
 features = []
 with open(f'{DirectoryFields.LOCAL_LOCUS_PATH}/data/temp/timeline.csv', newline='') as csvfile:
     reader = csv.reader(csvfile, delimiter=',')
-    for name, llid, address, mindate, maxdate, longitude, latitude in reader:
+    next(reader)
+    for name,mindate,maxdate,longitude,latitude,address,llid in reader:
         latitude, longitude = map(float, (latitude, longitude))
         features.append(
             Feature(
@@ -17,7 +18,7 @@ with open(f'{DirectoryFields.LOCAL_LOCUS_PATH}/data/temp/timeline.csv', newline=
                     'Address': address,
                     'Start Date': mindate,
                     'End Date': maxdate,
-                    # 'Duration': int((maxdate-mindate).days)
+                    'Duration': "yes"
                 }
             )
         )

@@ -26,28 +26,44 @@ class BBLAdder:
         self.app_key = self.keylist[self.key_row][0]
         self.app_id = self.keylist[self.key_row][1]
             
-    async def get_result(self, session, url):
-        async with session.get(url) as response:
-            
-            try:
-                results = await response.json()
-            except:
-                return "AUTH_FAILURE", "AUTH_FAILURE", "AUTH_FAILURE"
-            
-            try:
-                bbl = results['results'][0]['response']['bbl']
-                bbl = "NO_BBL" if bbl == "0" else bbl
-            except:
-                bbl = "NO_BBL"
+    async def get_result(self, session, url, bbl_input=False):
+
+        for retry_num in range(3):
 
             try:
-                longitude = results['results'][0]['response']['longitudeInternalLabel']
-                latitude = results['results'][0]['response']['latitudeInternalLabel']
-            except:
-                longitude = 0.0
-                latitude = 0.0
-            
-            return bbl, longitude, latitude
+
+                async with session.get(url) as response:
+                    
+                    try:
+                        results = await response.json()
+                    except:
+                        return "AUTH_FAILURE", "AUTH_FAILURE", "AUTH_FAILURE"
+
+                    try:
+                        result_dict = results['bbl'] if bbl_input else results['results'][0]['response']
+                    except:
+                        return "NO_BBL", 0.0, 0.0
+                    
+                    try:
+                        bbl = result_dict['bbl']
+                        bbl = "NO_BBL" if bbl == "0" else bbl
+                    except:
+                        bbl = "NO_BBL"
+
+                    try:
+                        longitude = result_dict['longitudeInternalLabel']
+                        latitude = result_dict['latitudeInternalLabel']
+                    except:
+                        longitude = 0.0
+                        latitude = 0.0
+                    
+                    return bbl, longitude, latitude
+                
+            except asyncio.TimeoutError:
+
+                print(f"Retry {retry_num}")
+        
+        return "TIMEOUT_ERROR", "TIMEOUT_ERROR", "TIMEOUT_ERROR"
 
     async def decide_result(self, session, index, row, city_zip):
         bbl_valid = len(row["BBL"]) == 10 and row['BBL'] != "0000000000" and row["BBL"].isdigit()
@@ -55,10 +71,13 @@ class BBLAdder:
 
         if not (bbl_valid and lon_lat_valid):
             if bbl_valid:
-                url = f"https://api.cityofnewyork.us/geoclient/v1/search.json?input={row['BBL']}&app_id={self.app_id}&app_key={self.app_key}"
+                borough_dict = {'1':'manhattan','2':'bronx','3':'brooklyn','4':'queens','5':'staten island'}
+                # url = f"https://api.cityofnewyork.us/geoclient/v1/search.json?input={row['BBL']}&app_id={self.app_id}&app_key={self.app_key}"
+                url = f"https://api.cityofnewyork.us/geoclient/v1/bbl.json?borough={borough_dict[row['BBL'][0]]}&block={row['BBL'][1:6]}&lot={row['BBL'][6:]}&app_id={self.app_id}&app_key={self.app_key}"
+                bbl, longitude, latitude = await self.get_result(session, url, bbl_input=True)
             else:
                 url = f"https://api.cityofnewyork.us/geoclient/v1/search.json?input={row['Building Number']} {row['Street']} {row[city_zip]}&app_id={self.app_id}&app_key={self.app_key}"
-            bbl, longitude, latitude = await self.get_result(session, url)
+                bbl, longitude, latitude = await self.get_result(session, url)
             self.df.loc[index,"BBL"] = bbl
             self.df.loc[index,"Longitude"] = longitude
             self.df.loc[index,"Latitude"] = latitude
