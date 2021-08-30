@@ -6,6 +6,7 @@ import pickle
 import time
 from scripts.common import DirectoryFields
 import concurrent.futures
+import numpy as np
 
 def industry_assign(inp_list):
     model_name = 'paraphrase-MiniLM-L6-v2'
@@ -34,36 +35,27 @@ def industry_assign(inp_list):
 
 def split_dataframes(df, segment_num, split_col):
     df_list = list()
-    col_list = sorted(df[split_col].unique())
-    segment_size = len(df.index)/segment_num
-    print(f"Segment size {segment_size}")
-
-    while len(col_list)>0:
-        sub_df = pd.DataFrame(columns=df.columns)
-        sub_col_list = list()
-        while len(sub_df.index) < segment_size:
-            if len(col_list)>0:
-                sub_col_list.append(col_list[0])
-                col_list.pop(0)
-            else:
-                break
-            sub_df = df[df[split_col].isin(sub_col_list)]
-        df_list.append(sub_df)
+    col_num = int(df[split_col].nunique()/segment_num)
+    for _ in range(segment_num):
+        sampled_col = np.random.choice(df[split_col].unique(), col_num)
+        df_list.append(df[df[split_col].isin(sampled_col)])
+        df = df[~df[split_col].isin(sampled_col)]
+    df_list.append(df)
     return df_list
 
-def apply_st_async(df):
-    df_list = split_dataframes(df,15,"LBID")
+def apply_st_async(inp_df):
+    inp_df["NAICS"] = ""
+    inp_df["NAICS Title"] = ""
+    df_list = split_dataframes(inp_df,15,"LBID")
     future_list = list()
     with concurrent.futures.ThreadPoolExecutor() as executor:
         for df in df_list:
             future = executor.submit(apply_st, df)
             future_list.append(future.result())
-        df = pd.concat(future_list)
-    return df
+    inp_df = pd.concat(future_list)
+    return inp_df
     
 def apply_st(df):
-    df["NAICS"] = ""
-    df["NAICS Title"] = ""
     unique_lbid = sorted(df["LBID"].unique)
     for lbid in unique_lbid:
         industry_list = df.loc[df["LBID"]==lbid,"Industry"].tolist()
@@ -73,6 +65,11 @@ def apply_st(df):
         df.loc[df["LBID"]==lbid,"NAICS"] = naics_code
         df.loc[df["LBID"]==lbid,"NAICS Title"] = naics_title
     return df
+
+if __name__ == "__main__":
+    df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-merged.p", "rb" ))
+    df = apply_st_async(df)
+
 
 # print(industry_assign(['Cattle farmer','Cattle farmer','Soy farmer','Milk store']))
 
