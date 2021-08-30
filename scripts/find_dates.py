@@ -43,7 +43,7 @@ def type_cast(df, all_date_list):
     return df
 
 def get_dates():
-    df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-merged.p", "rb" ))
+    df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-assigned.p", "rb" ))
 
 
     all_date_list = ["CHRG Date","INSP Date","Last INSP Date","Out of Business Date","Case Dec. Date","APP Status Date","APP Start Date","APP End Date","Temp Op Letter Issued","Temp Op Letter Expiration","LIC Start Date","LIC Exp Date","LIC Issue Date","LIC Filing Date","RSS Date"]

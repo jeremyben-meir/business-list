@@ -4,7 +4,7 @@ import os
 import csv
 import pickle
 import time
-from scripts.common import DirectoryFields
+from common import DirectoryFields
 import concurrent.futures
 import numpy as np
 
@@ -56,7 +56,7 @@ def apply_st_async(inp_df):
     return inp_df
     
 def apply_st(df):
-    unique_lbid = sorted(df["LBID"].unique)
+    unique_lbid = sorted(df["LBID"].unique())
     for lbid in unique_lbid:
         industry_list = df.loc[df["LBID"]==lbid,"Industry"].tolist()
         naics_return = industry_assign(industry_list)
@@ -64,12 +64,14 @@ def apply_st(df):
         naics_title = naics_return.loc["Title"]
         df.loc[df["LBID"]==lbid,"NAICS"] = naics_code
         df.loc[df["LBID"]==lbid,"NAICS Title"] = naics_title
+        # print(df.loc[df["LBID"]==lbid,"Business Name"])
+        # print(df.loc[df["LBID"]==lbid,"NAICS Title"])
     return df
 
 if __name__ == "__main__":
     df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-merged.p", "rb" ))
     df = apply_st_async(df)
-
+    pickle.dump(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-assigned.p", "wb" ))
 
 # print(industry_assign(['Cattle farmer','Cattle farmer','Soy farmer','Milk store']))
 
