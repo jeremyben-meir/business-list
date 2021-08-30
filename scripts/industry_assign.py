@@ -8,71 +8,72 @@ from common import DirectoryFields
 import concurrent.futures
 import numpy as np
 
-def industry_assign(inp_list):
-    model_name = 'paraphrase-MiniLM-L6-v2'
-    model = SentenceTransformer(model_name)
+class IndustryAssign():
 
-    try:
-        naics = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics.p", "rb" ))
-        corpus_embeddings = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics_encodings.p", "rb" ))
-    except:
-        naics = pd.read_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/2017_NAICS_Descriptions.csv")
-        naics = naics[naics['Code'].str.len() == 6].reset_index(drop=False)
-        corpus_sentences = list(naics['Description'])
-        corpus_embeddings = model.encode(corpus_sentences, show_progress_bar=True, convert_to_tensor=True)
+    def __init__(self):
+        self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-merged.p", "rb" ))
 
-        pickle.dump(naics , open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics.p", "wb" ))
-        pickle.dump(corpus_embeddings , open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics_encodings.p", "wb" ))
+    def industry_assign(self, inp_list):
+        model_name = 'paraphrase-MiniLM-L6-v2'
+        model = SentenceTransformer(model_name)
 
-    inp_list = list(set(inp_list))
-    inp = ''
-    for i in inp_list:
-        inp+=f'{i} '
-    
-    question_embedding = model.encode(inp, convert_to_tensor=True)
-    hits = util.semantic_search(question_embedding, corpus_embeddings)
-    return naics.iloc[hits[0][0]['corpus_id']]
+        try:
+            naics = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics.p", "rb" ))
+            corpus_embeddings = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics_encodings.p", "rb" ))
+        except:
+            naics = pd.read_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/2017_NAICS_Descriptions.csv")
+            naics = naics[naics['Code'].str.len() == 6].reset_index(drop=False)
+            corpus_sentences = list(naics['Description'])
+            corpus_embeddings = model.encode(corpus_sentences, show_progress_bar=True, convert_to_tensor=True)
 
-def split_dataframes(df, segment_num, split_col):
-    df_list = list()
-    col_num = int(df[split_col].nunique()/segment_num)
-    for _ in range(segment_num):
-        sampled_col = np.random.choice(df[split_col].unique(), col_num)
-        df_list.append(df[df[split_col].isin(sampled_col)])
-        df = df[~df[split_col].isin(sampled_col)]
-    df_list.append(df)
-    return df_list
+            pickle.dump(naics , open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics.p", "wb" ))
+            pickle.dump(corpus_embeddings , open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics_encodings.p", "wb" ))
 
-def apply_st_async(inp_df):
-    inp_df["NAICS"] = ""
-    inp_df["NAICS Title"] = ""
-    df_list = split_dataframes(inp_df,15,"LBID")
-    future_list = list()
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        for df in df_list:
-            future = executor.submit(apply_st, df)
-            future_list.append(future.result())
-    inp_df = pd.concat(future_list)
-    return inp_df
-    
-def apply_st(df):
-    unique_lbid = sorted(df["LBID"].unique())
-    for lbid in unique_lbid:
-        industry_list = df.loc[df["LBID"]==lbid,"Industry"].tolist()
-        naics_return = industry_assign(industry_list)
-        naics_code = naics_return.loc["Code"]
-        naics_title = naics_return.loc["Title"]
-        df.loc[df["LBID"]==lbid,"NAICS"] = naics_code
-        df.loc[df["LBID"]==lbid,"NAICS Title"] = naics_title
-        # print(df.loc[df["LBID"]==lbid,"Business Name"])
-        # print(df.loc[df["LBID"]==lbid,"NAICS Title"])
-    return df
+        inp_list = list(set(inp_list))
+        inp = ''
+        for i in inp_list:
+            inp+=f'{i} '
+        
+        question_embedding = model.encode(inp, convert_to_tensor=True)
+        hits = util.semantic_search(question_embedding, corpus_embeddings)
+        return naics.iloc[hits[0][0]['corpus_id']]
+
+    def split_dataframes(self, df, segment_num, split_col):
+        df_list = list()
+        col_num = int(df[split_col].nunique()/segment_num)
+        for _ in range(segment_num):
+            sampled_col = np.random.choice(df[split_col].unique(), col_num)
+            df_list.append(df[df[split_col].isin(sampled_col)])
+            df = df[~df[split_col].isin(sampled_col)]
+        df_list.append(df)
+        return df_list
+
+    def apply_st_async(self):
+        self.df["NAICS"] = ""
+        self.df["NAICS Title"] = ""
+        df_list = self.split_dataframes(self.df,15,"LBID")
+        future_list = list()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for df in df_list:
+                future = executor.submit(self.apply_st, df)
+                future_list.append(future.result())
+        self.df = pd.concat(future_list)
+        pickle.dump(self.df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-assigned.p", "wb" ))
+        return self.df
+        
+    def apply_st(self, df):
+        unique_lbid = sorted(df["LBID"].unique())
+        for lbid in unique_lbid:
+            industry_list = df.loc[df["LBID"]==lbid,"Industry"].tolist()
+            naics_return = self.industry_assign(industry_list)
+            naics_code = naics_return.loc["Code"]
+            naics_title = naics_return.loc["Title"]
+            df.loc[df["LBID"]==lbid,"NAICS"] = naics_code
+            df.loc[df["LBID"]==lbid,"NAICS Title"] = naics_title
+            # print(df.loc[df["LBID"]==lbid,"NAICS Title"])
+        return df
 
 if __name__ == "__main__":
-    df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-merged.p", "rb" ))
-    df = apply_st_async(df)
-    pickle.dump(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-assigned.p", "wb" ))
-
-# print(industry_assign(['Cattle farmer','Cattle farmer','Soy farmer','Milk store']))
-
+    industry_assign = IndustryAssign()
+    industry_assign.apply_st_async()
     

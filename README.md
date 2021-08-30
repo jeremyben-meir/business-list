@@ -21,4 +21,10 @@ Given that the data pulls from multiple different sources of different formats, 
 * #### DOS
   * In `./scripts/dos` run all the files labeled `..._src.py`
 ### Merge
-* Run `./scripts/merge.py`.
+* Run `./scripts/record_linkage.py`.
+### Assign industries
+* Run `./scripts/industry_assign.py`.
+### Prepare timelines
+* Run `./scripts/prepare_timelines.py`.
+### Prepare geojson file for visualizer
+* Run `./scripts/prepare_geojson.py`.
