@@ -16,10 +16,16 @@ Given that the data pulls from multiple different sources of different formats, 
   * In `./scripts/dca` run all the files labeled `..._src.py`
 * #### DOA
   * In `./scripts/doa` run all the files labeled `..._src.py`
+* #### DOE
+  * In `./scripts/doe` run all the files labeled `..._src.py`
 * #### DOH
   * In `./scripts/doh` run all the files labeled `..._src.py`
 * #### DOS
   * In `./scripts/dos` run all the files labeled `..._src.py`
+* #### DOT
+  * In `./scripts/dot` run all the files labeled `..._src.py`
+* #### LIQ
+  * In `./scripts/liq` run all the files labeled `..._src.py`
 ### Merge
 * Run `./scripts/record_linkage.py`.
 ### Assign industries
