@@ -53,9 +53,49 @@ class PrepareGeojson():
         with open(f'{DirectoryFields.LOCAL_LOCUS_PATH}/data/llid_timeline.json', "w") as f:
             f.write('%s' % collection)
 
+    def num_llids_for_date(self,df,date):
+        return len(df[(df["Start Date"]<=date) & (df["End Date"]>=date)])
+    
+    def create_bbl_json(self):
+        df = self.df
+        for bbl_val in df["BBL"].unique():
+            bbl_df = df[df["BBL"] == bbl_val]
+            latitude, longitude = map(float, (bbl_df["Latitude"].max(), bbl_df["Longitude"].max()))
+            
+            ## VACANCY
+            max_llid = max([self.num_llids_for_date(bbl_df,date) for date in bbl_df["Start Date"].unique()])
+            date = pd.to_datetime('20100101', format='%Y%m%d', errors='ignore')
+            vacancy_total = list()
+            while date < pd.to_datetime("today"):
+                vacancy_total.append(self.num_llids_for_date(bbl_df,date) / max_llid)
+                date += pd.Timedelta(days=30)
+
+            ## TURNOVER
+            date = pd.to_datetime('20100201', format='%Y%m%d', errors='ignore')
+            llid_date_list = list()
+            turnover_total = list()
+            while date < pd.to_datetime("today"):
+                llid_date_list.append(self.num_llids_for_date(bbl_df,date))
+                date += pd.Timedelta(days=365)
+            for num in range(len(llid_date_list)-1):
+                turnover_total.append((llid_date_list[num+1] - llid_date_list[num]) / (1 if llid_date_list[num] == 0 else llid_date_list[num]))
+
+            self.features.append(
+                Feature(
+                    geometry = Point((longitude, latitude)),
+                    properties = {
+                        'BBL': bbl_val,
+                        'Vacancy': (sum(vacancy_total) / len(vacancy_total)),
+                        'Turnover': (sum(turnover_total) / len(turnover_total)),
+                        'Max Business': max_llid
+                    }
+                )
+            )
+
 if __name__ == "__main__":
     prepare_geojson = PrepareGeojson()
     prepare_geojson.create_llid_json()
+    prepare_geojson.create_bbl_json()
 
 
 
