@@ -56,8 +56,8 @@ class IndustryAssign():
         with concurrent.futures.ThreadPoolExecutor() as executor:
             for df in df_list:
                 future = executor.submit(self.apply_st, df)
-                future_list.append(future.result())
-        self.df = pd.concat(future_list)
+                future_list.append(future)
+        self.df = pd.concat([future.result() for future in future_list])
         pickle.dump(self.df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-assigned.p", "wb" ))
         return self.df
         

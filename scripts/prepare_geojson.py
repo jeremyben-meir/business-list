@@ -81,13 +81,17 @@ class PrepareGeojson():
             for num in range(len(llid_date_list)-1):
                 turnover_total.append((llid_date_list[num+1] - llid_date_list[num]) / (1 if llid_date_list[num] == 0 else llid_date_list[num]))
 
+            vacancy = 1.0 - (sum(vacancy_total) / len(vacancy_total))
+            turnover = (sum(turnover_total) / len(turnover_total))
             features.append(
                 Feature(
                     geometry = Point((longitude, latitude)),
                     properties = {
                         'BBL': bbl_val,
-                        'Vacancy': 1.0 - (sum(vacancy_total) / len(vacancy_total)),
-                        'Turnover': (sum(turnover_total) / len(turnover_total)),
+                        'Vacancy': str(math.floor(vacancy*10.0))[0],
+                        'Turnover': str(math.floor(turnover*10.0))[0],
+                        'vacancy': vacancy,
+                        'turnover': turnover,
                         'Max Business': max_llid
                     }
                 )

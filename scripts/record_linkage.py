@@ -14,7 +14,7 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from scipy import spatial
 from sklearn import mixture
-# import concurrent.futures
+import concurrent.futures
 
 class Graph:
  
@@ -128,11 +128,13 @@ class Merge():
 
     def split_dataframes(self, df, segment_num, split_col):
         df_list = list()
-        col_num = int(df[split_col].nunique()/segment_num)
-        for _ in range(segment_num):
-            sampled_col = np.random.choice(df[split_col].unique(), col_num)
-            df_list.append(df[df[split_col].isin(sampled_col)])
-            df = df[~df[split_col].isin(sampled_col)]
+        segment_num -= 1
+        if segment_num > 0:
+            col_num = int(df[split_col].nunique()/segment_num)
+            for _ in range(segment_num):
+                sampled_col = np.random.choice(df[split_col].unique(), col_num)
+                df_list.append(df[df[split_col].isin(sampled_col)])
+                df = df[~df[split_col].isin(sampled_col)]
         df_list.append(df)
         return df_list
 
@@ -189,7 +191,7 @@ class Merge():
             df = df.replace("nan", np.nan, regex=True)
         return df
 
-    def load_source_files(self, loaded = False):
+    def load_source_files(self, loaded = True):
         
         if not loaded:
             filelist = [
@@ -218,13 +220,16 @@ class Merge():
 
             bblmask = (df['BBL'].str.len() == 10) & (df['BBL']!="0000000000") & (df['BBL'].str.isdigit())
             df = df[bblmask]
+            df = df[df["Zip"].isin(["10028", "10013", "11372", "11213", "10458", "10304"])]
+            print(df)
             df = df.drop_duplicates()
+
             df = df.reset_index(drop=True)
 
             df = self.type_cast(df, replace_nan = False)
 
-            df = df.sort_values(["BBL"])##
-            df = df.iloc[:10000]##
+            # df = df.sort_values(["BBL"])##
+            # df = df.iloc[:10000]##
             df = df.apply(lambda row: self.prepare_business_names(row), axis=1)
 
             self.store_pickle(df,0)
@@ -249,11 +254,13 @@ class Merge():
         # with concurrent.futures.ThreadPoolExecutor() as executor:
         #     for df in df_list:
         #         future = executor.submit(self.add_llid, df)
-        #         future_list.append(future.result())
+        #         future_list.append(future)
+        # self.df = pd.concat([future.result() for future in future_list])
+        
         for df in df_list:
             future_list.append(self.add_llid(df))
-        print(future_list)
         self.df = pd.concat(future_list)
+
         self.store_pickle(self.df,1)
         print(self.df)
 
