@@ -86,7 +86,7 @@ class PrepareGeojson():
                     geometry = Point((longitude, latitude)),
                     properties = {
                         'BBL': bbl_val,
-                        'Vacancy': (sum(vacancy_total) / len(vacancy_total)),
+                        'Vacancy': 1.0 - (sum(vacancy_total) / len(vacancy_total)),
                         'Turnover': (sum(turnover_total) / len(turnover_total)),
                         'Max Business': max_llid
                     }
