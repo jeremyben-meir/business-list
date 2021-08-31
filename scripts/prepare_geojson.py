@@ -11,9 +11,9 @@ class PrepareGeojson():
 
     def __init__(self):
         self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-timeline.p", "rb" ))
-        self.features = list()
     
     def create_llid_json(self):
+        features = list()
         df = self.df
         df = df[pd.to_datetime("today") + pd.Timedelta(days=-60) < df["End Date"]]
         for bbl_val in df["BBL"].unique():
@@ -32,7 +32,7 @@ class PrepareGeojson():
                     degree_val = 360.0*(ticker/num_vals)
                     rand_radian = math.radians(degree_val)
                     latitude, longitude = map(float, (lat+(math.sin(rand_radian)/15000.0), lon+(math.cos(rand_radian)/12000.0)))
-                self.features.append(
+                features.append(
                     Feature(
                         geometry = Point((longitude, latitude)),
                         properties = {
@@ -49,7 +49,7 @@ class PrepareGeojson():
                     )
                 )
                 ticker += 1.0
-        collection = FeatureCollection(self.features)
+        collection = FeatureCollection(features)
         with open(f'{DirectoryFields.LOCAL_LOCUS_PATH}/data/llid_timeline.json', "w") as f:
             f.write('%s' % collection)
 
@@ -57,6 +57,7 @@ class PrepareGeojson():
         return len(df[(df["Start Date"]<=date) & (df["End Date"]>=date)])
     
     def create_bbl_json(self):
+        features = list()
         df = self.df
         for bbl_val in df["BBL"].unique():
             bbl_df = df[df["BBL"] == bbl_val]
@@ -80,7 +81,7 @@ class PrepareGeojson():
             for num in range(len(llid_date_list)-1):
                 turnover_total.append((llid_date_list[num+1] - llid_date_list[num]) / (1 if llid_date_list[num] == 0 else llid_date_list[num]))
 
-            self.features.append(
+            features.append(
                 Feature(
                     geometry = Point((longitude, latitude)),
                     properties = {
@@ -91,6 +92,9 @@ class PrepareGeojson():
                     }
                 )
             )
+        collection = FeatureCollection(features)
+        with open(f'{DirectoryFields.LOCAL_LOCUS_PATH}/data/bbl_timeline.json', "w") as f:
+            f.write('%s' % collection)
 
 if __name__ == "__main__":
     prepare_geojson = PrepareGeojson()
