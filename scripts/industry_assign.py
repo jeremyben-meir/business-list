@@ -11,23 +11,32 @@ import numpy as np
 class IndustryAssign():
 
     def __init__(self):
-        self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-merged.p", "rb" ))
+        self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-merged.p").get()['Body'].read())
+        # self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-merged.p", "rb" ))
 
     def industry_assign(self, inp_list):
         model_name = 'paraphrase-MiniLM-L6-v2'
         model = SentenceTransformer(model_name)
 
         try:
-            naics = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics.p", "rb" ))
-            corpus_embeddings = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics_encodings.p", "rb" ))
+            naics = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/naics.p").get()['Body'].read())
+            # naics = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics.p", "rb" ))
+            corpus_embeddings = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/naics_encodings.p").get()['Body'].read())
+            # corpus_embeddings = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics_encodings.p", "rb" ))
         except:
-            naics = pd.read_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/2017_NAICS_Descriptions.csv")
+            naics = pd.read_csv(f"{DirectoryFields.S3_PATH}data/2017_NAICS_Descriptions.csv")
+            naics = pd.read_csv(f"{DirectoryFields.S3_PATH}data/2017_NAICS_Descriptions.csv")
             naics = naics[naics['Code'].str.len() == 6].reset_index(drop=False)
             corpus_sentences = list(naics['Description'])
             corpus_embeddings = model.encode(corpus_sentences, show_progress_bar=True, convert_to_tensor=True)
 
-            pickle.dump(naics , open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics.p", "wb" ))
-            pickle.dump(corpus_embeddings , open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics_encodings.p", "wb" ))
+            path = f'data/temp/naics.p' 
+            self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=path, Body=pickle.dumps(naics))
+            # pickle.dump(naics , open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics.p", "wb" ))
+
+            path = f'data/temp/naics_encodings.p' 
+            self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=path, Body=pickle.dumps(corpus_embeddings))
+            # pickle.dump(corpus_embeddings , open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics_encodings.p", "wb" ))
 
         inp_list = list(set(inp_list))
         inp = ''
@@ -58,7 +67,10 @@ class IndustryAssign():
                 future = executor.submit(self.apply_st, df)
                 future_list.append(future)
         self.df = pd.concat([future.result() for future in future_list])
-        pickle.dump(self.df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-assigned.p", "wb" ))
+
+        path = f'data/temp/df-assigned.p' 
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=path, Body=pickle.dumps(self.df))
+        # pickle.dump(self.df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-assigned.p", "wb" ))
         return self.df
         
     def apply_st(self, df):

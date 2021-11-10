@@ -6,11 +6,14 @@ import pandas as pd
 import pickle
 import math
 import random
+import boto3
 
 class PrepareGeojson():
 
     def __init__(self):
-        self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-timeline.p", "rb" ))
+        self.s3 = boto3.resource('s3')
+        self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-timeline.p").get()['Body'].read())
+        # self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-timeline.p", "rb" ))
     
     def create_llid_json(self):
         features = list()
@@ -49,9 +52,10 @@ class PrepareGeojson():
                     )
                 )
                 ticker += 1.0
-        collection = FeatureCollection(features)
-        with open(f'{DirectoryFields.LOCAL_LOCUS_PATH}/data/llid_timeline.json', "w") as f:
-            f.write('%s' % collection)
+        # collection = FeatureCollection(features)
+        # with open(f'{DirectoryFields.LOCAL_LOCUS_PATH}/data/llid_timeline.json', "w") as f:
+        #     f.write()
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="/data/llid_timeline.json", Body=('%s' % collection))
 
     def num_llids_for_date(self,df,date):
         return len(df[(df["Start Date"]<=date) & (df["End Date"]>=date)])
@@ -96,9 +100,11 @@ class PrepareGeojson():
                     }
                 )
             )
-        collection = FeatureCollection(features)
-        with open(f'{DirectoryFields.LOCAL_LOCUS_PATH}/data/bbl_timeline.json', "w") as f:
-            f.write('%s' % collection)
+        # collection = FeatureCollection(features)
+        # with open(f'{DirectoryFields.LOCAL_LOCUS_PATH}/data/bbl_timeline.json', "w") as f:
+        #     f.write('%s' % collection)
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="/data/bbl_timeline.json", Body=('%s' % collection))
+        
 
 if __name__ == "__main__":
     prepare_geojson = PrepareGeojson()

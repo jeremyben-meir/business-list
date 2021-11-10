@@ -132,7 +132,8 @@ class PharmacyScraper():
                         pass
                     
         self.driver.close()
-        self.df.to_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doe/pharmacy/{self.department}_pharmacy_{date.today()}_scrape.csv", index=False, quoting=csv.QUOTE_ALL)
+        self.df.to_csv(f"{DirectoryFields.S3_PATH}data/doe/pharmacy/{self.department}_pharmacy_{date.today()}_scrape.csv", index=False, quoting=csv.QUOTE_ALL)
+        # self.df.to_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doe/pharmacy/{self.department}_pharmacy_{date.today()}_scrape.csv", index=False, quoting=csv.QUOTE_ALL)
 
 if __name__ == '__main__':
     scraper = PharmacyScraper()

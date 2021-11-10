@@ -15,6 +15,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from scipy import spatial
 from sklearn import mixture
 import concurrent.futures
+import smart_open
+import boto3
 
 class Graph:
  
@@ -62,13 +64,21 @@ class Graph:
 
 class CompareIndustries(BaseCompareFeature):
 
-    food = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/food.txt', 'r').read().splitlines())
-    aes = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/aes.txt', 'r').read().splitlines())
-    retail = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/retail.txt', 'r').read().splitlines())
-    laundry = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/laundry.txt', 'r').read().splitlines())
-    cars = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/cars.txt', 'r').read().splitlines())
-    misc = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/misc.txt', 'r').read().splitlines())
+    # EXAMPLE: food = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/food.txt', 'r').read().splitlines())
+    food = set(self.read_txt("data/industries/food.txt"))
+    aes = set(self.read_txt("data/industries/aes.txt"))
+    retail = set(self.read_txt("data/industries/retail.txt"))
+    laundry = set(self.read_txt("data/industries/laundry.txt"))
+    cars = set(self.read_txt("data/industries/cars.txt"))
+    misc = set(self.read_txt("data/industries/misc.txt"))
     dictlist = [food,aes,retail,laundry,cars,misc]
+
+    def read_txt(self, path):
+        textfile = smart_open.smart_open(DirectoryFields.S3_PATH + path)
+        return_list = []
+        for line in textfile:
+            listlist.append(line.decode('utf-8').strip("\n"))
+        return return_list
 
     def _compute_vectorized(self, industry_0, industry_1):
         mask_list = False
@@ -209,7 +219,8 @@ class Merge():
                 ("dot","inspection")
                 ]
             
-            df_list = [pickle.load( open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{res[0]}/temp/df-{res[1]}-source.p", "rb" )) for res in filelist]
+            # df_list = [pickle.load( open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{res[0]}/temp/df-{res[1]}-source.p", "rb" )) for res in filelist]
+            df_list = [pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(f"data/{res[0]}/temp/df-{res[1]}-source.p").get()['Body'].read()) for res in filelist]
 
             df = pd.concat(df_list, axis=0, join='outer', ignore_index=False)
 
@@ -403,13 +414,13 @@ class Merge():
         self.store_pickle(self.df,2)
 
     def store_pickle(self,df,num):
-        pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-{num}.p", "wb" ))
-    
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"data/temp/df-{num}.p", Body=pickle.dumps(df))
+        
     def load_pickle(self,num):
-        return pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-{num}.p", "rb" ))
+        return pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(f"data/temp/df-{num}.p").get()['Body'].read())
 
     def save_csv(self):
-        cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/merged.csv"
+        cleaned_file_path = f"{DirectoryFields.S3_PATH}data/temp/merged.csv"
         self.df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
         self.store_pickle(self.df,"merged")
 

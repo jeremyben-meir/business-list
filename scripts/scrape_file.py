@@ -7,6 +7,10 @@ import time
 from datetime import date
 import csv
 import sys
+import urllib.request
+import boto3
+from io import BytesIO
+import gzip
 
 class ScrapeFile:
 
@@ -19,11 +23,27 @@ class ScrapeFile:
         self.first_col = self.df.columns.tolist()[0]
 
         try:
-            self.links = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/links-{self.filename}", "rb"))
-            self.start_clicks = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/var-{self.filename}", "rb"))
+            self.links = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(f"data/{self.department}/temp/links-{self.filename}").get()['Body'].read())
+            self.start_clicks = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(f"data/{self.department}/temp/var-{self.filename}").get()['Body'].read())
+
+            # self.links = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/links-{self.filename}", "rb"))
+            # self.start_clicks = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/var-{self.filename}", "rb"))
         except:
             self.links = []
             self.start_clicks = start_clicks
+    
+    def download_chromium(self):
+        pass
+        # urllib.request.urlretrieve("https://chromedriver.storage.googleapis.com/96.0.4664.18/chromedriver_mac64.zip", "chromium.zip")
+        # s3 = boto3.client('s3', use_ssl=False)  # optional
+        # s3.upload_fileobj(                      # upload a new obj to s3
+        #     Fileobj=gzip.GzipFile(              # read in the output of gzip -d
+        #         None,                           # just return output as BytesIO
+        #         'rb',                           # read binary
+        #         fileobj=BytesIO(s3.get_object(Bucket=bucket, Key=gzipped_key)['Body'].read())),
+        #     Bucket=bucket,                      # target bucket, writing to
+        #     Key=uncompressed_key)               # target key, writing to
+
 
     def wait_until_click(self, elem):
         for _ in range(self.timeout):
@@ -68,11 +88,13 @@ class ScrapeFile:
             await asyncio.gather(*tasks)
         
     def get_data(self, overwrite = True):
-        self.links = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/links-{self.filename}", "rb"))
+        self.links = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(f"data/{self.department}/temp/links-{self.filename}").get()['Body'].read())
+        # self.links = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/links-{self.filename}", "rb"))
         # self.links = self.links[12:143]
         self.df["URL"] = self.links
         if overwrite == False:
-            self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/df-{self.filename}", "rb"))
+            self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(f"data/{self.department}/temp/df-{self.filename}").get()['Body'].read())
+            # self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/df-{self.filename}", "rb"))
             self.org_df = self.df[~(self.df[self.first_col].eq("FAILURE"))]
             self.df = self.df[self.df[self.first_col].eq("FAILURE")]
         print(len(self.df))
@@ -88,12 +110,19 @@ class ScrapeFile:
         if overwrite == False:
             self.df = pd.concat([self.org_df,self.df], ignore_index=True)
 
-        pickle.dump(self.df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/df-{self.filename}", "wb"))
-        cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/{self.filename}/{self.department}_{self.filename}_{date.today()}_scrape.csv"
+        # pickle.dump(self.df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/df-{self.filename}", "wb"))
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"data/{self.department}/temp/df-{self.filename}", Body=pickle.dumps(self.df))
+        cleaned_file_path = f"{DirectoryFields.S3_PATH}data/{self.department}/{self.filename}/{self.department}_{self.filename}_{date.today()}_scrape.csv"
         self.df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
 
     def save_pages(self):
-        pickle.dump(self.links, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/links-{self.filename}", "wb"))
-        pickle.dump(self.start_clicks, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/var-{self.filename}", "wb"))
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"data/{self.department}/temp/links-{self.filename}", Body=pickle.dumps(self.links))
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"data/{self.department}/temp/var-{self.filename}", Body=pickle.dumps(self.start_clicks))
+        # pickle.dump(self.links, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/links-{self.filename}", "wb"))
+        # pickle.dump(self.start_clicks, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/var-{self.filename}", "wb"))
         print(f"clicks {self.start_clicks}")
         print(f"links {len(self.links)}")
+
+if __name__ == "__main__":
+    scrape_file = ScrapeFile(None, None, None, None, None)
+    scrape_file.download_chromium()

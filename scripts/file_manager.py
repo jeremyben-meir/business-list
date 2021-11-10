@@ -9,52 +9,78 @@ import csv
 import requests
 import time
 import glob
+import smart_open
+import boto3
+
 
 class FileManager:
 
     def __init__(self, department, filenames, outname):
+        self.s3 = boto3.resource('s3')
         self.filenames = filenames
         self.department = department
         self.df_list = []
         self.outname = outname
         self.update_relevance()
+        
 
     def read_txt(self, path):
-        textfile = open(path, "r")
-        colnames = textfile.readline().strip("\n").split("\t")
-        lines = textfile.readlines()
-        listlist = [x.strip("\n").split("\t") for x in lines]
-        return pd.DataFrame(listlist, columns=colnames)
+        textfile = smart_open.smart_open(path)
+        colname = True
+        listlist = []
+        for line in textfile:
+            if colname:
+                colnames = line.decode('utf-8').strip("\n").split("\t")
+                colname = False
+            else:
+                listlist.append(line.decode('utf-8').strip("\n").split("\t"))
+        return_df = pd.DataFrame(listlist, columns=colnames)
+        return return_df
+
+    def get_path_list(self,filename):
+        # path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/{filename}/"
+        # path_list = [f"{path}{f}" for f in listdir(path) if isfile(join(path, f)) and f[0] != '.']
+        path_list = []
+        path = f"data/{self.department}/{filename}/"
+        for object_summary in self.s3.Bucket(DirectoryFields.S3_PATH_NAME).objects.filter(Prefix=path):
+            key_val = object_summary.key
+            if key_val != path and "/." not in key_val:
+                path_list.append(key_val)
+        return path_list
 
     def get_df_list(self,filename):
         df_list = []
-        path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/{filename}/"
-        path_list = [f"{path}{f}" for f in listdir(path) if isfile(join(path, f)) and f[0] != '.']
+
+        path_list = self.get_path_list(filename)
         for path in path_list:
             if path[-4:] == '.txt':
-                df_list.append(self.read_txt(path))
+                df_list.append(self.read_txt(f"{DirectoryFields.S3_PATH}{path}"))
             else:
-                df_list.append(pd.read_csv(path, low_memory=False))
+                df_list.append(pd.read_csv(f"{DirectoryFields.S3_PATH}{path}", low_memory=False))
         return df_list
     
     def fetch_api(self, url, filename):
         req = requests.get(url)
         url_content = req.content
-        csv_file = open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/{filename}/{self.department}_{filename}_{date.today()}.csv", 'wb')
-        csv_file.write(url_content)
-        csv_file.close()
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f'data/{self.department}/{filename}/{self.department}_{filename}_{date.today()}.csv', Body=url_content)
+        # csv_file = open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/{filename}/{self.department}_{filename}_{date.today()}.csv", 'wb')
+        # csv_file.write(url_content)
+        # csv_file.close()
 
     def update_relevance(self):
         df = self.get_df()
+        
         for filename in self.filenames:
-            path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/{filename}/"
-            path_list = [f"{path}{f}" for f in listdir(path) if isfile(join(path, f)) and f[0] != '.']
-            latest_time = min([time.ctime(os.path.getmtime(path)) for path in path_list])
-            df.loc[(self.department,filename),'last_retrieved'] = latest_time
-        df.to_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/data-relevance.csv")
+            path = f"data/{self.department}/{filename}/"
+            if len(self.get_path_list(filename)) > 0:
+                latest_time = min([object_summary.last_modified.date() for object_summary in self.s3.Bucket(DirectoryFields.S3_PATH_NAME).objects.filter(Prefix=path)])
+                df.loc[(self.department,filename),'last_retrieved'] = latest_time
+            else:
+                df.loc[(self.department,filename),'last_retrieved'] = None
+        df.to_csv(f"{DirectoryFields.S3_PATH}data/data-relevance.csv")
 
     def get_df(self):
-        df = pd.read_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/data-relevance.csv")
+        df = pd.read_csv(f"{DirectoryFields.S3_PATH}data/data-relevance.csv")
         df = df.set_index(['department','filename'])
         df['last_retrieved']=df['last_retrieved'].astype('datetime64[D]')
         df['api']=df['api'].astype(str)
@@ -66,7 +92,7 @@ class FileManager:
         df = self.get_df()
         row = df.loc[(self.department,filename)]
         exp_date = row['last_retrieved'] + pd.Timedelta(days=row['retrieval_freq'])
-        if exp_date <= date.today():
+        if exp_date <= date.today() or exp_date is pd.NaT:
             if len(row['api']) > 0 and row['api'] != 'nan':
                 print(f"Fetching from {row['api']}")
                 self.fetch_api(row['api'],filename)
@@ -85,15 +111,32 @@ class FileManager:
         return self.df_list
 
     def store_pickle(self,df,num):
-        pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/df-{self.outname}-{num}.p", "wb" ))
+        print("SAVE")
+        path = f'data/{self.department}/temp/df-{self.outname}-{num}.p'
+        pickle_byte_obj = pickle.dumps(df) 
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=path, Body=pickle_byte_obj)
+        # pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/df-{self.outname}-{num}.p", "wb" ))
     
     def load_pickle(self,num):
-        return pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/df-{self.outname}-{num}.p", "rb" ))
+        print("LOAD")
+        path = f'data/{self.department}/temp/df-{self.outname}-{num}.p'
+        my_pickle = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(path).get()['Body'].read())
+        return my_pickle
+        # return pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/df-{self.outname}-{num}.p", "rb" ))
 
     def save_csv(self,df):
-        cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/{self.outname}.csv"
-        df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
+        cleaned_file_path = f"data/{self.department}/temp/{self.outname}.csv"
+        my_df.to_csv(f'{DirectoryFields.S3_PATH}{cleaned_file_path}', index=False, quoting=csv.QUOTE_ALL)
+        # df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
 
 if __name__ == "__main__":
+
+    # s3 = boto3.resource('s3')
+    # s3.Bucket('locus-data').put_object(Key='data/dca/temp/file.csv', Body="D")
+    # my_df = pd.DataFrame(columns=["2","2"])
+    # my_df.to_csv('s3://locus-data/data/dca/temp/file2.csv')
+    # for bucket in s3.buckets.all():
+    #     print(bucket.name)
     file_manager = FileManager('dca',['application','charge','inspection','license'],"application")
+
     

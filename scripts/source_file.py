@@ -9,14 +9,15 @@ import csv
 import re
 import sys
 import math
+import smart_open
 
 class SourceFile:
 
     def format_keys(self):
+        textfile = smart_open.smart_open(f"{DirectoryFields.S3_PATH}data/api_keys.txt")
         val = []
-        for row in open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/api_keys.txt").readlines():
-            currow = row.strip("\n")
-            val.append(currow.split(" "))
+        for line in textfile:
+            val.append(line.decode('utf-8').strip("\n").split(" "))
         return val
 
     # INIT #################################################################################################

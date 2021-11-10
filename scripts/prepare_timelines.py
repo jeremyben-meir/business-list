@@ -3,11 +3,14 @@ import pickle
 from common import DirectoryFields
 import pandas as pd
 import csv
+import boto3
 
 class CreateTimeline():
 
     def __init__(self):
-        self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-assigned.p", "rb" ))
+        self.s3 = boto3.resource('s3')
+        self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-assigned.p").get()['Body'].read())
+        # self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-assigned.p", "rb" ))
 
     def get_lim_date_from_cols(self, curgrp,col_list,is_maximum):
         lim_date = [(curgrp[date].max() if is_maximum else curgrp[date].min()) for date in col_list]
@@ -118,9 +121,11 @@ class CreateTimeline():
                         new_row = {'Name': name, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'NAICS Title': naics_title, 'NAICS': naics_code, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude}
                         date_df = date_df.append(new_row, ignore_index = True)
         
-        cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/timeline.csv"
+        cleaned_file_path = f"{DirectoryFields.S3_PATH}data/temp/timeline.csv"
         date_df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
-        pickle.dump(date_df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-timeline.p", "wb" ))
+
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key='data/temp/df-timeline.p', Body=pickle.dumps(date_df))
+        # pickle.dump(date_df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-timeline.p", "wb" ))
 
 if __name__ == "__main__":
     industry_assign = CreateTimeline()
