@@ -30,6 +30,7 @@ class SourceFile:
     # ADD BBL ##############################################################################################
 
     def add_bbl_async(self):
+        print("Adding BBL")
         self.df = self.file_manager.load_pickle(0)
         self.df = self.df.reset_index(drop=True)
         self.df = BBLAdder(self.df, self.keylist).add_bbl_starter()

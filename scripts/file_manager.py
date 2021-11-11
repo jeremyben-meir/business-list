@@ -111,14 +111,12 @@ class FileManager:
         return self.df_list
 
     def store_pickle(self,df,num):
-        print("SAVE")
         path = f'data/{self.department}/temp/df-{self.outname}-{num}.p'
         pickle_byte_obj = pickle.dumps(df) 
         self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=path, Body=pickle_byte_obj)
         # pickle.dump(df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/df-{self.outname}-{num}.p", "wb" ))
     
     def load_pickle(self,num):
-        print("LOAD")
         path = f'data/{self.department}/temp/df-{self.outname}-{num}.p'
         my_pickle = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(path).get()['Body'].read())
         return my_pickle
@@ -126,7 +124,7 @@ class FileManager:
 
     def save_csv(self,df):
         cleaned_file_path = f"data/{self.department}/temp/{self.outname}.csv"
-        my_df.to_csv(f'{DirectoryFields.S3_PATH}{cleaned_file_path}', index=False, quoting=csv.QUOTE_ALL)
+        df.to_csv(f'{DirectoryFields.S3_PATH}{cleaned_file_path}', index=False, quoting=csv.QUOTE_ALL)
         # df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
 
 if __name__ == "__main__":

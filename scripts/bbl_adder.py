@@ -15,6 +15,9 @@ class BBLAdder:
         self.key_row = 0
         self.app_key = self.keylist[self.key_row][0]
         self.app_id = self.keylist[self.key_row][1]
+        self.headers = {
+            'Ocp-Apim-Subscription-Key': '04dec992c5f845e788971cbb52512652',
+        }
         self.df = df
         self.segment_size = 2450
         self.progress_meter = ProgressMeter(len(self.df), precision=1)
@@ -31,8 +34,7 @@ class BBLAdder:
         for retry_num in range(3):
 
             try:
-
-                async with session.get(url) as response:
+                async with session.get(url, headers=self.headers) as response:
                     
                     try:
                         results = await response.json()
@@ -42,6 +44,7 @@ class BBLAdder:
                     try:
                         result_dict = results['bbl'] if bbl_input else results['results'][0]['response']
                     except:
+                        print(results)
                         return "NO_BBL", 0.0, 0.0
                     
                     try:
@@ -73,11 +76,14 @@ class BBLAdder:
             if bbl_valid:
                 borough_dict = {'1':'manhattan','2':'bronx','3':'brooklyn','4':'queens','5':'staten island'}
                 # url = f"https://api.cityofnewyork.us/geoclient/v1/search.json?input={row['BBL']}&app_id={self.app_id}&app_key={self.app_key}"
-                url = f"https://api.cityofnewyork.us/geoclient/v1/bbl.json?borough={borough_dict[row['BBL'][0]]}&block={row['BBL'][1:6]}&lot={row['BBL'][6:]}&app_id={self.app_id}&app_key={self.app_key}"
+                url = f"https://api.nyc.gov/geo/geoclient/v1/bbl.json?borough={borough_dict[row['BBL'][0]]}&block={row['BBL'][1:6]}&lot={row['BBL'][6:]}"
                 bbl, longitude, latitude = await self.get_result(session, url, bbl_input=True)
             else:
-                url = f"https://api.cityofnewyork.us/geoclient/v1/search.json?input={row['Building Number']} {row['Street']} {row[city_zip]}&app_id={self.app_id}&app_key={self.app_key}"
+                url = f"https://api.nyc.gov/geo/geoclient/v1/search.json?input={row['Building Number']} {row['Street']} {row[city_zip]}"
                 bbl, longitude, latitude = await self.get_result(session, url)
+            print(bbl)
+            print(longitude)
+            print(latitude)
             self.df.loc[index,"BBL"] = bbl
             self.df.loc[index,"Longitude"] = longitude
             self.df.loc[index,"Latitude"] = latitude

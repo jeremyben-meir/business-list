@@ -34,7 +34,7 @@ class DCAChargeSrcFile(SourceFile):
     def retrieve_file(self,file_manager):
         df_list = file_manager.retrieve_df() 
         df_list = self.get_template(df_list) 
-        return pd.concat(df_list, ignore_index=True)
+        return pd.concat(df_list, ignore_index=True).sample(300)
 
     def instantiate_file(self):
         self.df = self.df.rename(columns={"Violation Date": "CHRG Date"})
