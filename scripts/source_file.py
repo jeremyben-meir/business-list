@@ -33,7 +33,7 @@ class SourceFile:
         print("Adding BBL")
         self.df = self.file_manager.load_pickle(0)
         self.df = self.df.reset_index(drop=True)
-        self.df = BBLAdder(self.df, self.keylist).add_bbl_starter()
+        self.df = BBLAdder(self.df).add_bbl_starter()
         self.file_manager.store_pickle(self.df,1)
 
     # CITY SETTING #########################################################################################
