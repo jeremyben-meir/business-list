@@ -58,7 +58,7 @@ class BBLAdder:
             row["Longitude"] = longitude
             row["Latitude"] = latitude
 
-            print(bbl,longitude,latitude)
+            # print(bbl,longitude,latitude)
         
         self.progress_meter.tick()
         return row
