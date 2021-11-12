@@ -11,16 +11,20 @@ import urllib.request
 import boto3
 from io import BytesIO
 import gzip
+from selenium.webdriver.chrome.options import Options
 
 class ScrapeFile:
 
     def __init__(self, df, timeout, segment_size, department, filename, start_clicks=1):
+        self.s3 = boto3.resource('s3')
         self.df = df
         self.timeout = timeout
         self.segment_size = segment_size
         self.department = department
         self.filename = filename
         self.first_col = self.df.columns.tolist()[0]
+        self.options = Options()
+        self.options.headless = True
 
         try:
             self.links = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(f"data/{self.department}/temp/links-{self.filename}").get()['Body'].read())

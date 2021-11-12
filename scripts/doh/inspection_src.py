@@ -58,39 +58,33 @@ class DOHInspectionSrcFile(SourceFile):
         df_list = self.get_template(df_list) 
         return pd.concat(df_list, ignore_index=True)
 
+    def delete_cols(self,col_list):
+        for col in col_list:
+            try:
+                del self.df[col]
+            except:
+                pass
+
     def instantiate_file(self):
 
         self.df['State'] = 'NY'
         self.df['INSP Date'] = self.df['INSP Date'].astype('datetime64[D]')
         self.df['INSP Type'] = self.df['INSP Type'].astype(str)
-        self.df['Case Dec. Date'] = self.df['Case Dec. Date'].replace(['N/A','NULL','nan'],'')
-        self.df['Case Dec. Date'] = self.df['Case Dec. Date'].astype('datetime64[D]')
+        try:
+            self.df['Case Dec. Date'] = self.df['Case Dec. Date'].replace(['N/A','NULL','nan'],'')
+            self.df['Case Dec. Date'] = self.df['Case Dec. Date'].astype('datetime64[D]')
+        except:
+            self.df['Case Dec. Date'] = ''
         self.df['Grade'] = self.df['Grade'].astype(str)
         self.df['Grade Date'] = self.df['Grade Date'].replace(['N/A','NULL','nan'],'')
         self.df['Grade Date'] = self.df['Grade Date'].astype('datetime64[D]')
 
         self.df['INSP Date'] = self.df['INSP Date'].apply(lambda date: pd.to_datetime("today") if date.year == 1900 else date)
 
-        del self.df['ADDRESS']
-        del self.df['ACTION']
-        del self.df['PROGRAM']
-        del self.df['INSPTYPE']
-        del self.df['VIOLCODE']
-        del self.df['DISMISSED']
-        del self.df['SCORE']
-        del self.df['VIOLSCORE']
-        del self.df['MOD_TOTALSCORE']
-        del self.df['violation_code']
-        del self.df['violation_description']
-        del self.df['critical_flag']
-        del self.df['action']
-        del self.df['score']
-        del self.df['community_board']
-        del self.df['council_district']
-        del self.df['census_tract']
-        del self.df['bin']
-        del self.df['nta']
-        del self.df['record_date']
+        self.delete_cols(["ADDRESS","ACTION","PROGRAM","INSPTYPE","VIOLCODE","DISMISSED",
+        "SCORE","VIOLSCORE","MOD_TOTALSCORE","violation_code","violation_description",
+        "critical_flag","action","score","community_board","council_district","census_tract",
+        "bin","nta","record_date"])
 
         self.type_cast()
         self.clean_zip_city()

@@ -10,3 +10,8 @@ s3fs
 fsspec
 smart_open
 python-geosupport
+
+# scraping
+selenium==3.141.0
+bs4
+lxml

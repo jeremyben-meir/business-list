@@ -37,7 +37,7 @@ class LiquorScrape(ScrapeFile):
 
     def load_links(self):
         county_list = ['QUEENS','RICHMOND','KINGS','BRONX','NEW YORK']
-        self.driver = webdriver.Chrome(DirectoryFields.LOCAL_WEBDRIVER_PATH)
+        self.driver = webdriver.Chrome(DirectoryFields.LOCAL_WEBDRIVER_PATH,options=self.options)
 
         print(self.start_clicks)
         for county in county_list:
@@ -46,23 +46,28 @@ class LiquorScrape(ScrapeFile):
                 self.driver.get(url)
 
                 time.sleep(15)
-
+                print(1)
                 selector = Select(self.driver.find_element_by_id('county'))
                 selector.select_by_visible_text(county)
                 
+                print(2)
                 selectSearch = self.driver.find_element_by_xpath('/html/body/table[1]/tbody/tr[1]/td[2]/table/tbody/tr[2]/td[2]/table[4]/tbody/tr/td/table/tbody/tr/td[2]/form/div[3]/input')
                 selectSearch.click()
 
+                print(3)
                 wait = WebDriverWait(self.driver, 10)
                 wait.until(lambda driver: self.driver.find_element_by_xpath('/html/body/table/tbody/tr/td[2]/table/tbody/tr[2]/td[2]/table[4]/tbody/tr/td/table/tbody/tr/td[2]/div[2]/table/tbody/tr[2]/td[1]/a').is_displayed() == True)
                 
+                print(4)
                 while True:
                     try:
                         link = self.driver.find_element_by_xpath(f'/html/body/table/tbody/tr/td[2]/table/tbody/tr[2]/td[2]/table[4]/tbody/tr/td/table/tbody/tr/td[2]/div[2]/table/tbody/tr[{self.start_clicks[1]}]/td[1]/a').get_attribute("href")
                     except:
+                        print(5)
                         break
                     self.start_clicks = (self.start_clicks[0] , self.start_clicks[1]+1)
                     self.links.append(link)
+                    print(link)
                     if self.start_clicks[1] % 200 == 0:
                         self.save_pages()
 
@@ -72,5 +77,5 @@ class LiquorScrape(ScrapeFile):
 
 if __name__ == '__main__':
     scraper = LiquorScrape()
-    # scraper.load_links()
-    scraper.get_data(overwrite = False)
+    scraper.load_links()
+    # scraper.get_data(overwrite = False)
