@@ -13,6 +13,7 @@ import asyncio
 from bs4 import BeautifulSoup
 from lxml import etree
 from datetime import date
+from selenium.webdriver.chrome.options import Options
 
 class PharmacyScraper():
     def __init__(self):
@@ -21,9 +22,11 @@ class PharmacyScraper():
         self.charlist = 'abcdefghijklmnopqrstuvwxy1234567890!@#$%^&*()'
         self.url = "http://www.op.nysed.gov/opsearches#"
         self.department = "doe"
+        self.options = Options()
+        self.options.headless = True
 
     def start_scrape(self):
-        self.driver = webdriver.Chrome(DirectoryFields.LOCAL_WEBDRIVER_PATH)
+        self.driver = webdriver.Chrome(DirectoryFields.LOCAL_WEBDRIVER_PATH,options=self.options)
         for i in self.charlist:
             for y in self.countylist:
                         

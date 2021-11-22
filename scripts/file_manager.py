@@ -62,7 +62,15 @@ class FileManager:
     def fetch_api(self, url, filename):
         req = requests.get(url)
         url_content = req.content
-        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f'data/{self.department}/{filename}/{self.department}_{filename}_{date.today()}.csv', Body=url_content)
+        filepath = f'data/{self.department}/{filename}/{self.department}_{filename}_{date.today()}.csv'
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=filepath, Body=url_content)
+        if self.department == "doh" and filename == "inspection":
+            df = pd.read_csv(f"{DirectoryFields.S3_PATH}{filepath}")
+            for date_col in ["record_date","grade_date","inspection_date"]:  
+                df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
+                df[date_col] = df[date_col].apply(lambda date: pd.to_datetime("today") if date.year == 1900 else date)
+            df.to_csv(f'{DirectoryFields.S3_PATH}{filepath}', index=False, quoting=csv.QUOTE_ALL)
+
         # csv_file = open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/{filename}/{self.department}_{filename}_{date.today()}.csv", 'wb')
         # csv_file.write(url_content)
         # csv_file.close()

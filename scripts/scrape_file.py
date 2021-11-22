@@ -22,7 +22,6 @@ class ScrapeFile:
         self.segment_size = segment_size
         self.department = department
         self.filename = filename
-        self.first_col = self.df.columns.tolist()[0]
         self.options = Options()
         self.options.headless = True
 
@@ -35,18 +34,6 @@ class ScrapeFile:
         except:
             self.links = []
             self.start_clicks = start_clicks
-    
-    def download_chromium(self):
-        pass
-        # urllib.request.urlretrieve("https://chromedriver.storage.googleapis.com/96.0.4664.18/chromedriver_mac64.zip", "chromium.zip")
-        # s3 = boto3.client('s3', use_ssl=False)  # optional
-        # s3.upload_fileobj(                      # upload a new obj to s3
-        #     Fileobj=gzip.GzipFile(              # read in the output of gzip -d
-        #         None,                           # just return output as BytesIO
-        #         'rb',                           # read binary
-        #         fileobj=BytesIO(s3.get_object(Bucket=bucket, Key=gzipped_key)['Body'].read())),
-        #     Bucket=bucket,                      # target bucket, writing to
-        #     Key=uncompressed_key)               # target key, writing to
 
 
     def wait_until_click(self, elem):
@@ -59,20 +46,28 @@ class ScrapeFile:
         return False
 
     async def fetch(self, session, index, row):
-        success = False
-        err_msg = ""
-        for _ in range(5):
-            try:
-                async with session.get(row["URL"]) as response:
-                    text = await response.text()
-                    await self.extract_tags(text,index)
-                    success = True
-                    break
-            except Exception as e:
-                err_msg = e
-        if not success:
-            print(f"get error: {err_msg}")
-            self.df.loc[index,self.first_col] = "FAILURE"
+        try:
+            async with session.get(row["URL"]) as response:
+                text = await response.text()
+                await self.extract_tags(text,index)
+        except:
+            self.df.loc[index,"Complete"] = "FAILURE"
+
+        # success = False
+        # err_msg = ""
+        # for _ in range(5):
+        #     try:
+        #         async with session.get(row["URL"]) as response:
+        #             text = await response.text()
+        #             await self.extract_tags(text,index)
+        #             success = True
+        #             break
+        #     except Exception as e:
+        #         err_msg = e
+                
+        # if not success:
+        #     print(f"get error: {err_msg}")
+        #     self.df.loc[index,self.first_col] = "FAILURE"
 
     async def extract_tags(self, text, index):
         sys.exit("Accessing parent class. Should instead call child class.")
@@ -90,17 +85,22 @@ class ScrapeFile:
                 tasks.append(task)
                 top_index+=1
             await asyncio.gather(*tasks)
+            len(self.df["Complete"][start_index:top_index])
+            self.df["Complete"][start_index:top_index] = "SUCCESS"
+            self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"data/{self.department}/temp/df-{self.filename}", Body=pickle.dumps(self.df))
         
     def get_data(self, overwrite = True):
         self.links = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(f"data/{self.department}/temp/links-{self.filename}").get()['Body'].read())
         # self.links = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/links-{self.filename}", "rb"))
         # self.links = self.links[12:143]
         self.df["URL"] = self.links
+        self.df["Complete"] = "FAILURE"
         if overwrite == False:
             self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(f"data/{self.department}/temp/df-{self.filename}").get()['Body'].read())
             # self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/df-{self.filename}", "rb"))
-            self.org_df = self.df[~(self.df[self.first_col].eq("FAILURE"))]
-            self.df = self.df[self.df[self.first_col].eq("FAILURE")]
+            self.org_df = self.df[~(self.df["Complete"].eq("FAILURE"))]
+            self.df = self.df[self.df["Complete"].eq("FAILURE")]
+            # print(self.org_df[""])
         print(len(self.df))
         self.df=self.df.reset_index(drop=True)
         

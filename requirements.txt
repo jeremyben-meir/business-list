@@ -3,8 +3,6 @@ fuzzywuzzy
 requests
 aiohttp
 geojson
-boto3 == 1.19.12
-botocore == 1.20.106
 
 s3fs
 fsspec
@@ -12,6 +10,11 @@ smart_open
 python-geosupport
 
 # scraping
-selenium==3.141.0
+selenium
 bs4
 lxml
+
+# S3
+boto3 == 1.19.12
+botocore == 1.20.106
+

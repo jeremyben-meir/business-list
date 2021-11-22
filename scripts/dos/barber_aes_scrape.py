@@ -8,7 +8,7 @@ from scripts.scrape_file import ScrapeFile, pd, sys, time
 
 class BarberAESScrape(ScrapeFile):
     def __init__(self, filename):
-        df = pd.DataFrame(columns=["License Number","Name","Business Name","Address","Zip","Phone","County","License State","License Issue Date","Current Term Effective Date","Expiration Date","Agency","License Status","Industry","URL"])
+        df = pd.DataFrame(columns=["License Number","Name","Business Name","Address","Zip","Phone","County","License State","License Issue Date","Current Term Effective Date","Expiration Date","Agency","License Status","Industry","URL","Complete"])
         super().__init__(df=df,timeout=100,segment_size=100, department = 'dos', filename = filename)
 
     async def extract_tags(self, text, index):
@@ -33,12 +33,12 @@ class BarberAESScrape(ScrapeFile):
             self.df.loc[index,"Industry"] = self.filename
         except Exception as e:
             print(f"extract error:  {e}")
-            self.df.loc[index,"License Number"] = "FAILURE"
+            self.df.loc[index,"Complete"] = "FAILURE"
 
     def load_links(self):
         county_list = ['QUEENS','RICHMOND','KINGS','BRONX','NEW YORK']
         for county in county_list:
-            self.driver = webdriver.Chrome(DirectoryFields.LOCAL_WEBDRIVER_PATH)
+            self.driver = webdriver.Chrome(DirectoryFields.LOCAL_WEBDRIVER_PATH, options=self.options)
             url = "https://aca.licensecenter.ny.gov/aca/GeneralProperty/PropertyLookUp.aspx?isLicensee=Y"
             wait = WebDriverWait(self.driver, self.timeout)
 
@@ -91,8 +91,8 @@ class BarberAESScrape(ScrapeFile):
 if __name__ == '__main__':
     scraper = BarberAESScrape('aes')
     scraper.load_links()
-    scraper.get_data(overwrite=False)
+    scraper.get_data(overwrite=True)
 
     scraper = BarberAESScrape('barber')
     scraper.load_links()
-    scraper.get_data(overwrite=False)
+    scraper.get_data(overwrite=True)

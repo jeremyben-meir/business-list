@@ -65,20 +65,15 @@ class Graph:
 class CompareIndustries(BaseCompareFeature):
 
     # EXAMPLE: food = set(open(f'{DirectoryFields.LOCAL_LOCUS_PATH}data/industries/food.txt', 'r').read().splitlines())
-    food = set(self.read_txt("data/industries/food.txt"))
-    aes = set(self.read_txt("data/industries/aes.txt"))
-    retail = set(self.read_txt("data/industries/retail.txt"))
-    laundry = set(self.read_txt("data/industries/laundry.txt"))
-    cars = set(self.read_txt("data/industries/cars.txt"))
-    misc = set(self.read_txt("data/industries/misc.txt"))
-    dictlist = [food,aes,retail,laundry,cars,misc]
-
-    def read_txt(self, path):
+    
+    dictlist = []
+    for filename in ["food","aes","retail","laundry","cars","misc"]:
+        path = f"data/industries/{filename}.txt"
         textfile = smart_open.smart_open(DirectoryFields.S3_PATH + path)
         return_list = []
         for line in textfile:
-            listlist.append(line.decode('utf-8').strip("\n"))
-        return return_list
+            return_list.append(line.decode('utf-8').strip("\n"))
+        dictlist.append(set(return_list))
 
     def _compute_vectorized(self, industry_0, industry_1):
         mask_list = False

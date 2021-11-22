@@ -79,8 +79,6 @@ class DOHInspectionSrcFile(SourceFile):
         self.df['Grade Date'] = self.df['Grade Date'].replace(['N/A','NULL','nan'],'')
         self.df['Grade Date'] = self.df['Grade Date'].astype('datetime64[D]')
 
-        self.df['INSP Date'] = self.df['INSP Date'].apply(lambda date: pd.to_datetime("today") if date.year == 1900 else date)
-
         self.delete_cols(["ADDRESS","ACTION","PROGRAM","INSPTYPE","VIOLCODE","DISMISSED",
         "SCORE","VIOLSCORE","MOD_TOTALSCORE","violation_code","violation_description",
         "critical_flag","action","score","community_board","council_district","census_tract",
