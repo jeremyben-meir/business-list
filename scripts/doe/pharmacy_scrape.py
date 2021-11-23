@@ -10,6 +10,7 @@ import csv
 import pandas as pd
 import aiohttp
 import asyncio
+import boto3
 from bs4 import BeautifulSoup
 from lxml import etree
 from datetime import date
@@ -17,11 +18,13 @@ from selenium.webdriver.chrome.options import Options
 
 class PharmacyScraper():
     def __init__(self):
+        self.s3 = boto3.resource('s3')
         self.df = pd.DataFrame(columns=['Type','Legal Name','Trade Name','Registration No','Date First Registered','Registration Begins','Registered through','Establishment Status','Successor','Address'])
         self.countylist =['//*[@id="content_column"]/div[4]/form/div[4]/select/option[42]','//*[@id="content_column"]/div[4]/form/div[4]/select/option[4]','//*[@id="content_column"]/div[4]/form/div[4]/select/option[25]','//*[@id="content_column"]/div[4]/form/div[4]/select/option[32]','//*[@id="content_column"]/div[4]/form/div[4]/select/option[44]']
         self.charlist = 'abcdefghijklmnopqrstuvwxy1234567890!@#$%^&*()'
         self.url = "http://www.op.nysed.gov/opsearches#"
         self.department = "doe"
+        self.filename = "pharmacy"
         self.options = Options()
         self.options.headless = True
 
@@ -135,6 +138,8 @@ class PharmacyScraper():
                         pass
                     
         self.driver.close()
+        filepath = f"data/{self.department}/temp/df-{self.filename}"
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=filepath, Body=pickle.dumps(self.df))
         self.df.to_csv(f"{DirectoryFields.S3_PATH}data/doe/pharmacy/{self.department}_pharmacy_{date.today()}_scrape.csv", index=False, quoting=csv.QUOTE_ALL)
         # self.df.to_csv(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/doe/pharmacy/{self.department}_pharmacy_{date.today()}_scrape.csv", index=False, quoting=csv.QUOTE_ALL)
 

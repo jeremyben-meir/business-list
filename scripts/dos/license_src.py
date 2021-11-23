@@ -13,12 +13,12 @@ class DOSLicensesSrcFile(SourceFile):
 
     def apply_template(self, df, template):
         if template == 0:
-            pass
+            df = df[df["Status"]=="SUCCESS"]
         
         return df
 
     def get_template(self,df_list):
-        column_0 = ['License Number', 'Name', 'Business Name', 'Address','Zip', 'Phone', 'County', 'License State', 'License Issue Date', 'Current Term Effective Date', 'Expiration Date', 'Agency', 'License Status','Industry','URL']
+        column_0 = ['License Number', 'Name', 'Business Name', 'Address','Zip', 'Phone', 'County', 'License State', 'License Issue Date', 'Current Term Effective Date', 'Expiration Date', 'Agency', 'License Status','Industry','URL',"Status"]
         
         for df_val in range(len(df_list)):
             df = df_list[df_val]

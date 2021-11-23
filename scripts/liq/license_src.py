@@ -13,12 +13,12 @@ class LIQLicenseSrcFile(SourceFile):
 
     def apply_template(self, df, template):
         if template == 0:
-            pass
+            df = df[df["Status"]=="SUCCESS"]
         
         return df
 
     def get_template(self,df_list):
-        column_0 = ['Premises Name', 'Trade Name', 'Zone', 'Address', 'Zip', 'County', 'Serial Number', 'License Type', 'License Status', 'Credit Group', 'Filing Date', 'Effective Date', 'Expiration Date', "Principal's Name", 'URL']
+        column_0 = ['Premises Name', 'Trade Name', 'Zone', 'Address', 'Zip', 'County', 'Serial Number', 'License Type', 'License Status', 'Credit Group', 'Filing Date', 'Effective Date', 'Expiration Date', "Principal's Name", 'URL',"Status"]
         
         for df_val in range(len(df_list)):
             df = df_list[df_val]
@@ -76,6 +76,7 @@ class LIQLicenseSrcFile(SourceFile):
         del self.df['Credit Group']
         del self.df['Principal\'s Name']
         del self.df['URL']
+        del self.df['Status']
 
         self.type_cast()
         self.clean_zip_city()

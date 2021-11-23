@@ -129,7 +129,8 @@ class ComparePhones(BaseCompareFeature):
 class Merge():
 
     def __init__(self):
-        self.df = self.load_source_files()
+        self.s3 = boto3.resource('s3')
+        self.df = self.load_source_files(loaded=False)
 
     def split_dataframes(self, df, segment_num, split_col):
         df_list = list()
@@ -214,8 +215,11 @@ class Merge():
                 ("dot","inspection")
                 ]
             
+            def load_file(path):
+                print(path)
+                return pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(path).get()['Body'].read()) 
             # df_list = [pickle.load( open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{res[0]}/temp/df-{res[1]}-source.p", "rb" )) for res in filelist]
-            df_list = [pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(f"data/{res[0]}/temp/df-{res[1]}-source.p").get()['Body'].read()) for res in filelist]
+            df_list = [load_file(f"data/{res[0]}/temp/df-{res[1]}-source.p") for res in filelist]
 
             df = pd.concat(df_list, axis=0, join='outer', ignore_index=False)
 

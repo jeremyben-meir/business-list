@@ -57,6 +57,7 @@ class FileManager:
                 df_list.append(self.read_txt(f"{DirectoryFields.S3_PATH}{path}"))
             else:
                 df_list.append(pd.read_csv(f"{DirectoryFields.S3_PATH}{path}", low_memory=False))
+
         return df_list
     
     def fetch_api(self, url, filename):

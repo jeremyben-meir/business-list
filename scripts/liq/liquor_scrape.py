@@ -8,7 +8,7 @@ from scripts.scrape_file import ScrapeFile, pd, sys, time
 
 class LiquorScrape(ScrapeFile):
     def __init__(self):
-        df = pd.DataFrame(columns=["Premises Name","Trade Name","Zone","Address","Zip","County","Serial Number","License Type","License Status","Credit Group","Filing Date","Effective Date","Expiration Date","Principal's Name","URL","Complete"])#,"Serial 2","License Class"])
+        df = pd.DataFrame(columns=["Premises Name","Trade Name","Zone","Address","Zip","County","Serial Number","License Type","License Status","Credit Group","Filing Date","Effective Date","Expiration Date","Principal's Name","URL","Status"])#,"Serial 2","License Class"])
         super().__init__(df=df,timeout=100,segment_size=500, department = 'liq', filename = 'liquor', start_clicks=(0,2))
             
     async def extract_tags(self, text, index):
@@ -38,14 +38,14 @@ class LiquorScrape(ScrapeFile):
                         self.df.loc[index,item.text.strip(":")] = values[counter].text
                         counter += 2
             else:
-                self.df.loc[index,"Complete"] = "FAILURE"
+                self.df.loc[index,"Status"] = "FAILURE"
         except Exception as e:
 
             print(f"extract error: {e}")
             # if type(e).__name__ == "IndexError":
             #     self.df = self.df.drop(index)
             # else:
-            self.df.loc[index,"Complete"] = "FAILURE"
+            self.df.loc[index,"Status"] = "FAILURE"
 
     def load_links(self):
         county_list = ['QUEENS','RICHMOND','KINGS','BRONX','NEW YORK']
@@ -89,5 +89,5 @@ class LiquorScrape(ScrapeFile):
 
 if __name__ == '__main__':
     scraper = LiquorScrape()
-    scraper.load_links()
-    scraper.get_data(overwrite = True)
+    # scraper.load_links()
+    scraper.get_data(overwrite = False)

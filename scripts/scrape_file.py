@@ -51,7 +51,7 @@ class ScrapeFile:
                 text = await response.text()
                 await self.extract_tags(text,index)
         except:
-            self.df.loc[index,"Complete"] = "FAILURE"
+            self.df.loc[index,"Status"] = "FAILURE"
 
         # success = False
         # err_msg = ""
@@ -72,7 +72,7 @@ class ScrapeFile:
     async def extract_tags(self, text, index):
         sys.exit("Accessing parent class. Should instead call child class.")
 
-    async def main(self, top_index, bot_index):
+    async def main(self, top_index, bot_index, overwrite):
         tasks = list()
         start_index = top_index
         headers = ({'User-Agent':
@@ -85,31 +85,40 @@ class ScrapeFile:
                 tasks.append(task)
                 top_index+=1
             await asyncio.gather(*tasks)
-            len(self.df["Complete"][start_index:top_index])
-            self.df["Complete"][start_index:top_index] = "SUCCESS"
-            self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"data/{self.department}/temp/df-{self.filename}", Body=pickle.dumps(self.df))
+
+            # self.df[self.df["Status"] != "FAILURE"]["Status"][start_index:top_index] = "SUCCESS"
+
+            self.df["Status"][start_index:top_index] = self.df["Status"][start_index:top_index].apply(lambda val: "SUCCESS" if val != "FAILURE" else val)
+            fail_df = self.df[start_index:top_index]
+            print(f'{top_index} Failures: {len(fail_df[fail_df["Status"] == "FAILURE"])}')
+            
+            save_df = self.df if overwrite else pd.concat([self.org_df,self.df], ignore_index=True)
+            filepath = f"data/{self.department}/temp/df-{self.filename}"
+            self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=filepath, Body=pickle.dumps(save_df))
         
     def get_data(self, overwrite = True):
         self.links = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(f"data/{self.department}/temp/links-{self.filename}").get()['Body'].read())
         # self.links = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/links-{self.filename}", "rb"))
         # self.links = self.links[12:143]
         self.df["URL"] = self.links
-        self.df["Complete"] = "FAILURE"
+        self.df["Status"] = "INCOMPLETE"
         if overwrite == False:
             self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(f"data/{self.department}/temp/df-{self.filename}").get()['Body'].read())
             # self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{self.department}/temp/df-{self.filename}", "rb"))
-            self.org_df = self.df[~(self.df["Complete"].eq("FAILURE"))]
-            self.df = self.df[self.df["Complete"].eq("FAILURE")]
-            # print(self.org_df[""])
-        print(len(self.df))
+            mask = (self.df["Status"].eq("FAILURE") | self.df["Status"].eq("INCOMPLETE"))
+            self.org_df = self.df[~mask]
+            self.df = self.df[mask]
+            print(f"Finished: {len(self.org_df)}")
+        print(f"To do: {len(self.df)}")
+        
+
         self.df=self.df.reset_index(drop=True)
         
         top_index = self.df.iloc[0].name
         bot_index = self.df.iloc[-1].name
         while top_index <= bot_index:
-            asyncio.run(self.main(top_index,bot_index))
+            asyncio.run(self.main(top_index,bot_index,overwrite))
             top_index+=self.segment_size
-            print(top_index)
 
         if overwrite == False:
             self.df = pd.concat([self.org_df,self.df], ignore_index=True)
