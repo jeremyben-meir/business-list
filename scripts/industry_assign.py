@@ -7,11 +7,15 @@ import time
 from common import DirectoryFields
 import concurrent.futures
 import numpy as np
+import boto3
 
 class IndustryAssign():
 
     def __init__(self):
+        self.s3 = boto3.resource('s3')
         self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-merged.p").get()['Body'].read())
+        self.ticker = 0
+        self.totlen = len(self.df["LBID"].unique())
         # self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-merged.p", "rb" ))
 
     def industry_assign(self, inp_list):
@@ -24,7 +28,6 @@ class IndustryAssign():
             corpus_embeddings = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/naics_encodings.p").get()['Body'].read())
             # corpus_embeddings = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/naics_encodings.p", "rb" ))
         except:
-            naics = pd.read_csv(f"{DirectoryFields.S3_PATH}data/2017_NAICS_Descriptions.csv")
             naics = pd.read_csv(f"{DirectoryFields.S3_PATH}data/2017_NAICS_Descriptions.csv")
             naics = naics[naics['Code'].str.len() == 6].reset_index(drop=False)
             corpus_sentences = list(naics['Description'])
@@ -82,6 +85,9 @@ class IndustryAssign():
             naics_title = naics_return.loc["Title"]
             df.loc[df["LBID"]==lbid,"NAICS"] = naics_code
             df.loc[df["LBID"]==lbid,"NAICS Title"] = naics_title
+            self.ticker += 1
+            print(f"{self.ticker} / {self.totlen}")
+            # print(naics_title)
             # print(df.loc[df["LBID"]==lbid,"NAICS Title"])
         return df
 

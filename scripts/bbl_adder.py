@@ -23,13 +23,19 @@ class BBLAdder:
         try:
             results = self.g.bbl(input_dict) if bbl_input else self.g.address(input_dict)
         except:
-            return "NO_BBL", 0.0, 0.0
-        
+            return "NO_BBL", "NO_ZIP", 0.0, 0.0, 
+            
         try:
             bbl = results['BOROUGH BLOCK LOT (BBL)']['BOROUGH BLOCK LOT (BBL)']
             bbl = "NO_BBL" if bbl == "0" else bbl
         except:
             bbl = "NO_BBL"
+            
+        try:
+            zipcode = results["ZIP Code"]
+            zipcode = "NO_ZIP" if zipcode == "0" else zipcode
+        except:
+            zipcode = "NO_ZIP"
 
         try:
             longitude = results['Longitude']
@@ -38,7 +44,7 @@ class BBLAdder:
             longitude = 0.0
             latitude = 0.0
         
-        return bbl, longitude, latitude
+        return bbl, zipcode, longitude, latitude
 
     def decide_result(self, row, city_zip):
         bbl_valid = len(row["BBL"]) == 10 and row['BBL'] != "0000000000" and row["BBL"].isdigit()
@@ -47,18 +53,18 @@ class BBLAdder:
         if not (bbl_valid and lon_lat_valid):
             if bbl_valid:
                 input_dict = {"bbl":row['BBL']}
-                bbl, longitude, latitude = self.get_result(input_dict, bbl_input=True)
+                bbl, zipcode, longitude, latitude = self.get_result(input_dict, bbl_input=True)
             else:
                 input_dict = {
                     "Borough Code-1":row[city_zip],
                     "Street Name-1":f"{row['Building Number']} {row['Street']}",
                 }
-                bbl, longitude, latitude = self.get_result(input_dict)
+                bbl, zipcode, longitude, latitude = self.get_result(input_dict)
             row["BBL"] = bbl
+            row["Zip"] = zipcode
             row["Longitude"] = longitude
             row["Latitude"] = latitude
-
-            # print(bbl,longitude,latitude)
+            
         
         self.progress_meter.tick()
         return row
@@ -68,7 +74,7 @@ class BBLAdder:
         self.df["Longitude"] = 0.0
         self.df["Latitude"] = 0.0
         
-        for city_zip in ["City","Zip"]:
+        for city_zip in ["Zip","City"]:
 
             self.df = self.df.apply(lambda row : self.decide_result(row, city_zip),axis=1)
             self.progress_meter.ticker = 0

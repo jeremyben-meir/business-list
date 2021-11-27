@@ -130,7 +130,7 @@ class Merge():
 
     def __init__(self):
         self.s3 = boto3.resource('s3')
-        self.df = self.load_source_files(loaded=False)
+        self.df = self.load_source_files(loaded=True)
 
     def split_dataframes(self, df, segment_num, split_col):
         df_list = list()
@@ -143,25 +143,6 @@ class Merge():
                 df = df[~df[split_col].isin(sampled_col)]
         df_list.append(df)
         return df_list
-
-        # df = df.sort_values("BBL", ignore_index=True)
-        # # print(df["source"])
-        # df_list = list()
-        # segment_size = len(df.index)/segment_num
-        # print(f"Segment size {segment_size}")
-        
-        # while len(df.index)>int(segment_size):
-        #     sub_df = df.iloc[:int(segment_size)]
-        #     df = df.iloc[int(segment_size):]
-        #     df = df.reset_index(drop=True)
-        #     sub_df = sub_df.reset_index(drop=True)
-        #     end_bbl = sub_df.iloc[-1]["BBL"]
-        #     sub_df = sub_df.append(df.loc[df["BBL"] == end_bbl])
-        #     df = df[df["BBL"] != end_bbl]
-        #     df_list.append(sub_df)
-        # df_list.append(df)
-        # print(df_list)
-        # return df_list
 
     def text_prepare(self, text, street0):
         STOPWORDS = ["nan","corp", "corp.", 'corporation', "inc", "inc.", "incorporated", "llc", "llc." 'group']
@@ -212,13 +193,14 @@ class Merge():
                 ("liq","license"),
                 ("doh","license"),
                 ("dot","application"),
-                ("dot","inspection")
+                ("dot","inspection"),
+                ("dof","certificate"),
                 ]
             
             def load_file(path):
                 print(path)
                 return pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(path).get()['Body'].read()) 
-            # df_list = [pickle.load( open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/{res[0]}/temp/df-{res[1]}-source.p", "rb" )) for res in filelist]
+
             df_list = [load_file(f"data/{res[0]}/temp/df-{res[1]}-source.p") for res in filelist]
 
             df = pd.concat(df_list, axis=0, join='outer', ignore_index=False)
@@ -230,16 +212,12 @@ class Merge():
 
             bblmask = (df['BBL'].str.len() == 10) & (df['BBL']!="0000000000") & (df['BBL'].str.isdigit())
             df = df[bblmask]
-            df = df[df["Zip"].isin(["10028", "10013", "11372", "11213", "10458", "10304"])]
+
             print(df)
+
             df = df.drop_duplicates()
-
             df = df.reset_index(drop=True)
-
             df = self.type_cast(df, replace_nan = False)
-
-            # df = df.sort_values(["BBL"])##
-            # df = df.iloc[:10000]##
             df = df.apply(lambda row: self.prepare_business_names(row), axis=1)
 
             self.store_pickle(df,0)
@@ -248,26 +226,29 @@ class Merge():
 
             df = self.load_pickle(0)
 
+        df.reset_index(drop=True)
+        leng = len(df)
+        
+        df = df[df["Zip"].isin(["10028", "10013", "11372", "11213", "10458", "10304"])]
+        # df = df[df["Zip"].isin(["10025"])]
+
+        print(f"Loaded data with {len(df)}/{leng} rows")
+
         if not df["BBL"].mode().empty:
             common_bbl = df["BBL"].mode().iloc[0]
             sys.setrecursionlimit(max(1000,len(df[df["BBL"] == common_bbl])))
-        print(f"recursion depth: {sys.getrecursionlimit()}")
+        print(f"Recursion depth: {sys.getrecursionlimit()}")
 
-        print("loaded data")
         return df
 
     def add_llid_async(self):
         
-        df_list = self.split_dataframes(self.df,1,"BBL")
+        df_list = self.split_dataframes(self.df,6,"BBL")
         print("Dataframes split")
         future_list = list()
-        # with concurrent.futures.ThreadPoolExecutor() as executor:
-        #     for df in df_list:
-        #         future = executor.submit(self.add_llid, df)
-        #         future_list.append(future)
-        # self.df = pd.concat([future.result() for future in future_list])
         
         for df in df_list:
+            print(f"Dataframe: {len(df)}")
             future_list.append(self.add_llid(df))
         self.df = pd.concat(future_list)
 
@@ -278,11 +259,6 @@ class Merge():
 
         df = df.reset_index(drop=True)
         df = self.type_cast(df)
-
-        # process = psutil.Process(os.getpid())
-        # print(psutil.cpu_percent(4))
-        # process = psutil.Process(os.getpid())
-        # print(process.memory_info().rss/(10.0**9))
 
         def ngrams(string, n=3):
             string = re.sub(r'[,-./]|\sBD',r'', string)
@@ -335,41 +311,6 @@ class Merge():
 
         features["pred"] = features.apply(lambda row: make_prediction(row), axis=1)
         matches = features[features["pred"]==1].index
-
-        ################################################
-
-        # # Alternate classifier (K-means)
-        # classifier = recordlinkage.KMeansClassifier()
-        # matches = classifier.fit_predict(features)
-        # print(matches)
-
-        ################################################
-
-        # np_to_predict = features.to_numpy()
-
-        # g = mixture.GaussianMixture(n_components=2,random_state=43,init_params='random')
-        # result = g.fit_predict(np_to_predict)
-
-        # features["pred"] = list(result)
-        # features["business 0 n0"] = ""
-        # features["business 1 n0"] = ""
-        # features["business 0 n1"] = ""
-        # features["business 1 n1"] = ""
-        # def setindex(row):
-        #     row["business 0 n0"] = df.loc[row.name[0], "bn0"]
-        #     row["business 1 n0"] = df.loc[row.name[1], "bn0"]
-        #     row["business 0 n1"] = df.loc[row.name[0], "bn1"]
-        #     row["business 1 n1"] = df.loc[row.name[1], "bn1"]
-        #     return row
-        # features = features.apply(lambda row: setindex(row),axis=1)
-        # cleaned_file_path = f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/features.csv"
-        # features.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
-
-        # match_val = 1 - (features["pred"].mode().iloc[0])
-        # print(f"MATCHING ON {match_val}")
-        # matches = features[features["pred"]==match_val].index
-
-        ###########################################
 
         print(features)
         print(matches)
