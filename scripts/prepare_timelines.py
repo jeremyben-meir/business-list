@@ -10,7 +10,7 @@ class CreateTimeline():
     def __init__(self):
         self.s3 = boto3.resource('s3')
         self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-assigned.p").get()['Body'].read())
-        # self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-assigned.p", "rb" ))
+        # self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-merged.p").get()['Body'].read())
 
     def get_lim_date_from_cols(self, curgrp,col_list,is_maximum):
         lim_date = [(curgrp[date].max() if is_maximum else curgrp[date].min()) for date in col_list]
@@ -57,7 +57,10 @@ class CreateTimeline():
         df = self.type_cast(self.df,all_date_list)
         
         date_df = pd.DataFrame(columns=["Name","Start Date","End Date","Longitude","Latitude"])
-        
+
+        totlen = len(self.df["LBID"].unique())
+        ticker = 0
+
         lbid_group = df.groupby("LBID")
         for _ , out_group in lbid_group:
 
@@ -78,7 +81,7 @@ class CreateTimeline():
                 maxdate = self.get_max_end(out_group)
 
                 if latitude != 0.0 and longitude != 0.0:
-                    new_row = {'Name': name, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'NAICS Title': naics_title, 'NAICS': naics_code, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude}
+                    new_row = {'Name': name, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude,'NAICS Title': naics_title, 'NAICS': naics_code}
                     date_df = date_df.append(new_row, ignore_index = True)
 
             else:
@@ -118,14 +121,15 @@ class CreateTimeline():
                     prevmin = mindate
 
                     if latitude != 0.0 and longitude != 0.0:
-                        new_row = {'Name': name, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'NAICS Title': naics_title, 'NAICS': naics_code, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude}
+                        new_row = {'Name': name, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude, 'NAICS Title': naics_title, 'NAICS': naics_code}
                         date_df = date_df.append(new_row, ignore_index = True)
+            ticker += 1
+            print(f"{ticker} / {totlen}")
         
         cleaned_file_path = f"{DirectoryFields.S3_PATH}data/temp/timeline.csv"
         date_df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
 
         self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key='data/temp/df-timeline.p', Body=pickle.dumps(date_df))
-        # pickle.dump(date_df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-timeline.p", "wb" ))
 
 if __name__ == "__main__":
     industry_assign = CreateTimeline()

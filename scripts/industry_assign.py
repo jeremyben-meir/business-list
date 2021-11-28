@@ -13,7 +13,14 @@ class IndustryAssign():
 
     def __init__(self):
         self.s3 = boto3.resource('s3')
-        self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-merged.p").get()['Body'].read())
+        self.overwrite = True
+        try:
+            df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-assigned.p").get()['Body'].read())
+            self.df = df[df["NAICS"]==""]
+            self.org_df = df[df["NAICS"]!=""]
+            self.overwrite = False
+        except: 
+            self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-merged.p").get()['Body'].read())
         self.ticker = 0
         self.totlen = len(self.df["LBID"].unique())
         # self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-merged.p", "rb" ))
@@ -71,10 +78,17 @@ class IndustryAssign():
                 future_list.append(future)
         self.df = pd.concat([future.result() for future in future_list])
 
-        path = f'data/temp/df-assigned.p' 
-        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=path, Body=pickle.dumps(self.df))
-        # pickle.dump(self.df, open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-assigned.p", "wb" ))
+        self.save_df()
         return self.df
+    
+    def save_df(self):
+        path = f'data/temp/df-assigned.p' 
+        if self.overwrite:
+            self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=path, Body=pickle.dumps(self.df))
+        else:
+            save_df = pd.concat([self.df,self.org_df],ignore_index=True)
+            self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=path, Body=pickle.dumps(save_df))
+
         
     def apply_st(self, df):
         unique_lbid = sorted(df["LBID"].unique())
@@ -83,10 +97,12 @@ class IndustryAssign():
             naics_return = self.industry_assign(industry_list)
             naics_code = naics_return.loc["Code"]
             naics_title = naics_return.loc["Title"]
-            df.loc[df["LBID"]==lbid,"NAICS"] = naics_code
-            df.loc[df["LBID"]==lbid,"NAICS Title"] = naics_title
+            self.df.loc[self.df["LBID"]==lbid,"NAICS"] = naics_code
+            self.df.loc[self.df["LBID"]==lbid,"NAICS Title"] = naics_title
             self.ticker += 1
             print(f"{self.ticker} / {self.totlen}")
+            if self.ticker % 200 == 0:
+                self.save_df()
             # print(naics_title)
             # print(df.loc[df["LBID"]==lbid,"NAICS Title"])
         return df

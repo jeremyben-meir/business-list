@@ -19,22 +19,24 @@ class PrepareGeojson():
         features = list()
         df = self.df
         df = df[pd.to_datetime("today") + pd.Timedelta(days=-60) < df["End Date"]]
-        for bbl_val in df["BBL"].unique():
-            bbl_df = df[df["BBL"] == bbl_val]
-            num_vals = len(bbl_df)
-            ticker = 0.0
-            lon = bbl_df["Longitude"].max()
-            lat = bbl_df["Latitude"].max()
-            for _,row in bbl_df.iterrows():
+        totlen = df["BBL"].nunique()
+        ticker = 0
+        grouped = df.groupby("BBL")
+        for name, group in grouped:
+            num_vals = len(group)
+            lon = group["Longitude"].astype(float).max()
+            lat = group["Latitude"].astype(float).max()
+            for index, row in group.iterrows():
                 duration = (row["End Date"] - row["Start Date"]).days
                 duration =  str(math.floor(duration/365.0) if not pd.isnull(duration) else 0)
-                # duration =  ""
+                
                 if num_vals == 1:
                     latitude, longitude = map(float, (lat, lon))
                 else:
                     degree_val = 360.0*(ticker/num_vals)
                     rand_radian = math.radians(degree_val)
                     latitude, longitude = map(float, (lat+(math.sin(rand_radian)/15000.0), lon+(math.cos(rand_radian)/12000.0)))
+                
                 features.append(
                     Feature(
                         geometry = Point((longitude, latitude)),
@@ -42,8 +44,8 @@ class PrepareGeojson():
                             'Name': row["Name"],
                             'LLID': row["LLID"],
                             'Address': row["Address"],
-                            'NAICS': str(row["NAICS"])[0],
-                            'NAICS Title': str(row["NAICS Title"]),
+                            # 'NAICS': str(row["NAICS"])[0],
+                            # 'NAICS Title': str(row["NAICS Title"]),
                             'Contact Phone': str(row["Contact Phone"]),
                             "Duration": duration,
                             'Start Date': str(row["Start Date"]),
@@ -51,11 +53,11 @@ class PrepareGeojson():
                         }
                     )
                 )
-                ticker += 1.0
-        # collection = FeatureCollection(features)
-        # with open(f'{DirectoryFields.LOCAL_LOCUS_PATH}/data/llid_timeline.json', "w") as f:
-        #     f.write()
-        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="/data/llid_timeline.json", Body=('%s' % collection))
+            ticker += 1
+            print(f"{ticker} / {totlen}")
+
+        collection = FeatureCollection(features)
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/llid_timeline.json", Body=('%s' % collection))
 
     def num_llids_for_date(self,df,date):
         return len(df[(df["Start Date"]<=date) & (df["End Date"]>=date)])
@@ -63,6 +65,8 @@ class PrepareGeojson():
     def create_bbl_json(self):
         features = list()
         df = self.df
+        totlen = df["BBL"].nunique()
+        ticker = 0
         for bbl_val in df["BBL"].unique():
             bbl_df = df[df["BBL"] == bbl_val]
             latitude, longitude = map(float, (bbl_df["Latitude"].max(), bbl_df["Longitude"].max()))
@@ -71,6 +75,8 @@ class PrepareGeojson():
             max_llid = max([self.num_llids_for_date(bbl_df,date) for date in bbl_df["Start Date"].unique()])
             date = pd.to_datetime('20100101', format='%Y%m%d', errors='ignore')
             vacancy_total = list()
+            if max_llid == 0:
+                max_llid = 1
             while date < pd.to_datetime("today"):
                 vacancy_total.append(self.num_llids_for_date(bbl_df,date) / max_llid)
                 date += pd.Timedelta(days=30)
@@ -79,9 +85,11 @@ class PrepareGeojson():
             date = pd.to_datetime('20100201', format='%Y%m%d', errors='ignore')
             llid_date_list = list()
             turnover_total = list()
+
             while date < pd.to_datetime("today"):
                 llid_date_list.append(self.num_llids_for_date(bbl_df,date))
                 date += pd.Timedelta(days=365)
+
             for num in range(len(llid_date_list)-1):
                 turnover_total.append((llid_date_list[num+1] - llid_date_list[num]) / (1 if llid_date_list[num] == 0 else llid_date_list[num]))
 
@@ -100,10 +108,13 @@ class PrepareGeojson():
                     }
                 )
             )
-        # collection = FeatureCollection(features)
+
+            ticker += 1
+            print(f"{ticker} / {totlen}")
+        collection = FeatureCollection(features)
         # with open(f'{DirectoryFields.LOCAL_LOCUS_PATH}/data/bbl_timeline.json', "w") as f:
         #     f.write('%s' % collection)
-        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="/data/bbl_timeline.json", Body=('%s' % collection))
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/bbl_timeline.json", Body=('%s' % collection))
         
 
 if __name__ == "__main__":
