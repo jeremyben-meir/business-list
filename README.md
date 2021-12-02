@@ -32,5 +32,6 @@ Given that the data pulls from multiple different sources of different formats, 
 * Run `./scripts/industry_assign.py`.
 ### Prepare timelines
 * Run `./scripts/prepare_timelines.py`.
-### Prepare geojson file for visualizer
+### Prepare geojson file for visualizer OR prepare observation list for predictor
 * Run `./scripts/prepare_geojson.py`.
+* OR run `./scripts/create_observations.py`.
