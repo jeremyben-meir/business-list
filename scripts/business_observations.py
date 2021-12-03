@@ -23,19 +23,20 @@ class BusinessObservations():
             cur_date = pd.to_datetime(f"{month}/01/{year}")
             temp_set = self.df[(self.df["Start Date"] <= cur_date) & (self.df["End Date"] >= cur_date)]
             temp_set["Observed"] = cur_date
+            temp_set["Year"] = year
             df = df.append(temp_set)
         
         df["Survive"] = 1
         df = df.reset_index(drop=True)
         grouped = df.groupby("LLID")
-        # totlen = df["LLID"].nunique()
-        # indx = 0
         for name, group in grouped:
             df.loc[group['Observed'].idxmax(),"Survive"] = 0
         df = df[df["Observed"] < pd.to_datetime(f"01/01/2021")]
         df["Months Active"] = (df["Observed"] - df["Start Date"]).astype('timedelta64[M]').astype(int)
         
         self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key='data/temp/df-business-observations.p', Body=pickle.dumps(df))
+
+        print(df.columns.tolist())
 
 
 if __name__ == "__main__":

@@ -23,17 +23,26 @@ class FileManager:
         self.outname = outname
         self.update_relevance()
         
-
-    def read_txt(self, path):
+    @staticmethod
+    def read_txt(path, sep="\t", strips = []):
         textfile = smart_open.smart_open(path)
         colname = True
         listlist = []
         for line in textfile:
+
+            readline = line.decode('utf-8').strip("\n")
+            for strip in strips:
+                readline = readline.strip(strip)
+            readline = readline.split(sep)
+
             if colname:
-                colnames = line.decode('utf-8').strip("\n").split("\t")
+                colnames = readline
                 colname = False
+                print(colnames)
             else:
-                listlist.append(line.decode('utf-8').strip("\n").split("\t"))
+                listlist.append(readline)
+                print(readline)
+                break
         return_df = pd.DataFrame(listlist, columns=colnames)
         return return_df
 
