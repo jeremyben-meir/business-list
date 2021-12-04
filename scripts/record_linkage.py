@@ -91,22 +91,17 @@ class CompareNames(BaseCompareFeature):
         cosine_similarity = 1 - self.calculate_cosine_distance(a, b)
         return cosine_similarity
 
-    def _compute_vectorized(self, bn0_0, bn0_1, bn1_0, bn1_1):
+    def _compute_vectorized(self, bn0_0, bn0_1, bn0_2, bn1_0, bn1_1, bn1_2):
 
-        conc = pd.Series(list(zip(bn0_0, bn0_1, bn1_0, bn1_1)))
+        conc = pd.Series(list(zip(bn0_0, bn0_1, bn0_2, bn1_0, bn1_1, bn1_2)))
         
         def wratio_apply(x):
             maxlist = [0]
-            if not np.linalg.norm(x[0]) == 0.0:
-                if not np.linalg.norm(x[2]) == 0.0:
-                    maxlist.append(self.calculate_cosine_similarity(x[0],x[2]))
-                if not np.linalg.norm(x[3]) == 0.0:
-                    maxlist.append(self.calculate_cosine_similarity(x[0],x[3]))
-            if not np.linalg.norm(x[1]) == 0.0:
-                if not np.linalg.norm(x[2]) == 0.0:
-                    maxlist.append(self.calculate_cosine_similarity(x[1],x[2]))
-                if not np.linalg.norm(x[3]) == 0.0:
-                    maxlist.append(self.calculate_cosine_similarity(x[1],x[3]))
+            for indx in [0,1,2]:
+                if not np.linalg.norm(x[indx]) == 0.0:
+                    for indx2 in [3,4,5]: 
+                        if not np.linalg.norm(x[indx2]) == 0.0:
+                            maxlist.append(self.calculate_cosine_similarity(x[indx],x[indx2]))
             return max(maxlist)
 
         return conc.apply(wratio_apply)
@@ -161,6 +156,8 @@ class Merge():
             row["bn0"] = self.text_prepare(row["Business Name"],row["Street"])
         if isinstance(row["Business Name 2"],str):
             row["bn1"] = self.text_prepare(row["Business Name 2"],row["Street"])
+        if isinstance(row["Business Name 3"],str):
+            row["bn2"] = self.text_prepare(row["Business Name 3"],row["Street"])
         return row
 
     def type_cast(self, df, replace_nan = True):
@@ -170,6 +167,7 @@ class Merge():
         df["Street"] = df["Street"].astype(str)
         df["Business Name"] = df["Business Name"].astype(str)
         df["Business Name 2"] = df["Business Name 2"].astype(str)
+        df["Business Name 3"] = df["Business Name 3"].astype(str)
         df["Contact Phone"] = df["Contact Phone"].astype(str)
         df["Industry"] = df["Industry"].astype(str)
         if replace_nan:
@@ -209,6 +207,7 @@ class Merge():
             df["LBID"] = ""
             df["bn0"] = ""
             df["bn1"] = ""
+            df["bn2"] = ""
 
             bblmask = (df['BBL'].str.len() == 10) & (df['BBL']!="0000000000") & (df['BBL'].str.isdigit())
             df = df[bblmask]
@@ -229,7 +228,7 @@ class Merge():
         df.reset_index(drop=True)
         leng = len(df)
         
-        df = df[df["Zip"].isin(["10028", "10013", "11372", "11213", "10458", "10304"])]
+        # df = df[df["Zip"].isin(["10028", "10013", "11372", "11213", "10458", "10304"])]
         # df = df[df["Zip"].isin(["10025"])]
 
         print(f"Loaded data with {len(df)}/{leng} rows")
@@ -243,7 +242,7 @@ class Merge():
 
     def add_llid_async(self):
         
-        df_list = self.split_dataframes(self.df,6,"BBL")
+        df_list = self.split_dataframes(self.df,90,"BBL")
         print("Dataframes split")
         future_list = list()
         
@@ -268,12 +267,15 @@ class Merge():
         def similarity(df):
             df["bn0"] =  df["bn0"].replace(np.nan, "", regex=True)
             df["bn1"] =  df["bn1"].replace(np.nan, "", regex=True)
+            df["bn2"] =  df["bn2"].replace(np.nan, "", regex=True)
             vectorizer = TfidfVectorizer(min_df=1, analyzer=ngrams)
-            tf_idf_matrix = vectorizer.fit_transform(pd.concat([df["bn0"],df["bn1"]])).toarray()
-            tfidf0 = tf_idf_matrix[:int(tf_idf_matrix.shape[0]/2)]
-            tfidf1 = tf_idf_matrix[int(tf_idf_matrix.shape[0]/2):]
+            tf_idf_matrix = vectorizer.fit_transform(pd.concat([df["bn0"],df["bn1"],df["bn2"]])).toarray()
+            tfidf0 = tf_idf_matrix[:int(tf_idf_matrix.shape[0]/3)]
+            tfidf1 = tf_idf_matrix[int(tf_idf_matrix.shape[0]/3):2*int(tf_idf_matrix.shape[0]/3)]
+            tfidf2 = tf_idf_matrix[2*int(tf_idf_matrix.shape[0]/3):]
             df["TFIDF0"] = list(tfidf0)
             df["TFIDF1"] = list(tfidf1)
+            df["TFIDF2"] = list(tfidf2)
             return df
         
         print("vectorizing")
@@ -289,13 +291,14 @@ class Merge():
         compare_cl.add(ComparePhones('Contact Phone','Contact Phone'))
         compare_cl.add(CompareRecordIDs(('Record ID','Record ID 2','Record ID 3'),('Record ID','Record ID 2','Record ID 3')))
         compare_cl.add(CompareIndustries('Industry','Industry'))
-        compare_cl.add(CompareNames(('TFIDF0','TFIDF1'),('TFIDF0','TFIDF1')))
+        compare_cl.add(CompareNames(('TFIDF0','TFIDF1','TFIDF2'),('TFIDF0','TFIDF1','TFIDF2')))
 
         print("computing")
         features = compare_cl.compute(candidate_links, df)
 
         del df["TFIDF0"]
         del df["TFIDF1"]
+        del df["TFIDF2"]
         
         print("classifying")
         def make_prediction(row):
@@ -324,32 +327,35 @@ class Merge():
 
         return df
 
-    def add_lbid(self):
+    def add_lbid(self, skip=False):
         self.df = self.load_pickle(1)
         self.df = self.df.reset_index(drop=True)
         self.df = self.type_cast(self.df)
 
-        exp_llid = set()
-        exp_rid = set()
-        exp_rid2 = set()
-        matches = []
-        for _, row in self.df.iterrows():
-            subdf = self.df[(self.df.index != row.name) &
-                           (((~self.df["LLID"].isin(exp_llid))&(self.df["LLID"]==row["LLID"]))
-                           |((~self.df["Record ID"].isin(exp_rid))&(self.df["Record ID"]==row["Record ID"]))
-                           |((~self.df["Record ID 2"].isin(exp_rid2))&(self.df["Record ID 2"]==row["Record ID 2"]))
-                           |((~self.df["Record ID 3"].isin(exp_rid2))&(self.df["Record ID 3"]==row["Record ID 3"])))]
-            exp_llid.add(row["LLID"])
-            exp_rid.add(row["Record ID"])
-            exp_rid2.add(row["Record ID 2"])
-            matches += [(row.name,val) for val in subdf.index.tolist()]
-        
-        g = Graph(len(self.df.index))
-        g.addEdges(matches)
-        cc = g.connectedComponents()
+        if not skip:
+            exp_llid = set()
+            exp_rid = set()
+            exp_rid2 = set()
+            matches = []
+            for _, row in self.df.iterrows():
+                subdf = self.df[(self.df.index != row.name) &
+                            (((~self.df["LLID"].isin(exp_llid))&(self.df["LLID"]==row["LLID"]))
+                            |((~self.df["Record ID"].isin(exp_rid))&(self.df["Record ID"]==row["Record ID"]))
+                            |((~self.df["Record ID 2"].isin(exp_rid2))&(self.df["Record ID 2"]==row["Record ID 2"]))
+                            |((~self.df["Record ID 3"].isin(exp_rid2))&(self.df["Record ID 3"]==row["Record ID 3"])))]
+                exp_llid.add(row["LLID"])
+                exp_rid.add(row["Record ID"])
+                exp_rid2.add(row["Record ID 2"])
+                matches += [(row.name,val) for val in subdf.index.tolist()]
+            
+            g = Graph(len(self.df.index))
+            g.addEdges(matches)
+            cc = g.connectedComponents()
 
-        for indexlist in cc:
-            self.df.loc[indexlist,"LBID"] = str(uuid.uuid4())
+            for indexlist in cc:
+                self.df.loc[indexlist,"LBID"] = str(uuid.uuid4())
+        else:
+            self.df["LBID"] = self.df["LLID"] 
 
         self.store_pickle(self.df,2)
 
@@ -373,7 +379,7 @@ if __name__ == '__main__':
     print(f"LLID adding: {end - start} seconds")
 
     start = time.time()
-    merge.add_lbid()
+    merge.add_lbid(skip=True)
     end = time.time()
     print(f"LBID adding: {end - start} seconds")
     

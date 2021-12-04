@@ -67,16 +67,17 @@ class IndustryAssign():
         df_list.append(df)
         return df_list
 
-    def apply_st_async(self):
+    def apply_st_async(self, skip=False):
         self.df["NAICS"] = ""
         self.df["NAICS Title"] = ""
-        df_list = self.split_dataframes(self.df,15,"LBID")
-        future_list = list()
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            for df in df_list:
-                future = executor.submit(self.apply_st, df)
-                future_list.append(future)
-        self.df = pd.concat([future.result() for future in future_list])
+        if not skip:
+            df_list = self.split_dataframes(self.df,15,"LBID")
+            future_list = list()
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                for df in df_list:
+                    future = executor.submit(self.apply_st, df)
+                    future_list.append(future)
+            self.df = pd.concat([future.result() for future in future_list])
 
         self.save_df()
         return self.df
@@ -109,5 +110,5 @@ class IndustryAssign():
 
 if __name__ == "__main__":
     industry_assign = IndustryAssign()
-    industry_assign.apply_st_async()
+    industry_assign.apply_st_async(skip=True)
     

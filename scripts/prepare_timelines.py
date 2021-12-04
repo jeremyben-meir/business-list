@@ -11,6 +11,7 @@ class CreateTimeline():
         self.s3 = boto3.resource('s3')
         self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-assigned.p").get()['Body'].read())
         # self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-merged.p").get()['Body'].read())
+        print(self.df.columns.tolist())
 
     def get_lim_date_from_cols(self, curgrp,col_list,is_maximum):
         lim_date = [(curgrp[date].max() if is_maximum else curgrp[date].min()) for date in col_list]
@@ -22,6 +23,7 @@ class CreateTimeline():
     def get_max_end(self, curgrp):
         insp_res = (curgrp["INSP Result"].max() == "Out of Business")
         app_res = (curgrp["APP Status"].max() == "OOB")
+
         maxdate_list = list()
         date_list = ["CHRG Date","INSP Date","Last INSP Date","Case Dec. Date","Temp Op Letter Expiration","APP End Date"]
         maxdate_list.append(self.get_lim_date_from_cols(curgrp,date_list,True) + pd.Timedelta(days=550))
@@ -33,7 +35,10 @@ class CreateTimeline():
         if app_res:
             date_list.append("APP Status")
         maxdate_list.append(self.get_lim_date_from_cols(curgrp,date_list,False))
-        return min(maxdate_list) if min(maxdate_list) < pd.to_datetime("today") else pd.to_datetime("today")
+
+        all_col = ['CHRG Date', 'INSP Date', 'APP Status Date', 'APP Start Date', 'APP End Date', 'LIC Start Date', 'LIC Exp Date', 'Temp Op Letter Issued', 'RSS Date', 'Last INSP Date', 'Out of Business Date', 'LIC Issue Date', 'Grade Date', 'Case Dec. Date', 'LIC Filing Date']
+        return_val = max(self.get_lim_date_from_cols(curgrp,all_col,False) , min(maxdate_list))
+        return return_val if return_val < pd.to_datetime("today") else pd.to_datetime("today")
 
     def type_cast(self, df, all_date_list):
         df["Business Name"] = df["Business Name"].fillna("")
