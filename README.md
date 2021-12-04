@@ -32,6 +32,10 @@ Given that the data pulls from multiple different sources of different formats, 
 * Run `./scripts/industry_assign.py`.
 ### Prepare timelines
 * Run `./scripts/prepare_timelines.py`.
-### Prepare geojson file for visualizer OR prepare observation list for predictor
-* Run `./scripts/prepare_geojson.py`.
-* OR run `./scripts/create_observations.py`.
+### Prepare observation lists for predictor
+* Run `./scripts/business_observations.py` and `./scripts/date_loc_observations.py`
+### Merge business observations with date-location observations
+* Run `./scripts/merge_observations.py`.
+### Prepare geojson file for visualizer OR model
+* Run `./scripts/prepare_geojson.py` or `./scripts/survival_model.py`.
+

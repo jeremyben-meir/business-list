@@ -71,6 +71,7 @@ class DOSLicensesSrcFile(SourceFile):
         self.df["Business Name 2"]=self.df["Business Name 2"].apply(lambda x:x.replace(u'\xa0', u' '))
 
         self.df["Building Number"] = ""
+        self.df["Industry"] = "Appearance Enhancement Service"
 
         self.df = self.df.apply(lambda row : clean_addr(row), axis=1)
 

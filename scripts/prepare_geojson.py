@@ -12,7 +12,7 @@ class PrepareGeojson():
 
     def __init__(self):
         self.s3 = boto3.resource('s3')
-        self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-timeline.p").get()['Body'].read())
+        self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-observations.p").get()['Body'].read())
         # self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-timeline.p", "rb" ))
     
     def create_llid_json(self):
