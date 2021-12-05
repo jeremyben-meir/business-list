@@ -18,6 +18,7 @@ class PrepareGeojson():
         self.obs_df['End Date'] = pd.to_datetime(self.obs_df['End Date']).dt.date #TODO: check
         self.bbl_df['Start Date'] = pd.to_datetime(self.bbl_df['Start Date']).dt.date #TODO: check
         self.bbl_df['End Date'] = pd.to_datetime(self.bbl_df['End Date']).dt.date #TODO: check
+        self.year_list = list(range(2010,2022)) # TODO: CHANGE LOCIC
 
     def create_llid_json(self):
         features = list()
@@ -134,7 +135,7 @@ class PrepareGeojson():
             latitude, longitude = map(float, (group["Latitude"].max(), group["Longitude"].max()))
             ## VACANCY
             max_llid = int(group['Year'].value_counts().max())
-            vacancy = float((len(group) / group['Year'].nunique()) / max_llid)
+            vacancy = float((len(group) / len(self.year_list)) / max_llid)
             turnover = 0
             
             # geometry = Point((longitude, latitude)),
@@ -172,8 +173,8 @@ class PrepareGeojson():
 
 if __name__ == "__main__":
     prepare_geojson = PrepareGeojson()
-    prepare_geojson.create_llid_json()
-    # prepare_geojson.create_bbl_json_2()
+    # prepare_geojson.create_llid_json()
+    prepare_geojson.create_bbl_json_2()
 
 
 
