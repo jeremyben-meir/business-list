@@ -12,9 +12,16 @@ class DateLocObservations():
 
     def __init__(self):
         self.s3 = boto3.resource('s3')
-        
+    
+    def apply_trans(self, res_df, year):
+        res_df["Year"] = year
+        res_df = res_df.reset_index(drop=True)
+        res_df.columns = res_df.columns.str.lower()
+        return res_df
+
+    def generate_pluto(self):
         for year in range(2010,2022):
-            path = f"pluto/{year}/"
+            path = f"pluto/source/{year}/"
             df_list = list()
             summary_list = [obj.key for obj in self.s3.Bucket(DirectoryFields.S3_PATH_NAME).objects.filter(Prefix=path) if (obj.key != path and "/." not in obj.key and (".csv" in obj.key or ".txt" in obj.key))]
             if len(summary_list) > 0:
@@ -28,26 +35,12 @@ class DateLocObservations():
                 res_df = self.apply_trans(res_df, year)
                 print(year)
                 print(res_df.columns.tolist())
-                self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"{path}pluto{year}.p", Body=pickle.dumps(res_df))
-
-        # path = f"pluto/"
-        # for obj in self.s3.Bucket(DirectoryFields.S3_PATH_NAME).objects.filter(Prefix=path):
-        #     if (obj.key != path and "/." not in obj.key and ".p" in obj.key and ".pdf" not in obj.key):
-        #         df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object(obj.key).get()['Body'].read())
-        #         # print(df)
-        #         df["BBL"] = df.apply(lambda row: self.get_bbl(row),axis=1)
-        #         print(df["BBL"])
-        #         self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=obj.key, Body=pickle.dumps(df))
-
-    def apply_trans(self, res_df, year):
-        res_df["Year"] = year
-        res_df = res_df.reset_index(drop=True)
-        res_df.columns = res_df.columns.str.lower()
-        return res_df
-
-    def generate(self):
+                self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"pluto/{year}.p", Body=pickle.dumps(res_df))
+   
+    def combine_obs(self):
         pass
 
 if __name__ == "__main__":
     date_loc_observations = DateLocObservations()
-    date_loc_observations.generate()
+    date_loc_observations.generate_pluto()
+    date_loc_observations.combine_obs()

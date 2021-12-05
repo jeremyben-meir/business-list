@@ -231,7 +231,7 @@ class Merge():
         
         # df = df[df["Zip"].isin(["10028", "10013", "11372", "11213", "10458", "10304"])]
         # df = df[df["Zip"].isin(["10025"])]
-        
+
         print()
         print(f"Loaded data with {len(df)}/{leng} rows")
 
@@ -246,18 +246,21 @@ class Merge():
 
         df_list = self.split_dataframes(self.df,self.split_num,"BBL")
         print("Dataframes split")
-        future_list = list()
+        result_df = None
         print()
         
         ticker = 1
         for df in df_list:
             print(f"{ticker} / {self.split_num} Dataframe: {len(df)}")
-            future_list.append(self.add_llid(df))
+            llid_df = self.add_llid(df)
+            if result_df is None:
+                result_df = llid_df
+            else:
+                result_df = result_df.append(llid_df, ignore_index=True)
             ticker += 1
-        self.df = pd.concat(future_list, ignore_index=True)
 
-        self.store_pickle(self.df,1)
-        print(self.df)
+        self.store_pickle(result_df,1)
+        print(result_df)
 
     def add_llid(self, df, depth = 0):
 
@@ -281,6 +284,7 @@ class Merge():
             df["TFIDF0"] = list(tfidf0)
             df["TFIDF1"] = list(tfidf1)
             df["TFIDF2"] = list(tfidf2)
+            del tf_idf_matrix
             return df
         
         print("vectorizing")
@@ -330,6 +334,9 @@ class Merge():
             
             for indexlist in cc:
                 df.loc[indexlist,"LLID"] = str(uuid.uuid4())
+            
+            del g
+            del features
 
         except:
 
