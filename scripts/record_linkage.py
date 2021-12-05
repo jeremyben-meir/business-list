@@ -126,6 +126,7 @@ class Merge():
     def __init__(self):
         self.s3 = boto3.resource('s3')
         self.df = self.load_source_files(loaded=True)
+        self.split_num = 100
 
     def split_dataframes(self, df, segment_num, split_col):
         df_list = list()
@@ -230,7 +231,8 @@ class Merge():
         
         # df = df[df["Zip"].isin(["10028", "10013", "11372", "11213", "10458", "10304"])]
         # df = df[df["Zip"].isin(["10025"])]
-
+        
+        print()
         print(f"Loaded data with {len(df)}/{leng} rows")
 
         if not df["BBL"].mode().empty:
@@ -241,20 +243,23 @@ class Merge():
         return df
 
     def add_llid_async(self):
-        
-        df_list = self.split_dataframes(self.df,90,"BBL")
+
+        df_list = self.split_dataframes(self.df,self.split_num,"BBL")
         print("Dataframes split")
         future_list = list()
+        print()
         
+        ticker = 1
         for df in df_list:
-            print(f"Dataframe: {len(df)}")
+            print(f"{ticker} / {self.split_num} Dataframe: {len(df)}")
             future_list.append(self.add_llid(df))
-        self.df = pd.concat(future_list)
+            ticker += 1
+        self.df = pd.concat(future_list, ignore_index=True)
 
         self.store_pickle(self.df,1)
         print(self.df)
 
-    def add_llid(self, df):
+    def add_llid(self, df, depth = 0):
 
         df = df.reset_index(drop=True)
         df = self.type_cast(df)
@@ -279,51 +284,64 @@ class Merge():
             return df
         
         print("vectorizing")
-        df = similarity(df)
+        try:
+            df = similarity(df)
 
-        print("blocking")
-        indexer = recordlinkage.Index()
-        indexer.block(on='BBL')
-        candidate_links = indexer.index(df)
+            print("blocking")
+            indexer = recordlinkage.Index()
+            indexer.block(on='BBL')
+            candidate_links = indexer.index(df)
 
-        compare_cl = recordlinkage.Compare()
+            compare_cl = recordlinkage.Compare()
 
-        compare_cl.add(ComparePhones('Contact Phone','Contact Phone'))
-        compare_cl.add(CompareRecordIDs(('Record ID','Record ID 2','Record ID 3'),('Record ID','Record ID 2','Record ID 3')))
-        compare_cl.add(CompareIndustries('Industry','Industry'))
-        compare_cl.add(CompareNames(('TFIDF0','TFIDF1','TFIDF2'),('TFIDF0','TFIDF1','TFIDF2')))
+            compare_cl.add(ComparePhones('Contact Phone','Contact Phone'))
+            compare_cl.add(CompareRecordIDs(('Record ID','Record ID 2','Record ID 3'),('Record ID','Record ID 2','Record ID 3')))
+            compare_cl.add(CompareIndustries('Industry','Industry'))
+            compare_cl.add(CompareNames(('TFIDF0','TFIDF1','TFIDF2'),('TFIDF0','TFIDF1','TFIDF2')))
 
-        print("computing")
-        features = compare_cl.compute(candidate_links, df)
+            print("computing")
+            features = compare_cl.compute(candidate_links, df)
 
-        del df["TFIDF0"]
-        del df["TFIDF1"]
-        del df["TFIDF2"]
-        
-        print("classifying")
-        def make_prediction(row):
-            if row[0] == 1:
-                return 1
-            if row[1] == 1:
-                return 1
-            if row[3] > .75:
-                return 1
-            if row[2] == 1 and row[3] > .5:
-                return 1
-            return 0
+            del df["TFIDF0"]
+            del df["TFIDF1"]
+            del df["TFIDF2"]
+            
+            print("classifying")
+            def make_prediction(row):
+                if row[0] == 1:
+                    return 1
+                if row[1] == 1:
+                    return 1
+                if row[3] > .75:
+                    return 1
+                if row[2] == 1 and row[3] > .5:
+                    return 1
+                return 0
 
-        features["pred"] = features.apply(lambda row: make_prediction(row), axis=1)
-        matches = features[features["pred"]==1].index
+            features["pred"] = features.apply(lambda row: make_prediction(row), axis=1)
+            matches = features[features["pred"]==1].index
 
-        print(features)
-        print(matches)
+            # print(features)
+            # print(matches)
 
-        g = Graph(len(df.index))
-        g.addEdges(matches.tolist())
-        cc = g.connectedComponents()
-        
-        for indexlist in cc:
-            df.loc[indexlist,"LLID"] = str(uuid.uuid4())
+            g = Graph(len(df.index))
+            g.addEdges(matches.tolist())
+            cc = g.connectedComponents()
+            
+            for indexlist in cc:
+                df.loc[indexlist,"LLID"] = str(uuid.uuid4())
+
+        except:
+
+            print(f"MINIMIZING, depth {depth}")
+            df1, df2 = self.split_dataframes(df,2,"BBL")
+            df1 = self.add_llid(df1,depth+1)
+            df2 = self.add_llid(df2,depth+1)
+            df = pd.concat([df1,df2])
+            df = df.reset_index(drop=True)
+
+        if depth == 0:
+            print("Completed\n")
 
         return df
 
