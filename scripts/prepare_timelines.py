@@ -61,13 +61,14 @@ class CreateTimeline():
         all_date_list = ["CHRG Date","INSP Date","Last INSP Date","Out of Business Date","Case Dec. Date","APP Status Date","APP Start Date","APP End Date","Temp Op Letter Issued","Temp Op Letter Expiration","LIC Start Date","LIC Exp Date","LIC Issue Date","LIC Filing Date","RSS Date"]
         df = self.type_cast(self.df,all_date_list)
         
-        date_df = pd.DataFrame(columns=["Name","Start Date","End Date","Longitude","Latitude"])
+        # date_df = pd.DataFrame(columns=["Name","Start Date","End Date","Longitude","Latitude"])
+        res_list = []
 
         totlen = len(self.df["LBID"].unique())
         ticker = 0
 
         lbid_group = df.groupby("LBID")
-        for _ , out_group in lbid_group:
+        for lbid , out_group in lbid_group:
 
             name = max(out_group["Business Name"].max(),out_group["Business Name 2"].max())
             naics_code = out_group["NAICS"].max()
@@ -86,8 +87,9 @@ class CreateTimeline():
                 maxdate = self.get_max_end(out_group)
 
                 if latitude != 0.0 and longitude != 0.0:
-                    new_row = {'Name': name, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude,'NAICS Title': naics_title, 'NAICS': naics_code}
-                    date_df = date_df.append(new_row, ignore_index = True)
+                    new_row = {'Name': name, 'LBID': lbid, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude,'NAICS Title': naics_title, 'NAICS': naics_code}
+                    res_list.append(new_row)
+                    # date_df = date_df.append(new_row, ignore_index = True)
 
             else:
 
@@ -126,11 +128,13 @@ class CreateTimeline():
                     prevmin = mindate
 
                     if latitude != 0.0 and longitude != 0.0:
-                        new_row = {'Name': name, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude, 'NAICS Title': naics_title, 'NAICS': naics_code}
-                        date_df = date_df.append(new_row, ignore_index = True)
+                        new_row = {'Name': name, 'LBID': lbid, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude, 'NAICS Title': naics_title, 'NAICS': naics_code}
+                        # date_df = date_df.append(new_row, ignore_index = True)
+                        res_list.append(new_row)
             ticker += 1
-            print(f"{ticker} / {totlen}")
+            print(f" {ticker} / {totlen}",end="\r")
         
+        date_df = pd.DataFrame(res_list)
         cleaned_file_path = f"{DirectoryFields.S3_PATH}data/temp/timeline.csv"
         date_df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
 

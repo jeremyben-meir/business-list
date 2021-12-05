@@ -14,6 +14,8 @@ class SurvivalModel():
     
     def __init__(self):
         self.s3 = boto3.resource('s3')
+        # NEED TO ELIMINATE 2021 OBS due to zeroed survival
+        # df = df[df["Observed"] < pd.to_datetime(f"01/01/2021")]
 
     def generate_model(self):
         path = f'data/temp/df-observations.p'

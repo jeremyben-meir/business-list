@@ -12,32 +12,75 @@ class BusinessObservations():
     def __init__(self):
         self.s3 = boto3.resource('s3')
         self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-timeline.p").get()['Body'].read())
+        print(len(self.df))
+    
+    def get_pluto(self,year):
+        path = f'pluto/{year}.p'
+        pluto_df = pickle.loads(self.s3.Bucket("locus-data").Object(path).get()['Body'].read())
+        return pluto_df
 
     def generate(self):
-        # self.df["Observed"] = pd.NaT
-        self.df['End Date'] = pd.to_datetime(self.df['End Date']).dt.date
-        df = pd.DataFrame()
-        for year in range(2010,2022):
-            # for month in ["01","06"]:
+        year_list = list(range(2010,2022))
+        df = None
+        lbid_to_elim = set()
+
+        for year in year_list:
+            
+            print(year)
+
+            pluto_df = self.get_pluto(year)
+
             month = '01'
-            cur_date = pd.to_datetime(f"{month}/01/{year}")
+            cur_date = pd.to_datetime(f"{month}/01/{year}") #TODO edit timestamp
             temp_set = self.df[(self.df["Start Date"] <= cur_date) & (self.df["End Date"] >= cur_date)]
-            temp_set["Observed"] = cur_date
-            temp_set["Year"] = year
-            df = df.append(temp_set)
+            temp_set["Observed"] = cur_date #TODO CHECK
+            temp_set["Year"] = year #TODO CHECK
+
+            pluto_df["bbl"] = pluto_df["bbl"].astype(str)
+            merged = temp_set.merge(pluto_df, how='left', left_on=['BBL'], right_on=['bbl'])
+            merged = merged.loc[:,~merged.columns.duplicated()]
+            merged = merged.loc[~merged.index.duplicated(keep='first')]
+            merged = merged.reset_index(drop = True)
+
+            del pluto_df
+            del temp_set
+
+            merged["comarea"] = merged["comarea"].fillna(-1).astype(int)
+            merged["unitstotal"] = merged["unitstotal"].fillna(-1).astype(int)
+            merged["unitsres"] = merged["unitsres"].fillna(-1).astype(int)
+            bad_lbid_mask = (((merged["unitstotal"] == merged["unitsres"]) & (merged["unitstotal"] != -1) & (merged["unitsres"] != -1)) | (merged["comarea"] == 0))
+            bad_lbid_df = merged[bad_lbid_mask]
+            bad_lbid = bad_lbid_df["LBID"].unique().tolist()
+            lbid_to_elim.update(bad_lbid)
+            merged = merged[~bad_lbid_mask]
+
+            if df is None:
+                df = merged
+            else:
+                df = pd.concat([merged,df],ignore_index=True)
+            
+            print(len(merged))
+            print()
+
+            del merged
         
+        # self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key='data/temp/df-bbls.p', Body=pickle.dumps(self.df[~self.df["LBID"].isin(lbid_to_elim)]))
+
+        df = df[~df["LBID"].isin(lbid_to_elim)]
+        print(len(df))
         df["Survive"] = 1
         df = df.reset_index(drop=True)
         grouped = df.groupby("LLID")
-        for name, group in grouped:
+        totlen = df["LLID"].nunique()
+        ticker = 0
+        for _, group in grouped:
             df.loc[group['Observed'].idxmax(),"Survive"] = 0
-        df = df[df["Observed"] < pd.to_datetime(f"01/01/2021")]
+            ticker+=1
+            print(f'{ticker} / {totlen}',end="\r")
+        # df = df[df["Observed"] < pd.to_datetime(f"01/01/2021")]
         df["Months Active"] = (df["Observed"] - df["Start Date"]).astype('timedelta64[M]').astype(int)
         
-        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key='data/temp/df-business-observations.p', Body=pickle.dumps(df))
-
-        print(df.columns.tolist())
-
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key='data/temp/df-observations.p', Body=pickle.dumps(df))
 
 if __name__ == "__main__":
     business_observations = BusinessObservations()

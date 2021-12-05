@@ -12,13 +12,19 @@ class PrepareGeojson():
 
     def __init__(self):
         self.s3 = boto3.resource('s3')
-        self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-observations.p").get()['Body'].read())
-        # self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-timeline.p", "rb" ))
-    
+        self.obs_df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-observations.p").get()['Body'].read())
+        self.bbl_df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-bbls.p").get()['Body'].read())
+        self.obs_df['Start Date'] = pd.to_datetime(self.obs_df['Start Date']).dt.date #TODO: check
+        self.obs_df['End Date'] = pd.to_datetime(self.obs_df['End Date']).dt.date #TODO: check
+        self.bbl_df['Start Date'] = pd.to_datetime(self.bbl_df['Start Date']).dt.date #TODO: check
+        self.bbl_df['End Date'] = pd.to_datetime(self.bbl_df['End Date']).dt.date #TODO: check
+
     def create_llid_json(self):
         features = list()
-        df = self.df
-        df = df[pd.to_datetime("today") + pd.Timedelta(days=-60) < df["End Date"]]
+        df = self.obs_df
+        # df = df[pd.to_datetime("today") + pd.Timedelta(days=-60) < df["End Date"]]
+        df = df[df["Year"] == 2021]
+        print(len(df))
         totlen = df["BBL"].nunique()
         ticker = 0
         grouped = df.groupby("BBL")
@@ -26,6 +32,7 @@ class PrepareGeojson():
             num_vals = len(group)
             lon = group["Longitude"].astype(float).max()
             lat = group["Latitude"].astype(float).max()
+            counter = 0
             for index, row in group.iterrows():
                 duration = (row["End Date"] - row["Start Date"]).days
                 duration =  str(math.floor(duration/365.0) if not pd.isnull(duration) else 0)
@@ -33,10 +40,12 @@ class PrepareGeojson():
                 if num_vals == 1:
                     latitude, longitude = map(float, (lat, lon))
                 else:
-                    degree_val = 360.0*(ticker/num_vals)
+                    degree_val = 360.0*(counter/num_vals)
                     rand_radian = math.radians(degree_val)
                     latitude, longitude = map(float, (lat+(math.sin(rand_radian)/15000.0), lon+(math.cos(rand_radian)/12000.0)))
                 
+                counter += 1
+
                 features.append(
                     Feature(
                         geometry = Point((longitude, latitude)),
@@ -54,8 +63,8 @@ class PrepareGeojson():
                     )
                 )
             ticker += 1
-            print(f"{ticker} / {totlen}")
-
+            print(f" {ticker} / {totlen}",end="\r")
+        print("\nLLIDs complete")
         collection = FeatureCollection(features)
         self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/llid_timeline.json", Body=('%s' % collection))
 
@@ -64,7 +73,7 @@ class PrepareGeojson():
     
     def create_bbl_json(self):
         features = list()
-        df = self.df
+        df = self.bbl_df
         totlen = df["BBL"].nunique()
         ticker = 0
         for bbl_val in df["BBL"].unique():
@@ -79,7 +88,7 @@ class PrepareGeojson():
                 max_llid = 1
             while date < pd.to_datetime("today"):
                 vacancy_total.append(self.num_llids_for_date(bbl_df,date) / max_llid)
-                date += pd.Timedelta(days=30)
+                date += pd.Timedelta(days=90)
 
             ## TURNOVER
             date = pd.to_datetime('20100201', format='%Y%m%d', errors='ignore')
@@ -110,17 +119,61 @@ class PrepareGeojson():
             )
 
             ticker += 1
-            print(f"{ticker} / {totlen}")
+            print(f" {ticker} / {totlen}",end="\r")
+        print("\nBBLs complete")
         collection = FeatureCollection(features)
-        # with open(f'{DirectoryFields.LOCAL_LOCUS_PATH}/data/bbl_timeline.json', "w") as f:
-        #     f.write('%s' % collection)
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/bbl_timeline.json", Body=('%s' % collection))
+    
+    def create_bbl_json_2(self):
+        features = list()
+        df = self.obs_df
+        totlen = df["BBL"].nunique()
+        ticker = 0
+        grouped = df.groupby("BBL")
+        for name, group in grouped:
+            latitude, longitude = map(float, (group["Latitude"].max(), group["Longitude"].max()))
+            ## VACANCY
+            max_llid = int(group['Year'].value_counts().max())
+            vacancy = float((len(group) / group['Year'].nunique()) / max_llid)
+            turnover = 0
+            
+            # geometry = Point((longitude, latitude)),
+            # properties = {
+            #     'BBL': name,
+            #     'Vacancy': str(math.floor(vacancy*10.0))[0],
+            #     'Turnover': str(math.floor(turnover*10.0))[0],
+            #     'vacancy': vacancy,
+            #     'turnover': turnover,
+            #     'Max Business': max_llid
+            # }
+            # print(properties)
+
+            features.append(
+                Feature(
+                    geometry = Point((longitude, latitude)),
+                    properties = {
+                        'BBL': name,
+                        'Vacancy': str(math.floor(vacancy*10.0))[0],
+                        'Turnover': str(math.floor(turnover*10.0))[0],
+                        'vacancy': vacancy,
+                        'turnover': turnover,
+                        'Max Business': max_llid
+                    }
+                )
+            )
+
+            ticker += 1
+            print(f" {ticker} / {totlen}",end="\r")
+
+        print("\nBBLs complete")
+        collection = FeatureCollection(features)
         self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/bbl_timeline.json", Body=('%s' % collection))
         
 
 if __name__ == "__main__":
     prepare_geojson = PrepareGeojson()
     prepare_geojson.create_llid_json()
-    prepare_geojson.create_bbl_json()
+    # prepare_geojson.create_bbl_json_2()
 
 
 

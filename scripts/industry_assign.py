@@ -11,15 +11,14 @@ import boto3
 
 class IndustryAssign():
 
-    def __init__(self):
+    def __init__(self, overwrite):
         self.s3 = boto3.resource('s3')
-        self.overwrite = True
-        try:
+        self.overwrite = overwrite
+        if self.overwrite == False:
             df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-assigned.p").get()['Body'].read())
             self.df = df[df["NAICS"]==""]
             self.org_df = df[df["NAICS"]!=""]
-            self.overwrite = False
-        except: 
+        else:
             self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-merged.p").get()['Body'].read())
         self.ticker = 0
         self.totlen = len(self.df["LBID"].unique())
@@ -109,6 +108,6 @@ class IndustryAssign():
         return df
 
 if __name__ == "__main__":
-    industry_assign = IndustryAssign()
+    industry_assign = IndustryAssign(overwrite=True)
     industry_assign.apply_st_async(skip=True)
     

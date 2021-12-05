@@ -285,6 +285,9 @@ class Merge():
             df["TFIDF1"] = list(tfidf1)
             df["TFIDF2"] = list(tfidf2)
             del tf_idf_matrix
+            del tfidf0
+            del tfidf1
+            del tfidf2
             return df
         
         print("vectorizing")
@@ -337,6 +340,7 @@ class Merge():
             
             del g
             del features
+            del matches
 
         except:
 
@@ -348,7 +352,7 @@ class Merge():
             df = df.reset_index(drop=True)
 
         if depth == 0:
-            print("Completed\n")
+            print()
 
         return df
 
