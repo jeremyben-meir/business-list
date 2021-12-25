@@ -58,6 +58,7 @@ class PrepareGeojson():
                             # 'NAICS Title': str(row["NAICS Title"]),
                             'Contact Phone': str(row["Contact Phone"]),
                             "Duration": duration,
+                            "color": duration,
                             'Start Date': str(row["Start Date"]),
                             'End Date': str(row["End Date"])
                         }
@@ -72,59 +73,6 @@ class PrepareGeojson():
     def num_llids_for_date(self,df,date):
         return len(df[(df["Start Date"]<=date) & (df["End Date"]>=date)])
     
-    def create_bbl_json(self):
-        features = list()
-        df = self.bbl_df
-        totlen = df["BBL"].nunique()
-        ticker = 0
-        for bbl_val in df["BBL"].unique():
-            bbl_df = df[df["BBL"] == bbl_val]
-            latitude, longitude = map(float, (bbl_df["Latitude"].max(), bbl_df["Longitude"].max()))
-            
-            ## VACANCY
-            max_llid = max([self.num_llids_for_date(bbl_df,date) for date in bbl_df["Start Date"].unique()])
-            date = pd.to_datetime('20100101', format='%Y%m%d', errors='ignore')
-            vacancy_total = list()
-            if max_llid == 0:
-                max_llid = 1
-            while date < pd.to_datetime("today"):
-                vacancy_total.append(self.num_llids_for_date(bbl_df,date) / max_llid)
-                date += pd.Timedelta(days=90)
-
-            ## TURNOVER
-            date = pd.to_datetime('20100201', format='%Y%m%d', errors='ignore')
-            llid_date_list = list()
-            turnover_total = list()
-
-            while date < pd.to_datetime("today"):
-                llid_date_list.append(self.num_llids_for_date(bbl_df,date))
-                date += pd.Timedelta(days=365)
-
-            for num in range(len(llid_date_list)-1):
-                turnover_total.append((llid_date_list[num+1] - llid_date_list[num]) / (1 if llid_date_list[num] == 0 else llid_date_list[num]))
-
-            vacancy = 1.0 - (sum(vacancy_total) / len(vacancy_total))
-            turnover = (sum(turnover_total) / len(turnover_total))
-            features.append(
-                Feature(
-                    geometry = Point((longitude, latitude)),
-                    properties = {
-                        'BBL': bbl_val,
-                        'Vacancy': str(math.floor(vacancy*10.0))[0],
-                        'Turnover': str(math.floor(turnover*10.0))[0],
-                        'vacancy': vacancy,
-                        'turnover': turnover,
-                        'Max Business': max_llid
-                    }
-                )
-            )
-
-            ticker += 1
-            print(f" {ticker} / {totlen}",end="\r")
-        print("\nBBLs complete")
-        collection = FeatureCollection(features)
-        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/bbl_timeline.json", Body=('%s' % collection))
-    
     def create_bbl_json_2(self):
         features = list()
         df = self.obs_df
@@ -136,28 +84,14 @@ class PrepareGeojson():
             ## VACANCY
             max_llid = int(group['Year'].value_counts().max())
             vacancy = float((len(group) / len(self.year_list)) / max_llid)
-            turnover = 0
-            
-            # geometry = Point((longitude, latitude)),
-            # properties = {
-            #     'BBL': name,
-            #     'Vacancy': str(math.floor(vacancy*10.0))[0],
-            #     'Turnover': str(math.floor(turnover*10.0))[0],
-            #     'vacancy': vacancy,
-            #     'turnover': turnover,
-            #     'Max Business': max_llid
-            # }
-            # print(properties)
 
             features.append(
                 Feature(
                     geometry = Point((longitude, latitude)),
                     properties = {
                         'BBL': name,
-                        'Vacancy': str(math.floor(vacancy*10.0))[0],
-                        'Turnover': str(math.floor(turnover*10.0))[0],
                         'vacancy': vacancy,
-                        'turnover': turnover,
+                        'color': 0,
                         'Max Business': max_llid
                     }
                 )
@@ -178,3 +112,56 @@ if __name__ == "__main__":
 
 
 
+    # def create_bbl_json(self):
+    #     features = list()
+    #     df = self.bbl_df
+    #     totlen = df["BBL"].nunique()
+    #     ticker = 0
+    #     for bbl_val in df["BBL"].unique():
+    #         bbl_df = df[df["BBL"] == bbl_val]
+    #         latitude, longitude = map(float, (bbl_df["Latitude"].max(), bbl_df["Longitude"].max()))
+            
+    #         ## VACANCY
+    #         max_llid = max([self.num_llids_for_date(bbl_df,date) for date in bbl_df["Start Date"].unique()])
+    #         date = pd.to_datetime('20100101', format='%Y%m%d', errors='ignore')
+    #         vacancy_total = list()
+    #         if max_llid == 0:
+    #             max_llid = 1
+    #         while date < pd.to_datetime("today"):
+    #             vacancy_total.append(self.num_llids_for_date(bbl_df,date) / max_llid)
+    #             date += pd.Timedelta(days=90)
+
+    #         ## TURNOVER
+    #         date = pd.to_datetime('20100201', format='%Y%m%d', errors='ignore')
+    #         llid_date_list = list()
+    #         turnover_total = list()
+
+    #         while date < pd.to_datetime("today"):
+    #             llid_date_list.append(self.num_llids_for_date(bbl_df,date))
+    #             date += pd.Timedelta(days=365)
+
+    #         for num in range(len(llid_date_list)-1):
+    #             turnover_total.append((llid_date_list[num+1] - llid_date_list[num]) / (1 if llid_date_list[num] == 0 else llid_date_list[num]))
+
+    #         vacancy = 1.0 - (sum(vacancy_total) / len(vacancy_total))
+    #         turnover = (sum(turnover_total) / len(turnover_total))
+    #         features.append(
+    #             Feature(
+    #                 geometry = Point((longitude, latitude)),
+    #                 properties = {
+    #                     'BBL': bbl_val,
+    #                     'Vacancy': str(math.floor(vacancy*10.0))[0],
+    #                     'Turnover': str(math.floor(turnover*10.0))[0],
+    #                     'vacancy': vacancy,
+    #                     'turnover': turnover,
+    #                     'Max Business': max_llid
+    #                 }
+    #             )
+    #         )
+
+    #         ticker += 1
+    #         print(f" {ticker} / {totlen}",end="\r")
+    #     print("\nBBLs complete")
+    #     collection = FeatureCollection(features)
+    #     self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/bbl_timeline.json", Body=('%s' % collection))
+    

@@ -35,7 +35,7 @@ Given that the data pulls from multiple different sources of different formats, 
 ### Prepare date-location observations for predictor
 * Run `./scripts/date_loc_observations.py`.
 ### Prepare business observations for predictor
-* Run `./scripts/business_observations.py`/ 
+* Run `./scripts/business_observations.py`.
 ### Prepare geojson file for visualizer OR model
 * Run `./scripts/prepare_geojson.py` or `./scripts/survival_model.py`.
 

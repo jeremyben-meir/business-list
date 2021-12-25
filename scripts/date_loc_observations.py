@@ -6,12 +6,14 @@ from common import DirectoryFields
 import pandas as pd
 import csv
 import boto3
-
+from decimal import Decimal
+from geosupport import Geosupport
 
 class DateLocObservations():
 
     def __init__(self):
         self.s3 = boto3.resource('s3')
+        self.g = Geosupport()
     
     def apply_trans(self, res_df, year):
         res_df["Year"] = year
@@ -20,6 +22,15 @@ class DateLocObservations():
         return res_df
 
     def generate_pluto(self):
+
+        subway_df = self.generate_subway()
+
+        def min_dist(row,lon,lat,subway_df):
+            # min_val = min(subway_df.apply(lambda row: math.sqrt(((row["longitude"]-lon)**2)+((row["latitude"]-lat)**2)),axis=1))
+            min_val = len(subway_df[(abs(subway_df["longitude"]-lon)<.005) &(abs(subway_df["latitude"]-lat)<.005)])
+            row["subway"] = min_val
+            return row
+
         for year in range(2010,2022):
             path = f"pluto/source/{year}/"
             df_list = list()
@@ -35,12 +46,42 @@ class DateLocObservations():
                 res_df = self.apply_trans(res_df, year)
                 print(year)
                 print(res_df.columns.tolist())
+                def assign(bbl,col):
+                    
+                    try:
+                        # return None, None
+                        result = self.g.bbl({"bbl":str(int(bbl))})
+                        lon = float(result["Longitude"])
+                        lat = float(result["Latitude"])
+                        subway = 0#len(subway_df[(abs(subway_df["longitude"]-lon)<.002) & (abs(subway_df["latitude"]-lat)<.002)])
+                        return lon, lat, subway
+                    except Exception as e:
+                        return None, None, None
+                print(res_df["bbl"].apply(lambda bbl: assign(bbl,"Longitude")))
+                # res_df["latitude"] = res_df["bbl"].apply(lambda bbl: assign(bbl,"Latitude"))
+                # res_df = res_df.apply(lambda row: min_dist(row,row["longitude"],row["latitude"],subway_df),axis=1)
                 self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"pluto/{year}.p", Body=pickle.dumps(res_df))
-   
-    def combine_obs(self):
-        pass
+
+    def generate_comptroller(self):
+        path = f"comptroller/source/key_indicators.csv"
+        df = pd.read_csv(f"{DirectoryFields.S3_PATH}{path}", sep=",",low_memory=False)
+        df.rename( columns={'Unnamed: 0':'year'}, inplace=True )
+        df = df[pd.to_datetime(df['year']).dt.month == 1]
+        df['year'] = pd.to_datetime(df['year']).dt.year
+        df = df.reset_index(drop=True)
+        df = df.applymap(lambda cell: float(cell[:-1])/100.0 if type(cell) == str and cell[-1] == "%" else cell)
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"comptroller/key_indicators.p", Body=pickle.dumps(df))
+    
+    def generate_subway(self):
+        path = f"subway/source/DOITT_SUBWAY_STATION_01_13SEPT2010.csv"
+        df = pd.read_csv(f"{DirectoryFields.S3_PATH}{path}", sep=",",low_memory=False)
+        df = df.reset_index(drop=True)
+        df["longitude"] = df["the_geom"].apply(lambda cell: float(cell.split(" ")[1][1:]))
+        df["latitude"] = df["the_geom"].apply(lambda cell: float(cell.split(" ")[2][:-1]))
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"subway/data.p", Body=pickle.dumps(df))
+        return df
 
 if __name__ == "__main__":
     date_loc_observations = DateLocObservations()
     date_loc_observations.generate_pluto()
-    date_loc_observations.combine_obs()
+    # date_loc_observations.generate_comptroller()

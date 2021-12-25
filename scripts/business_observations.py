@@ -1,11 +1,12 @@
 from datetime import date
 import pickle
-
+from decimal import Decimal
 from pandas.tseries.offsets import YearBegin
 from common import DirectoryFields
 import pandas as pd
 import csv
 import boto3
+import math
 
 class BusinessObservations():
 
@@ -18,11 +19,18 @@ class BusinessObservations():
         path = f'pluto/{year}.p'
         pluto_df = pickle.loads(self.s3.Bucket("locus-data").Object(path).get()['Body'].read())
         return pluto_df
+    
+    def get_comptroller(self):
+        path = f'comptroller/key_indicators.p'
+        comptroller_df = pickle.loads(self.s3.Bucket("locus-data").Object(path).get()['Body'].read())
+        return comptroller_df
 
     def generate(self):
         year_list = list(range(2010,2022))
         df = None
         lbid_to_elim = set()
+
+        comptroller_df = self.get_comptroller()
 
         for year in year_list:
             
@@ -38,6 +46,7 @@ class BusinessObservations():
 
             pluto_df["bbl"] = pluto_df["bbl"].astype(str)
             merged = temp_set.merge(pluto_df, how='left', left_on=['BBL'], right_on=['bbl'])
+            merged = merged.merge(comptroller_df, how='left', left_on=['Year'], right_on=['year'])
             merged = merged.loc[:,~merged.columns.duplicated()]
             merged = merged.loc[~merged.index.duplicated(keep='first')]
             merged = merged.reset_index(drop = True)
@@ -58,12 +67,12 @@ class BusinessObservations():
                 df = merged
             else:
                 df = pd.concat([merged,df],ignore_index=True)
-            
+
             print(len(merged))
             print()
 
             del merged
-        
+       
         # self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key='data/temp/df-bbls.p', Body=pickle.dumps(self.df[~self.df["LBID"].isin(lbid_to_elim)]))
 
         df = df[~df["LBID"].isin(lbid_to_elim)]
