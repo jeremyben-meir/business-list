@@ -58,9 +58,9 @@ class PrepareGeojson():
                             # 'NAICS Title': str(row["NAICS Title"]),
                             'Contact Phone': str(row["Contact Phone"]),
                             "Duration": duration,
-                            "color": duration,
                             'Start Date': str(row["Start Date"]),
-                            'End Date': str(row["End Date"])
+                            'End Date': str(row["End Date"]),
+                            "color": duration,
                         }
                     )
                 )
@@ -69,9 +69,6 @@ class PrepareGeojson():
         print("\nLLIDs complete")
         collection = FeatureCollection(features)
         self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/llid_timeline.json", Body=('%s' % collection))
-
-    def num_llids_for_date(self,df,date):
-        return len(df[(df["Start Date"]<=date) & (df["End Date"]>=date)])
     
     def create_bbl_json_2(self):
         features = list()
@@ -83,16 +80,16 @@ class PrepareGeojson():
             latitude, longitude = map(float, (group["Latitude"].max(), group["Longitude"].max()))
             ## VACANCY
             max_llid = int(group['Year'].value_counts().max())
-            vacancy = float((len(group) / len(self.year_list)) / max_llid)
+            vacancy = round(float((len(group) / len(self.year_list)) / max_llid),2)
 
             features.append(
                 Feature(
                     geometry = Point((longitude, latitude)),
                     properties = {
                         'BBL': name,
-                        'vacancy': vacancy,
-                        'color': 0,
-                        'Max Business': max_llid
+                        'Vacancy': vacancy,
+                        'Max Business': max_llid,
+                        'color': str(math.floor(vacancy*10.0))[0],
                     }
                 )
             )
@@ -107,10 +104,13 @@ class PrepareGeojson():
 
 if __name__ == "__main__":
     prepare_geojson = PrepareGeojson()
-    # prepare_geojson.create_llid_json()
+    prepare_geojson.create_llid_json()
     prepare_geojson.create_bbl_json_2()
 
 
+
+    # def num_llids_for_date(self,df,date):
+    #     return len(df[(df["Start Date"]<=date) & (df["End Date"]>=date)])
 
     # def create_bbl_json(self):
     #     features = list()
