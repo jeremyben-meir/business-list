@@ -44,12 +44,20 @@ class BusinessObservations():
             temp_set["Observed"] = cur_date #TODO CHECK
             temp_set["Year"] = year #TODO CHECK
 
-            pluto_df["bbl"] = pluto_df["bbl"].astype(str)
+            def set_str(bbl):
+                try:
+                    return str(int(bbl))
+                except Exception:
+                    return None
+            pluto_df["bbl"] = pluto_df["bbl"].apply(lambda bbl: set_str(bbl))
             merged = temp_set.merge(pluto_df, how='left', left_on=['BBL'], right_on=['bbl'])
             merged = merged.merge(comptroller_df, how='left', left_on=['Year'], right_on=['year'])
             merged = merged.loc[:,~merged.columns.duplicated()]
             merged = merged.loc[~merged.index.duplicated(keep='first')]
             merged = merged.reset_index(drop = True)
+
+            # print(merged["Year"])
+            # print(comptroller_df["year"])
 
             del pluto_df
             del temp_set

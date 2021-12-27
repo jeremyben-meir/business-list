@@ -68,7 +68,7 @@ class PrepareGeojson():
             print(f" {ticker} / {totlen}",end="\r")
         print("\nLLIDs complete")
         collection = FeatureCollection(features)
-        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/llid_timeline.json", Body=('%s' % collection))
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/geo/llid_timeline.json", Body=('%s' % collection))
     
     def create_bbl_json_2(self):
         features = list()
@@ -99,7 +99,7 @@ class PrepareGeojson():
 
         print("\nBBLs complete")
         collection = FeatureCollection(features)
-        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/bbl_timeline.json", Body=('%s' % collection))
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/geo/bbl_timeline.json", Body=('%s' % collection))
         
 
 if __name__ == "__main__":
