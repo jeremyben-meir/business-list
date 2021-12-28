@@ -42,6 +42,7 @@ class BusinessObservations():
             cur_date = pd.to_datetime(f"{month}/01/{year}") #TODO edit timestamp
             span_date = (self.df["Start Date"] <= cur_date) & (self.df["End Date"] >= cur_date)
             one_obs = (self.df["End Date"].dt.year == self.df["Start Date"].dt.year) & (self.df["Start Date"].dt.year == year)
+            print(len(self.df[one_obs]))
             temp_set = self.df[span_date|one_obs] # TODO WHY ARE THERE ONLY ONE OBS
             temp_set["Observed"] = cur_date #TODO CHECK
             temp_set["Year"] = year #TODO CHECK
@@ -102,17 +103,18 @@ class BusinessObservations():
         self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key='data/temp/df-observations.p', Body=pickle.dumps(df))
 
     def generate_cox(self):
-        cur_date = pd.to_datetime(f"01/01/2021") #TODO edit timestamp
+        # cur_date = pd.to_datetime(f"01/01/2021") #TODO edit timestamp
         self.df = self.df[~self.df["Start Date"].isna()] # TODO: why are there NAN
         self.df["Status"] = True
-        mask_2021 = (self.df["Start Date"] <= cur_date) & (self.df["End Date"] >= cur_date)
-        self.df.loc[mask_2021,"End Date"] = cur_date
-        self.df.loc[mask_2021,"Status"] = False
-        self.df["Months Active"] = (self.df["End Date"] - self.df["Start Date"]).astype('timedelta64[M]').astype(float).astype(int)
-        self.df['Year'] = pd.DatetimeIndex(self.df['Start Date']).year
+
+        # mask_2021 = (self.df["Start Date"] <= cur_date) & (self.df["End Date"] >= cur_date)
+        # self.df.loc[mask_2021,"End Date"] = cur_date
+        # self.df.loc[mask_2021,"Status"] = False
+        # self.df["Months Active"] = (self.df["End Date"] - self.df["Start Date"]).astype('timedelta64[M]').astype(float).astype(int)
+        # self.df['Year'] = pd.DatetimeIndex(self.df['Start Date']).year
         # print(self.df[self.df["End Date"].dt.year == 2020])
 
-        year_list = list(range(2010,2021))
+        year_list = list(range(2010,2022))
         df = None
         lbid_to_elim = set()
 
@@ -125,7 +127,12 @@ class BusinessObservations():
             pluto_df = self.get_pluto(year)
 
             cur_date = pd.to_datetime(f"01/01/{year}") #TODO edit timestamp
-            temp_set = self.df[self.df["Year"] == year]
+            temp_set = self.df[(self.df["Start Date"] < cur_date)]
+            temp_set.loc[(self.df["End Date"] >= cur_date), "Status"] = False
+            temp_set.loc[(self.df["End Date"] >= cur_date), "Months Active"] = (cur_date - self.df["Start Date"]).astype('timedelta64[M]').astype(float).astype(int)
+            temp_set.loc[(self.df["End Date"] < cur_date), "Months Active"] = (self.df["End Date"] - self.df["Start Date"]).astype('timedelta64[M]').astype(float).astype(int)
+            temp_set["Observed"] = cur_date #TODO CHECK
+            temp_set['Year'] = year
 
             def set_str(bbl):
                 try:
@@ -166,5 +173,5 @@ class BusinessObservations():
 
 if __name__ == "__main__":
     business_observations = BusinessObservations()
-    # business_observations.generate()
+    business_observations.generate()
     business_observations.generate_cox()

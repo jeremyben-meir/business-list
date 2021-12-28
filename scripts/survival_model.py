@@ -22,6 +22,7 @@ from hmmlearn import hmm
 from sklearn.model_selection import ParameterGrid,GridSearchCV
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 from sksurv.preprocessing import OneHotEncoder
+from sksurv.util import Surv
 
 class SurvivalModel():
 
@@ -142,26 +143,32 @@ class SurvivalModel():
         path = f'data/temp/df-observations-cox.p'
         df = pickle.loads(self.s3.Bucket(
             "locus-data").Object(path).get()['Body'].read())
+        df = df.sample(100000).reset_index(drop=True)
         print(df.columns.tolist())
 
         binar_list = ['zonedist1', 'bldgclass', 'histdist', 'landmark']
-        # int_list = ['lotarea', 'bldgarea', 'comarea', 'resarea', 'officearea', 'retailarea', 'garagearea', 'strgearea', 'factryarea', 'otherarea', 'numfloors', 'unitsres', 'unitstotal',
-        #             'lotfront', 'lotdepth', 'bldgfront', 'bldgdepth', 'bsmtcode', 'assessland', 'assesstot', 'yearbuilt', 'yearalter1', 'builtfar', 'residfar', 'commfar', 'facilfar',
+        int_list = ['lotarea', 'bldgarea', 'comarea', 'resarea', 'officearea', 'retailarea', 'garagearea', 'strgearea', 'factryarea', 'otherarea', 'numfloors', 'unitsres', 'unitstotal',
+                    'lotfront', 'lotdepth', 'bldgfront', 'bldgdepth', 'bsmtcode', 'assessland', 'assesstot', 'yearbuilt', 'yearalter1', 'builtfar', 'residfar', 'commfar', 'facilfar']
         #             "Months Active"]
         # flt_list = ['GCP (NYC)', 'GDP (USA)', ' Payroll-Jobs Growth, SAAR - NYC', 'Payroll-Jobs Growth, SAAR - USA', 'PIT Withheld, Growth, NSA - NYC', 'PIT Withheld, Growth, NSA - USA',
         #             'Inflation Rate, NSA - NYC', 'Inflation Rate, NSA - USA', 'Unemployment Rate, SA - NYC', 'Unemployment Rate, SA - USA']
 
         for col in binar_list:
+            df[col] = df[col].astype("category")
             df[col].fillna(df[col].mode()[0], inplace=True)
-
-        data_y = df[["Status","Months Active"]]
-        df = df[binar_list]
+        for col in int_list:
+            df[col] = df[col].astype(float)
+            df[col].fillna(df[col].mode()[0], inplace=True)
+        
+        data_y = Surv.from_dataframe("Status","Months Active",df)         
+        print(data_y)
+        df = df[binar_list + int_list]
         print(df)
         df_num = OneHotEncoder().fit_transform(df)
         print(df_num)
         estimator = CoxPHSurvivalAnalysis()
         estimator.fit(df_num, data_y)
-        pd.Series(estimator.coef_, index=df_num.columns)
+        print(pd.Series(estimator.coef_, index=df_num.columns))
     
     def survive_geojson(self,df): ## ADAPT IN PREPARE GEOJSON @staticmethod
         features = list()

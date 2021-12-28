@@ -4,6 +4,7 @@ from common import DirectoryFields
 import pandas as pd
 import csv
 import boto3
+import numpy as np
 
 class CreateTimeline():
 
@@ -24,9 +25,15 @@ class CreateTimeline():
         insp_res = (curgrp["INSP Result"].max() == "Out of Business")
         app_res = (curgrp["APP Status"].max() == "OOB")
 
+        # lims = self.get_lim_date_from_cols(curgrp,date_list,True)
+        # if lims and lims < maxdate:
+        #     maxdate = pd.Timedelta(days=550) + lims
+
         maxdate_list = list()
         date_list = ["CHRG Date","INSP Date","Last INSP Date","Case Dec. Date","Temp Op Letter Expiration","APP End Date"]
         maxdate_list.append(self.get_lim_date_from_cols(curgrp,date_list,True) + pd.Timedelta(days=550))
+        date_list = ['APP Status Date', 'APP Start Date', 'LIC Start Date', 'Temp Op Letter Issued', 'LIC Issue Date', 'Grade Date', 'LIC Filing Date']
+        maxdate_list.append(self.get_lim_date_from_cols(curgrp,date_list,True) + pd.Timedelta(days=365))
         date_list = ["LIC Exp Date","RSS Date"]
         maxdate_list.append(self.get_lim_date_from_cols(curgrp,date_list,True))
         date_list = ["Out of Business Date"]
@@ -35,9 +42,13 @@ class CreateTimeline():
         if app_res:
             date_list.append("APP Status")
         maxdate_list.append(self.get_lim_date_from_cols(curgrp,date_list,False))
+        maxdate_list = [elt for elt in maxdate_list if not pd.isnull(elt)]
 
         all_col = ['CHRG Date', 'INSP Date', 'APP Status Date', 'APP Start Date', 'APP End Date', 'LIC Start Date', 'LIC Exp Date', 'Temp Op Letter Issued', 'RSS Date', 'Last INSP Date', 'Out of Business Date', 'LIC Issue Date', 'Grade Date', 'Case Dec. Date', 'LIC Filing Date']
-        return_val = max(self.get_lim_date_from_cols(curgrp,all_col,False) , min(maxdate_list))
+        if maxdate_list:
+            return_val = max(self.get_lim_date_from_cols(curgrp,all_col,False) , min(maxdate_list))
+        else:
+            return_val = self.get_lim_date_from_cols(curgrp,all_col,False) 
         return return_val if return_val < pd.to_datetime("today") else pd.to_datetime("today")
 
     def type_cast(self, df, all_date_list):
@@ -85,8 +96,9 @@ class CreateTimeline():
 
                 mindate = self.get_lim_date_from_cols(out_group,all_date_list,False)
                 maxdate = self.get_max_end(out_group)
+
                 if mindate == maxdate:
-                    print(out_group)
+                    maxdate += pd.Timedelta(days=365)
 
                 if latitude != 0.0 and longitude != 0.0:
                     new_row = {'Name': name, 'LBID': lbid, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude,'NAICS Title': naics_title, 'NAICS': naics_code}
@@ -126,6 +138,9 @@ class CreateTimeline():
                         maxdate = self.get_max_end(out_group)
                     else:
                         maxdate = prevmin
+
+                    if mindate == maxdate:
+                        maxdate += pd.Timedelta(days=365)
 
                     prevmin = mindate
 
