@@ -85,6 +85,8 @@ class CreateTimeline():
 
                 mindate = self.get_lim_date_from_cols(out_group,all_date_list,False)
                 maxdate = self.get_max_end(out_group)
+                if mindate == maxdate:
+                    print(out_group)
 
                 if latitude != 0.0 and longitude != 0.0:
                     new_row = {'Name': name, 'LBID': lbid, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude,'NAICS Title': naics_title, 'NAICS': naics_code}

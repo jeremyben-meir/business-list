@@ -5,7 +5,7 @@ import sklearn.preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.linear_model import SGDClassifier
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, accuracy_score, roc_auc_score
 from sklearn import svm, tree
 import statsmodels.api as sm
 from sklearn_pandas import DataFrameMapper
@@ -17,12 +17,17 @@ from collections import defaultdict
 from sklearn import preprocessing
 import math
 from geojson import Feature, FeatureCollection, Point
+from sklearn.ensemble import RandomForestClassifier
+from hmmlearn import hmm
+from sklearn.model_selection import ParameterGrid,GridSearchCV
+from sksurv.linear_model import CoxPHSurvivalAnalysis
+from sksurv.preprocessing import OneHotEncoder
 
 class SurvivalModel():
 
     def __init__(self):
         self.s3 = boto3.resource('s3')
-        self.sample_size = 100000
+        self.sample_size = 50000
         # NEED TO ELIMINATE 2021 OBS due to zeroed survival
 
     def generate_model(self):
@@ -71,14 +76,8 @@ class SurvivalModel():
             return to_df
 
         df = fix_df(df)
-        # print(df.head(100))
 
-        # df_2021 = df[df["Observed"] > pd.to_datetime(f"01/01/2020")]
-        # df = df[df["Observed"] < pd.to_datetime(f"01/01/2021")]
-
-        # FORMATTING ARRAY FOR MODELING
-
-        mapper_list = [(col, None) for col in id_list]+ [(col, sklearn.preprocessing.LabelBinarizer())
+        mapper_list = [(col, None) for col in id_list] + [(col, sklearn.preprocessing.LabelBinarizer())
                        for col in binar_list] + [(col, None) for col in int_list] + [(col, None) for col in flt_list]
         mapper = DataFrameMapper(mapper_list)
 
@@ -90,74 +89,81 @@ class SurvivalModel():
         X = X[:self.sample_size,1:]
         Y = Y[:self.sample_size]
 
-        print(X)
-        print(X_2021)
+        # print(X)
+        # print(X_2021)
+        print()
 
         X_train, X_test, Y_train, Y_test = train_test_split(
             X, Y, test_size=0.3, random_state=23)
 
-        ##########################################
-        ##########################################
-
-        # clf = MLPClassifier(solver='lbfgs', alpha=1e-5,
-        #                     hidden_layer_sizes=(5, 2), random_state=1)
-        # clf.fit(X_train, Y_train)
-        # y_pred = clf.predict(X_test)
-        # print(f1_score(Y_test, y_pred, average='macro'))
-        # dat = {'y_test': Y_test,
-        #        'y_pred': y_pred}
-        # results_df = pd.DataFrame(dat)
-        # print(results_df.head())
-        # print()
-
-        ##########################################
-        ##########################################
-
-        # clf2 = svm.SVC()
-        # clf2.fit(X_train, Y_train)
-        # y_pred2 = clf2.predict(X_test)
-        # print(f1_score(Y_test, y_pred2, average='macro'))
-        # print()
-
-        ##########################################
-        ##########################################
-
-        # clf3 = SGDClassifier(loss="hinge", penalty="l2", max_iter=30)
-        # clf3.fit(X_train, Y_train)
-        # y_pred3 = clf3.predict(X_test)
-        # print(f1_score(Y_test, y_pred3, average='macro'))
-        # print()
-
-        ##########################################
-        ##########################################
-
-        clf4 = tree.DecisionTreeClassifier()
-        clf4.fit(X_train, Y_train)
-        y_pred4 = clf4.predict(X_test)
-        print(f1_score(Y_test, y_pred4, average='macro'))
-        print()
-
-        ##########################################
-        ##########################################
-    
-        # DF 2021 columns nununique all equal 1, so binarizer  doesnt asss cols
+        best_clf = {"clf":None,"f1":0}
+        def try_clf(best_clf, clf, params):
+            if params:
+                clf = GridSearchCV(clf,params)
+                clf.fit(X_train, Y_train)
+                print(clf.best_params_)
+            else:
+                clf.fit(X_train, Y_train)
+            y_pred = clf.predict(X_test)
+            score = f1_score(Y_test, y_pred, average='macro')
+            print(score)
+            print(accuracy_score(Y_test, y_pred))
+            print(roc_auc_score(Y_test, y_pred))
+            print()
+            if best_clf["f1"] < score:
+                best_clf["clf"] = clf
+                best_clf["f1"] = score
+            return best_clf
         
-        # print(len(binar_list+flt_list+int_list))
-        # for col in binar_list+flt_list+int_list:
-        #     df_2021[col].fillna(df[col].mode()[0], inplace=True)
-        #     print(df_2021[col])
-        #     print(df_2021[col].nunique())
-        # df_2021 = fix_df(df_2021)
-        # mapper_list = [(col, sklearn.preprocessing.LabelBinarizer()) for col in binar_list] + [(col, None) for col in int_list] + [(col, None) for col in flt_list]
-        # mapper = DataFrameMapper(mapper_list)
-        # X_2021 = mapper.fit_transform(df_2021.copy())
-        Y_pred = clf4.predict(X_2021)
+        clf_list = [
+            (MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1, max_iter=400), {}),
+            (svm.SVC(), {}),
+            (SGDClassifier(loss="hinge", penalty="l2", max_iter=30), {}),
+            (tree.DecisionTreeClassifier(), {"criterion":['gini', 'entropy'],"splitter":['best', 'random']}),
+            (RandomForestClassifier(), {"criterion":['gini', 'entropy'],"max_depth":range(5,10)})
+        ]
+
+        # for clf , params in clf_list:
+        #     print(clf)
+        #     best_clf = try_clf(best_clf,clf,params)
+        
+        clf , params = clf_list[0]
+        best_clf = try_clf(best_clf,clf,params)
+        clf , params = clf_list[1]
+        best_clf = try_clf(best_clf,clf,params)
+        clf , params = clf_list[2]
+        best_clf = try_clf(best_clf,clf,params)
+
+        Y_pred = best_clf["clf"].predict(X_2021)
         df_2021["Survive"] = Y_pred
         self.survive_geojson(df_2021)
     
-    def survive_geojson(self,predictions): ## ADAPT IN PREPARE GEOJSON @staticmethod
-        df = predictions[predictions["Survive"] == 0]
+    def cox_hazards(self):
+        path = f'data/temp/df-observations-cox.p'
+        df = pickle.loads(self.s3.Bucket(
+            "locus-data").Object(path).get()['Body'].read())
+        print(df.columns.tolist())
 
+        binar_list = ['zonedist1', 'bldgclass', 'histdist', 'landmark']
+        # int_list = ['lotarea', 'bldgarea', 'comarea', 'resarea', 'officearea', 'retailarea', 'garagearea', 'strgearea', 'factryarea', 'otherarea', 'numfloors', 'unitsres', 'unitstotal',
+        #             'lotfront', 'lotdepth', 'bldgfront', 'bldgdepth', 'bsmtcode', 'assessland', 'assesstot', 'yearbuilt', 'yearalter1', 'builtfar', 'residfar', 'commfar', 'facilfar',
+        #             "Months Active"]
+        # flt_list = ['GCP (NYC)', 'GDP (USA)', ' Payroll-Jobs Growth, SAAR - NYC', 'Payroll-Jobs Growth, SAAR - USA', 'PIT Withheld, Growth, NSA - NYC', 'PIT Withheld, Growth, NSA - USA',
+        #             'Inflation Rate, NSA - NYC', 'Inflation Rate, NSA - USA', 'Unemployment Rate, SA - NYC', 'Unemployment Rate, SA - USA']
+
+        for col in binar_list:
+            df[col].fillna(df[col].mode()[0], inplace=True)
+
+        data_y = df[["Status","Months Active"]]
+        df = df[binar_list]
+        print(df)
+        df_num = OneHotEncoder().fit_transform(df)
+        print(df_num)
+        estimator = CoxPHSurvivalAnalysis()
+        estimator.fit(df_num, data_y)
+        pd.Series(estimator.coef_, index=df_num.columns)
+    
+    def survive_geojson(self,df): ## ADAPT IN PREPARE GEOJSON @staticmethod
         features = list()
         print(len(df))
         totlen = df["BBL"].nunique()
@@ -194,7 +200,7 @@ class SurvivalModel():
                             "Duration": duration,
                             'Start Date': str(row["Start Date"]),
                             'End Date': str(row["End Date"]),
-                            "color": duration,
+                            "color": str(row["Survive"]),
                         }
                     )
                 )
@@ -203,12 +209,11 @@ class SurvivalModel():
         print("\nPredictions complete")
         collection = FeatureCollection(features)
         self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/geo/predictions.json", Body=('%s' % collection))
-        return predictions
-
 
 if __name__ == "__main__":
     survival_model = SurvivalModel()
-    survival_model.generate_model()
+    # survival_model.generate_model()
+    survival_model.cox_hazards()
 
 
 # est2 = sm.Logit(Y, X).fit()
@@ -217,3 +222,16 @@ if __name__ == "__main__":
 # feature_dict = {key:feature_dict[key][0] for key in feature_dict if feature_dict[key][1]<.05}
 # neighborhoods = dict(sorted(feature_dict.items(), key=lambda x: x[1], reverse=True)[:10])
 # print(neighborhoods)
+
+    
+# DF 2021 columns nununique all equal 1, so binarizer  doesnt asss cols
+
+# print(len(binar_list+flt_list+int_list))
+# for col in binar_list+flt_list+int_list:
+#     df_2021[col].fillna(df[col].mode()[0], inplace=True)
+#     print(df_2021[col])
+#     print(df_2021[col].nunique())
+# df_2021 = fix_df(df_2021)
+# mapper_list = [(col, sklearn.preprocessing.LabelBinarizer()) for col in binar_list] + [(col, None) for col in int_list] + [(col, None) for col in flt_list]
+# mapper = DataFrameMapper(mapper_list)
+# X_2021 = mapper.fit_transform(df_2021.copy())
