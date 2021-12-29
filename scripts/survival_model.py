@@ -143,33 +143,42 @@ class SurvivalModel():
         path = f'data/temp/df-observations-cox.p'
         df = pickle.loads(self.s3.Bucket(
             "locus-data").Object(path).get()['Body'].read())
-        df = df.sample(100000).reset_index(drop=True)
+        df = df.sample(130000).reset_index(drop=True)
         print(df.columns.tolist())
 
-        binar_list = ['zonedist1', 'bldgclass', 'histdist', 'landmark']
-        int_list = ['lotarea', 'bldgarea', 'comarea', 'resarea', 'officearea', 'retailarea', 'garagearea', 'strgearea', 'factryarea', 'otherarea', 'numfloors', 'unitsres', 'unitstotal',
-                    'lotfront', 'lotdepth', 'bldgfront', 'bldgdepth', 'bsmtcode', 'assessland', 'assesstot', 'yearbuilt', 'yearalter1', 'builtfar', 'residfar', 'commfar', 'facilfar']
-        #             "Months Active"]
-        # flt_list = ['GCP (NYC)', 'GDP (USA)', ' Payroll-Jobs Growth, SAAR - NYC', 'Payroll-Jobs Growth, SAAR - USA', 'PIT Withheld, Growth, NSA - NYC', 'PIT Withheld, Growth, NSA - USA',
-        #             'Inflation Rate, NSA - NYC', 'Inflation Rate, NSA - USA', 'Unemployment Rate, SA - NYC', 'Unemployment Rate, SA - USA']
+        binar_list = ['zonedist1', 'bldgclass']
+        int_list = ['lotarea','garagearea', 'strgearea', 'numfloors', 'unitstotal', 'bldgdepth', 'yearbuilt', 'builtfar']
+        flt_list = ['GCP (NYC)', ' Payroll-Jobs Growth, SAAR - NYC', 'Inflation Rate, NSA - NYC',  'Unemployment Rate, SA - NYC']
 
         for col in binar_list:
             df[col] = df[col].astype("category")
             df[col].fillna(df[col].mode()[0], inplace=True)
-        for col in int_list:
+        for col in int_list+flt_list:
             df[col] = df[col].astype(float)
             df[col].fillna(df[col].mode()[0], inplace=True)
-        
-        data_y = Surv.from_dataframe("Status","Months Active",df)         
-        print(data_y)
-        df = df[binar_list + int_list]
-        print(df)
-        df_num = OneHotEncoder().fit_transform(df)
-        print(df_num)
-        estimator = CoxPHSurvivalAnalysis()
-        estimator.fit(df_num, data_y)
-        print(pd.Series(estimator.coef_, index=df_num.columns))
-    
+
+        df_train = df.iloc[:100000]
+        df_test = df.iloc[100000:]
+
+        df_train_y = Surv.from_dataframe("Status","Months Active",df_train)
+        df_test_y = Surv.from_dataframe("Status","Months Active",df_test)
+
+        df = df[binar_list + int_list + flt_list]
+
+        encoder = OneHotEncoder().fit(df)
+        df_train_num = encoder.transform(df_train)
+        df_test_num = encoder.transform(df_test)
+
+        print(df_train_num)
+        print(df_test_num)
+
+        estimator = CoxPHSurvivalAnalysis(alpha = 1e-4)
+        estimator.fit(df_train_num, df_train_y)
+        pd.set_option('display.max_rows', None)
+        print(pd.Series(estimator.coef_, index=df_train_num.columns))
+
+        estimator.score(df_test_num, df_test_y)
+
     def survive_geojson(self,df): ## ADAPT IN PREPARE GEOJSON @staticmethod
         features = list()
         print(len(df))
