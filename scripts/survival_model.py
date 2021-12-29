@@ -177,7 +177,7 @@ class SurvivalModel():
         pd.set_option('display.max_rows', None)
         print(pd.Series(estimator.coef_, index=df_train_num.columns))
 
-        estimator.score(df_test_num, df_test_y)
+        print(estimator.score(df_test_num, df_test_y))
 
     def survive_geojson(self,df): ## ADAPT IN PREPARE GEOJSON @staticmethod
         features = list()
