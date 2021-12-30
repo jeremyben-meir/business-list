@@ -23,6 +23,7 @@ from sklearn.model_selection import ParameterGrid,GridSearchCV
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 from sksurv.preprocessing import OneHotEncoder
 from sksurv.util import Surv
+from sklearn.preprocessing import PolynomialFeatures
 
 class SurvivalModel():
 
@@ -117,23 +118,27 @@ class SurvivalModel():
             return best_clf
         
         clf_list = [
-            (MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1, max_iter=400), {}),
-            (svm.SVC(), {}),
-            (SGDClassifier(loss="hinge", penalty="l2", max_iter=30), {}),
+            # (MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1, max_iter=400), {}),
+            # (svm.SVC(), {}),
+            # (SGDClassifier(loss="hinge", penalty="l2", max_iter=100), {}),
             (tree.DecisionTreeClassifier(), {"criterion":['gini', 'entropy'],"splitter":['best', 'random']}),
-            (RandomForestClassifier(), {"criterion":['gini', 'entropy'],"max_depth":range(5,10)})
+            # (RandomForestClassifier(), {"criterion":['gini', 'entropy'],"max_depth":range(10,20)})
         ]
 
-        # for clf , params in clf_list:
-        #     print(clf)
-        #     best_clf = try_clf(best_clf,clf,params)
+        for clf , params in clf_list:
+            print(clf)
+            best_clf = try_clf(best_clf,clf,params)
         
-        clf , params = clf_list[0]
-        best_clf = try_clf(best_clf,clf,params)
-        clf , params = clf_list[1]
-        best_clf = try_clf(best_clf,clf,params)
-        clf , params = clf_list[2]
-        best_clf = try_clf(best_clf,clf,params)
+        # clf , params = clf_list[0]
+        # best_clf = try_clf(best_clf,clf,params)
+        # clf , params = clf_list[1]
+        # best_clf = try_clf(best_clf,clf,params)
+        # clf , params = clf_list[2]
+        # best_clf = try_clf(best_clf,clf,params)
+        # clf , params = clf_list[3]
+        # best_clf = try_clf(best_clf,clf,params)
+        # clf , params = clf_list[4]
+        # best_clf = try_clf(best_clf,clf,params)
 
         Y_pred = best_clf["clf"].predict(X_2021)
         df_2021["Survive"] = Y_pred
@@ -169,8 +174,13 @@ class SurvivalModel():
         df_train_num = encoder.transform(df_train)
         df_test_num = encoder.transform(df_test)
 
-        print(df_train_num)
-        print(df_test_num)
+        # df_num = encoder.transform(df)
+        # poly = PolynomialFeatures(interaction_only=True,include_bias = False).fit(df_num)
+        # df_train_num = poly.transform(df_train_num)
+        # df_test_num = poly.transform(df_test_num)
+
+        # print(df_train_num)
+        # print(df_test_num)
 
         estimator = CoxPHSurvivalAnalysis(alpha = 1e-4)
         estimator.fit(df_train_num, df_train_y)
@@ -216,7 +226,7 @@ class SurvivalModel():
                             "Duration": duration,
                             'Start Date': str(row["Start Date"]),
                             'End Date': str(row["End Date"]),
-                            "color": str(row["Survive"]),
+                            "color": str(1-row["Survive"]),
                         }
                     )
                 )
@@ -228,8 +238,8 @@ class SurvivalModel():
 
 if __name__ == "__main__":
     survival_model = SurvivalModel()
-    # survival_model.generate_model()
-    survival_model.cox_hazards()
+    survival_model.generate_model()
+    # survival_model.cox_hazards()
 
 
 # est2 = sm.Logit(Y, X).fit()
