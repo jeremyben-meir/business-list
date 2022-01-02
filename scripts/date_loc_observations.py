@@ -14,22 +14,29 @@ class DateLocObservations():
     def __init__(self):
         self.s3 = boto3.resource('s3')
         self.g = Geosupport()
+        self.counter = 0
     
     def apply_trans(self, res_df, year):
         res_df["Year"] = year
         res_df = res_df.reset_index(drop=True)
         res_df.columns = res_df.columns.str.lower()
         return res_df
+    
+    def add_bbl_features(self,bbl,lendf):
+        self.counter += 1
+        print(f"{self.counter} / {lendf}")
+        try:
+            result = self.g.bbl({"bbl":str(int(bbl))})
+            lon = float(result["Longitude"])
+            lat = float(result["Latitude"])
+            subway = len(self.subway_df[(abs(self.subway_df["longitude"]-lon)<.002) & (abs(self.subway_df["latitude"]-lat)<.002)])
+            return subway
+        except Exception as e:
+            return None
 
     def generate_pluto(self):
 
-        subway_df = self.generate_subway()
-
-        def min_dist(row,lon,lat,subway_df):
-            # min_val = min(subway_df.apply(lambda row: math.sqrt(((row["longitude"]-lon)**2)+((row["latitude"]-lat)**2)),axis=1))
-            min_val = len(subway_df[(abs(subway_df["longitude"]-lon)<.005) &(abs(subway_df["latitude"]-lat)<.005)])
-            row["subway"] = min_val
-            return row
+        self.subway_df = self.generate_subway()
 
         for year in range(2010,2022):
             path = f"pluto/source/{year}/"
@@ -46,20 +53,8 @@ class DateLocObservations():
                 res_df = self.apply_trans(res_df, year)
                 print(year)
                 print(res_df.columns.tolist())
-                def assign(bbl,col):
-                    
-                    try:
-                        # return None, None
-                        result = self.g.bbl({"bbl":str(int(bbl))})
-                        lon = float(result["Longitude"])
-                        lat = float(result["Latitude"])
-                        subway = 0#len(subway_df[(abs(subway_df["longitude"]-lon)<.002) & (abs(subway_df["latitude"]-lat)<.002)])
-                        return lon, lat, subway
-                    except Exception as e:
-                        return None, None, None
-                print(res_df["bbl"].apply(lambda bbl: assign(bbl,"Longitude")))
-                # res_df["latitude"] = res_df["bbl"].apply(lambda bbl: assign(bbl,"Latitude"))
-                # res_df = res_df.apply(lambda row: min_dist(row,row["longitude"],row["latitude"],subway_df),axis=1)
+                # lendf = len(res_df)                    
+                # res_df["Subway"] = res_df["bbl"].apply(lambda bbl: self.add_bbl_features(bbl,lendf))
                 self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"pluto/{year}.p", Body=pickle.dumps(res_df))
 
     def generate_comptroller(self):
@@ -85,3 +80,10 @@ if __name__ == "__main__":
     date_loc_observations = DateLocObservations()
     date_loc_observations.generate_pluto()
     # date_loc_observations.generate_comptroller()
+
+# def min_dist(row,lon,lat,subway_df):
+#     # min_val = min(subway_df.apply(lambda row: math.sqrt(((row["longitude"]-lon)**2)+((row["latitude"]-lat)**2)),axis=1))
+#     min_val = len(subway_df[(abs(subway_df["longitude"]-lon)<.005) &(abs(subway_df["latitude"]-lat)<.005)])
+#     row["subway"] = min_val
+#     return row
+# res_df = res_df.apply(lambda row: min_dist(row,row["longitude"],row["latitude"],subway_df),axis=1)
