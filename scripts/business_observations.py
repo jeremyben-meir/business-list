@@ -34,7 +34,7 @@ class BusinessObservations():
             # temp_set = self.df[span_date|one_obs] # TODO WHY ARE THERE ONLY ONE OBS
             span_date = (self.df["Start Date"] <= cur_date) & (self.df["End Date"] >= cur_date)
             temp_set = self.df[span_date] # TODO WHY ARE THERE ONLY ONE OBS
-            temp_set.loc["Months Active"] = (cur_date - self.df["Start Date"]).astype('timedelta64[M]').astype(float).astype(int)
+            temp_set["Months Active"] = (cur_date - self.df["Start Date"]).astype('timedelta64[M]').astype(float).astype(int)
         else:
             temp_set = self.df[(self.df["Start Date"] < cur_date)]
             temp_set.loc[(self.df["End Date"] >= cur_date), "Status"] = False
@@ -59,7 +59,7 @@ class BusinessObservations():
             pluto_df = self.get_pluto(year)
 
             temp_set = self.get_temp_set(year,surv)
-            
+
             def set_str(bbl):
                 try:
                     return str(int(bbl))
@@ -112,6 +112,7 @@ class BusinessObservations():
         
         df = df.reset_index(drop=True)
         print(len(df))
+        return df
 
     def classifier_models(self):
         df = self.get_df(surv=False)
@@ -134,7 +135,7 @@ class BusinessObservations():
 
 if __name__ == "__main__":
     business_observations = BusinessObservations()
-    business_observations.classifier_models()
+    # business_observations.classifier_models()
     business_observations.survival_models()
 
 

@@ -20,6 +20,9 @@ class IndustryAssign():
             self.org_df = df[df["NAICS"]!=""]
         else:
             self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-merged.p").get()['Body'].read())
+            # bbls = self.df.sample(400)["BBL"].unique()
+            # self.df = self.df[self.df["BBL"].isin(bbls)]
+            # print(len(bbls))
         self.ticker = 0
         self.totlen = len(self.df["LBID"].unique())
         # self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-merged.p", "rb" ))
@@ -76,10 +79,9 @@ class IndustryAssign():
                 for df in df_list:
                     future = executor.submit(self.apply_st, df)
                     future_list.append(future)
-            self.df = pd.concat([future.result() for future in future_list])
+            pd.concat([future.result() for future in future_list])
 
         self.save_df()
-        return self.df
     
     def save_df(self):
         path = f'data/temp/df-assigned.p' 
@@ -88,7 +90,6 @@ class IndustryAssign():
         else:
             save_df = pd.concat([self.df,self.org_df],ignore_index=True)
             self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=path, Body=pickle.dumps(save_df))
-
         
     def apply_st(self, df):
         unique_lbid = sorted(df["LBID"].unique())

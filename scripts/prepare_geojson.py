@@ -13,18 +13,13 @@ class PrepareGeojson():
     def __init__(self):
         self.s3 = boto3.resource('s3')
         self.obs_df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-observations.p").get()['Body'].read())
-        self.bbl_df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-bbls.p").get()['Body'].read())
         self.obs_df['Start Date'] = pd.to_datetime(self.obs_df['Start Date']).dt.date #TODO: check
         self.obs_df['End Date'] = pd.to_datetime(self.obs_df['End Date']).dt.date #TODO: check
-        self.bbl_df['Start Date'] = pd.to_datetime(self.bbl_df['Start Date']).dt.date #TODO: check
-        self.bbl_df['End Date'] = pd.to_datetime(self.bbl_df['End Date']).dt.date #TODO: check
         self.year_list = list(range(2010,2022)) # TODO: CHANGE LOCIC
 
-    def create_llid_json(self):
+    @staticmethod
+    def create_llid_json(df,geotype="LLID"):
         features = list()
-        df = self.obs_df
-        # df = df[pd.to_datetime("today") + pd.Timedelta(days=-60) < df["End Date"]]
-        df = df[df["Year"] == 2021]
         print(len(df))
         totlen = df["BBL"].nunique()
         ticker = 0
@@ -58,17 +53,16 @@ class PrepareGeojson():
                             # 'NAICS Title': str(row["NAICS Title"]),
                             'Contact Phone': str(row["Contact Phone"]),
                             "Duration": duration,
-                            'Start Date': str(row["Start Date"]),
-                            'End Date': str(row["End Date"]),
-                            "color": duration,
+                            'Start Date': str(row["Start Date"].strftime('%Y-%m-%d')),
+                            'End Date': str(row["End Date"].strftime('%Y-%m-%d')),
+                            "color": duration if geotype == "LLID" else str(1-row["Survive"]),
                         }
                     )
                 )
             ticker += 1
             print(f" {ticker} / {totlen}",end="\r")
-        print("\nLLIDs complete")
-        collection = FeatureCollection(features)
-        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/geo/llid_timeline.json", Body=('%s' % collection))
+        print(f"\n{geotype}s complete")
+        return FeatureCollection(features)
     
     def create_bbl_json_2(self):
         features = list()
@@ -100,12 +94,19 @@ class PrepareGeojson():
         print("\nBBLs complete")
         collection = FeatureCollection(features)
         self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/geo/bbl_timeline.json", Body=('%s' % collection))
-        
+    
+    def start_geo(self):
+        # LLID JSON
+        df = self.obs_df[self.obs_df["Year"] == 2021]
+        collection = self.create_llid_json(df)
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/geo/llid_timeline.json", Body=('%s' % collection))
+
+        # BBL JSON
+        self.create_bbl_json_2()        
 
 if __name__ == "__main__":
     prepare_geojson = PrepareGeojson()
-    prepare_geojson.create_llid_json()
-    prepare_geojson.create_bbl_json_2()
+    prepare_geojson.start_geo()
 
 
 

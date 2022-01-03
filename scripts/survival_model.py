@@ -2,6 +2,7 @@ import boto3
 import pickle
 import pandas as pd
 import sklearn.preprocessing
+from scripts.prepare_geojson import PrepareGeojson
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.linear_model import SGDClassifier
@@ -35,14 +36,14 @@ class SurvivalModel():
         self.sample_size = 50000
         # NEED TO ELIMINATE 2021 OBS due to zeroed survival
 
-    def generate_model(self):
+    def classifier_models(self):
 
         path = f'data/temp/df-observations.p'
         df = pickle.loads(self.s3.Bucket(
             "locus-data").Object(path).get()['Body'].read())
         print(df.columns.tolist())
-        df_2021 = df[df["Observed"] > pd.to_datetime(f"01/01/2020")]
-        df = pd.concat([df[df["Observed"] < pd.to_datetime(f"01/01/2021")].sample(self.sample_size),df_2021],ignore_index=True)
+        df_2021 = df[df["Year"] > 2020]
+        df = pd.concat([df[df["Year"] < 2021].sample(self.sample_size),df_2021],ignore_index=True)
         starting_len = len(df)
 
         # FEATURES TO USE
@@ -145,9 +146,10 @@ class SurvivalModel():
 
         Y_pred = best_clf["clf"].predict(X_2021)
         df_2021["Survive"] = Y_pred
-        self.survive_geojson(df_2021)
+        collection = PrepareGeojson.create_llid_json(df_2021,"Prediction")
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/geo/predictions.json", Body=('%s' % collection))
     
-    def cox_hazards(self):
+    def survival_models(self):
         path = f'data/temp/df-observations-cox.p'
         df = pickle.loads(self.s3.Bucket(
             "locus-data").Object(path).get()['Body'].read())
@@ -176,135 +178,57 @@ class SurvivalModel():
 
         # cph = make_pipeline(OneHotEncoder(), CoxPHSurvivalAnalysis(alpha = 1e-4))
         # cph.fit(va_x_train, va_y_train)
+        # print(cph.named_steps["coxphsurvivalanalysis"].coef_)
+
+        encoder = OneHotEncoder().fit(va_x)
+        df_train_num = encoder.transform(va_x_train)
+        df_test_num = encoder.transform(va_x_test)
+        estimator = CoxPHSurvivalAnalysis(alpha = 1e-4)
+        estimator.fit(df_train_num, va_y_train)
+
+        pd.set_option('display.max_rows', None)
+        print(pd.Series(estimator.coef_, index=df_train_num.columns))
+
+        va_times = np.arange(1, 32)
+        cph_risk_scores = estimator.predict(df_test_num)
+        cph_auc, cph_mean_auc = cumulative_dynamic_auc(
+            va_y_train, va_y_test, cph_risk_scores, va_times
+        )
+
+        print(estimator.score(df_test_num, va_y_test))
+
+        print(cph_auc)
+        print(cph_mean_auc)
+
+        #################################################
 
         # va_times = np.arange(1, 32)
-        # cph_risk_scores = cph.predict(va_x_test)
-        # cph_auc, cph_mean_auc = cumulative_dynamic_auc(
-        #     va_y_train, va_y_test, cph_risk_scores, va_times
+
+        # rsf = make_pipeline(
+        #     OneHotEncoder(),
+        #     RandomSurvivalForest(n_estimators=100, min_samples_leaf=7, random_state=0)
+        # )
+        # rsf.fit(va_x_train, va_y_train)
+
+        # rsf_chf_funcs = rsf.predict_cumulative_hazard_function(
+        #     va_x_test, return_array=False)
+        # rsf_risk_scores = np.row_stack([chf(va_times) for chf in rsf_chf_funcs])
+
+        # rsf_auc, rsf_mean_auc = cumulative_dynamic_auc(
+        #     va_y_train, va_y_test, rsf_risk_scores, va_times
         # )
 
-        # print(cph_auc)
-        # print(cph_mean_auc)
+        # print(rsf_auc)
+        # print(rsf_mean_auc)
 
         #################################################
-        va_times = np.arange(1, 32)
-
-        rsf = make_pipeline(
-            OneHotEncoder(),
-            RandomSurvivalForest(n_estimators=100, min_samples_leaf=7, random_state=0)
-        )
-        rsf.fit(va_x_train, va_y_train)
-
-        rsf_chf_funcs = rsf.predict_cumulative_hazard_function(
-            va_x_test, return_array=False)
-        rsf_risk_scores = np.row_stack([chf(va_times) for chf in rsf_chf_funcs])
-
-        rsf_auc, rsf_mean_auc = cumulative_dynamic_auc(
-            va_y_train, va_y_test, rsf_risk_scores, va_times
-        )
-
-        print(rsf_auc)
-        print(rsf_mean_auc)
-
-        #################################################
-
-        # df_train = df.iloc[:100000]
-        # df_test = df.iloc[100000:]
-
-        # df_train_y = Surv.from_dataframe("Status","Months Active",df_train)
-        # df_test_y = Surv.from_dataframe("Status","Months Active",df_test)
-
-        # df = df[binar_list + int_list + flt_list]
-
-        # encoder = OneHotEncoder().fit(df)
-        # df_train_num = encoder.transform(df_train)
-        # df_test_num = encoder.transform(df_test)
-
-        # # df_num = encoder.transform(df)
-        # # poly = PolynomialFeatures(interaction_only=True,include_bias = False).fit(df_num)
-        # # df_train_num = poly.transform(df_train_num)
-        # # df_test_num = poly.transform(df_test_num)
-
-        # # print(df_train_num)
-        # # print(df_test_num)
-
-        # estimator = CoxPHSurvivalAnalysis(alpha = 1e-4)
-        # estimator.fit(df_train_num, df_train_y)
-        # pd.set_option('display.max_rows', None)
-        # print(pd.Series(estimator.coef_, index=df_train_num.columns))
-
-        # print(estimator.score(df_test_num, df_test_y))
-
-    def survive_geojson(self,df): ## ADAPT IN PREPARE GEOJSON @staticmethod
-        features = list()
-        print(len(df))
-        totlen = df["BBL"].nunique()
-        ticker = 0
-        df['Start Date'] = df['Start Date'].dt.strftime('%Y-%m-%d')
-        grouped = df.groupby("BBL")
-        for name, group in grouped:
-            num_vals = len(group)
-            lon = group["Longitude"].astype(float).max()
-            lat = group["Latitude"].astype(float).max()
-            counter = 0
-            for index, row in group.iterrows():
-                duration = (row["End Date"] - row["Start Date"]).days
-                duration =  str(math.floor(duration/365.0) if not pd.isnull(duration) else 0)
-                
-                if num_vals == 1:
-                    latitude, longitude = map(float, (lat, lon))
-                else:
-                    degree_val = 360.0*(counter/num_vals)
-                    rand_radian = math.radians(degree_val)
-                    latitude, longitude = map(float, (lat+(math.sin(rand_radian)/15000.0), lon+(math.cos(rand_radian)/12000.0)))
-                
-                counter += 1
-
-                features.append(
-                    Feature(
-                        geometry = Point((longitude, latitude)),
-                        properties = {
-                            'Name': row["Name"],
-                            'LLID': row["LLID"],
-                            'Address': row["Address"],
-                            # 'NAICS': str(row["NAICS"])[0],
-                            # 'NAICS Title': str(row["NAICS Title"]),
-                            'Contact Phone': str(row["Contact Phone"]),
-                            "Duration": duration,
-                            'Start Date': str(row["Start Date"]),
-                            'End Date': str(row["End Date"]),
-                            "color": str(1-row["Survive"]),
-                        }
-                    )
-                )
-            ticker += 1
-            print(f" {ticker} / {totlen}",end="\r")
-        print("\nPredictions complete")
-        collection = FeatureCollection(features)
-        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key="data/geo/predictions.json", Body=('%s' % collection))
 
 if __name__ == "__main__":
     survival_model = SurvivalModel()
-    # survival_model.generate_model()
-    survival_model.cox_hazards()
+    survival_model.classifier_models()
+    survival_model.survival_models()
 
-
-# est2 = sm.Logit(Y, X).fit()
-# features = mapper.transformed_names_
-# feature_dict = {features[index]: (est2.params[index],est2.pvalues[index]) for index in range(len(features))}
-# feature_dict = {key:feature_dict[key][0] for key in feature_dict if feature_dict[key][1]<.05}
-# neighborhoods = dict(sorted(feature_dict.items(), key=lambda x: x[1], reverse=True)[:10])
-# print(neighborhoods)
-
-    
-# DF 2021 columns nununique all equal 1, so binarizer  doesnt asss cols
-
-# print(len(binar_list+flt_list+int_list))
-# for col in binar_list+flt_list+int_list:
-#     df_2021[col].fillna(df[col].mode()[0], inplace=True)
-#     print(df_2021[col])
-#     print(df_2021[col].nunique())
-# df_2021 = fix_df(df_2021)
-# mapper_list = [(col, sklearn.preprocessing.LabelBinarizer()) for col in binar_list] + [(col, None) for col in int_list] + [(col, None) for col in flt_list]
-# mapper = DataFrameMapper(mapper_list)
-# X_2021 = mapper.fit_transform(df_2021.copy())
+# # df_num = encoder.transform(df)
+# # poly = PolynomialFeatures(interaction_only=True,include_bias = False).fit(df_num)
+# # df_train_num = poly.transform(df_train_num)
+# # df_test_num = poly.transform(df_test_num)
