@@ -6,7 +6,7 @@ from scripts.prepare_geojson import PrepareGeojson
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.linear_model import SGDClassifier
-from sklearn.metrics import f1_score, accuracy_score, roc_auc_score
+from sklearn.metrics import f1_score, accuracy_score, roc_auc_score, precision_score, recall_score
 from sklearn import svm, tree
 import statsmodels.api as sm
 from sklearn_pandas import DataFrameMapper
@@ -28,6 +28,8 @@ from sklearn.preprocessing import PolynomialFeatures
 from sksurv.metrics import cumulative_dynamic_auc
 from sklearn.pipeline import make_pipeline
 from sksurv.ensemble import RandomSurvivalForest
+import matplotlib.pyplot as plt
+from sklearn import tree
 
 class SurvivalModel():
 
@@ -87,7 +89,9 @@ class SurvivalModel():
                        for col in binar_list] + [(col, None) for col in int_list] + [(col, None) for col in flt_list]
         mapper = DataFrameMapper(mapper_list)
 
+        
         X = mapper.fit_transform(df.copy())
+        feature_names = mapper.transformed_names_[1:]
         Y = df['Survive'].to_numpy()
 
         X_2021 = X[self.sample_size:,1:]
@@ -103,6 +107,25 @@ class SurvivalModel():
             X, Y, test_size=0.3, random_state=23)
 
         best_clf = {"clf":None,"f1":0}
+
+        def decision_tree(clf):
+            text_representation = tree.export_text(clf,max_depth=5, feature_names=feature_names)
+            print(text_representation)
+
+        def naive(zeros):
+            if zeros:
+                naive = np.zeros(shape=Y_test.shape)
+            else:
+                naive = np.ones(shape=Y_test.shape)            
+            score = f1_score(Y_test, naive, average='macro')
+            print(f"Naive {'zeros' if zeros else 'ones'}")
+            print(f"F1 {score}")
+            print(f"Accuracy {accuracy_score(Y_test, naive)}")
+            print(f"ROC AUC {roc_auc_score(Y_test, naive)}")
+            print(f"Precision {precision_score(Y_test, naive)}")
+            print(f"Recall {recall_score(Y_test, naive)}")
+            print()
+
         def try_clf(best_clf, clf, params):
             if params:
                 clf = GridSearchCV(clf,params)
@@ -111,27 +134,38 @@ class SurvivalModel():
             else:
                 clf.fit(X_train, Y_train)
             y_pred = clf.predict(X_test)
-            score = f1_score(Y_test, y_pred, average='macro')
-            print(score)
-            print(accuracy_score(Y_test, y_pred))
-            print(roc_auc_score(Y_test, y_pred))
+
             print()
+            print()
+
+            score = f1_score(Y_test, y_pred, average='macro')
+            print(f"F1 {score}")
+            print(f"Accuracy {accuracy_score(Y_test, y_pred)}")
+            print(f"ROC AUC {roc_auc_score(Y_test, y_pred)}")
+            print(f"Precision {precision_score(Y_test, y_pred)}")
+            print(f"Recall {recall_score(Y_test, y_pred)}")
+            print()
+            # decision_tree(clf)
             if best_clf["f1"] < score:
                 best_clf["clf"] = clf
                 best_clf["f1"] = score
             return best_clf
         
         clf_list = [
-            # (MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1, max_iter=400), {}),
-            # (svm.SVC(), {}),
-            # (SGDClassifier(loss="hinge", penalty="l2", max_iter=100), {}),
+            (MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1, max_iter=400), {}),
+            (svm.SVC(), {}),
+            (SGDClassifier(loss="hinge", penalty="l2", max_iter=100), {}),
             (tree.DecisionTreeClassifier(), {"criterion":['gini', 'entropy'],"splitter":['best', 'random']}),
-            # (RandomForestClassifier(), {"criterion":['gini', 'entropy'],"max_depth":range(10,20)})
+            (tree.DecisionTreeClassifier(criterion='gini',splitter='best'), {}),
+            (RandomForestClassifier(), {"criterion":['gini', 'entropy'],"max_depth":range(10,20)})
         ]
 
         for clf , params in clf_list:
             print(clf)
             best_clf = try_clf(best_clf,clf,params)
+        
+        naive(True)
+        naive(False)
         
         # clf , params = clf_list[0]
         # best_clf = try_clf(best_clf,clf,params)
@@ -197,6 +231,16 @@ class SurvivalModel():
 
         print(estimator.score(df_test_num, va_y_test))
 
+        pred_surv = estimator.predict_survival_function(df_train_num)
+        time_points = np.arange(1, 120)
+        for i, surv_func in enumerate(pred_surv):
+            plt.step(time_points, surv_func(time_points), where="post",
+                    label="Sample %d" % (i + 1))
+        plt.ylabel("est. probability of survival $\hat{S}(t)$")
+        plt.xlabel("time $t$")
+        plt.legend(loc="best")
+        plt.show()
+
         print(cph_auc)
         print(cph_mean_auc)
 
@@ -226,7 +270,7 @@ class SurvivalModel():
 if __name__ == "__main__":
     survival_model = SurvivalModel()
     survival_model.classifier_models()
-    survival_model.survival_models()
+    # survival_model.survival_models()
 
 # # df_num = encoder.transform(df)
 # # poly = PolynomialFeatures(interaction_only=True,include_bias = False).fit(df_num)
