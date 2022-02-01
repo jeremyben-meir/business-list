@@ -20,9 +20,8 @@ class IndustryAssign():
             self.org_df = df[df["NAICS"]!=""]
         else:
             self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-merged.p").get()['Body'].read())
-            # bbls = self.df.sample(400)["BBL"].unique()
-            # self.df = self.df[self.df["BBL"].isin(bbls)]
-            # print(len(bbls))
+            # self.df = self.df[self.df["BBL"].isin(random.sample(list(self.df["BBL"].unique()),100))]
+            # print(self.df["BBL"].nunique())
         self.ticker = 0
         self.totlen = len(self.df["LBID"].unique())
         # self.df = pickle.load(open(f"{DirectoryFields.LOCAL_LOCUS_PATH}data/temp/df-merged.p", "rb" ))
