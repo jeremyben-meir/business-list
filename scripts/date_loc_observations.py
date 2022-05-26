@@ -60,12 +60,12 @@ class DateLocObservations():
     def generate_comptroller(self):
         path = f"comptroller/source/key_indicators.csv"
         df = pd.read_csv(f"{DirectoryFields.S3_PATH}{path}", sep=",",low_memory=False)
-        df.rename( columns={'Unnamed: 0':'year'}, inplace=True )
-        df = df[pd.to_datetime(df['year']).dt.month == 1]
-        df['year'] = pd.to_datetime(df['year']).dt.year
-        df = df.reset_index(drop=True)
-        df = df.applymap(lambda cell: float(cell[:-1])/100.0 if type(cell) == str and cell[-1] == "%" else cell)
-        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"comptroller/key_indicators.p", Body=pickle.dumps(df))
+        # df.rename( columns={'Unnamed: 0':'year'}, inplace=True )
+        # df = df[pd.to_datetime(df['year']).dt.month == 1]
+        # df['year'] = pd.to_datetime(df['year']).dt.year
+        # df = df.reset_index(drop=True)
+        # df = df.applymap(lambda cell: float(cell[:-1])/100.0 if type(cell) == str and cell[-1] == "%" else cell)
+        # self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"comptroller/key_indicators.p", Body=pickle.dumps(df))
     
     def generate_subway(self):
         path = f"subway/source/DOITT_SUBWAY_STATION_01_13SEPT2010.csv"
@@ -79,7 +79,7 @@ class DateLocObservations():
 if __name__ == "__main__":
     date_loc_observations = DateLocObservations()
     date_loc_observations.generate_pluto()
-    # date_loc_observations.generate_comptroller()
+    date_loc_observations.generate_comptroller()
 
 # def min_dist(row,lon,lat,subway_df):
 #     # min_val = min(subway_df.apply(lambda row: math.sqrt(((row["longitude"]-lon)**2)+((row["latitude"]-lat)**2)),axis=1))
