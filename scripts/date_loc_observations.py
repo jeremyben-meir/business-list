@@ -21,18 +21,6 @@ class DateLocObservations():
         res_df = res_df.reset_index(drop=True)
         res_df.columns = res_df.columns.str.lower()
         return res_df
-    
-    def add_bbl_features(self,bbl,lendf):
-        self.counter += 1
-        print(f"{self.counter} / {lendf}")
-        try:
-            result = self.g.bbl({"bbl":str(int(bbl))})
-            lon = float(result["Longitude"])
-            lat = float(result["Latitude"])
-            subway = len(self.subway_df[(abs(self.subway_df["longitude"]-lon)<.002) & (abs(self.subway_df["latitude"]-lat)<.002)])
-            return subway
-        except Exception as e:
-            return None
 
     def generate_pluto(self):
 
@@ -51,10 +39,9 @@ class DateLocObservations():
                 else:
                     res_df = pd.read_csv(f"{DirectoryFields.S3_PATH}{summary_list[0]}", sep=",",low_memory=False)
                 res_df = self.apply_trans(res_df, year)
+
                 print(year)
                 print(res_df.columns.tolist())
-                # lendf = len(res_df)                    
-                # res_df["Subway"] = res_df["bbl"].apply(lambda bbl: self.add_bbl_features(bbl,lendf))
                 self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"pluto/{year}.p", Body=pickle.dumps(res_df))
 
     def generate_comptroller(self):
@@ -66,24 +53,8 @@ class DateLocObservations():
         # df = df.reset_index(drop=True)
         # df = df.applymap(lambda cell: float(cell[:-1])/100.0 if type(cell) == str and cell[-1] == "%" else cell)
         # self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"comptroller/key_indicators.p", Body=pickle.dumps(df))
-    
-    def generate_subway(self):
-        path = f"subway/source/DOITT_SUBWAY_STATION_01_13SEPT2010.csv"
-        df = pd.read_csv(f"{DirectoryFields.S3_PATH}{path}", sep=",",low_memory=False)
-        df = df.reset_index(drop=True)
-        df["longitude"] = df["the_geom"].apply(lambda cell: float(cell.split(" ")[1][1:]))
-        df["latitude"] = df["the_geom"].apply(lambda cell: float(cell.split(" ")[2][:-1]))
-        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"subway/data.p", Body=pickle.dumps(df))
-        return df
 
 if __name__ == "__main__":
     date_loc_observations = DateLocObservations()
     date_loc_observations.generate_pluto()
-    date_loc_observations.generate_comptroller()
-
-# def min_dist(row,lon,lat,subway_df):
-#     # min_val = min(subway_df.apply(lambda row: math.sqrt(((row["longitude"]-lon)**2)+((row["latitude"]-lat)**2)),axis=1))
-#     min_val = len(subway_df[(abs(subway_df["longitude"]-lon)<.005) &(abs(subway_df["latitude"]-lat)<.005)])
-#     row["subway"] = min_val
-#     return row
-# res_df = res_df.apply(lambda row: min_dist(row,row["longitude"],row["latitude"],subway_df),axis=1)
+    # date_loc_observations.generate_comptroller()

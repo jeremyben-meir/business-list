@@ -20,6 +20,7 @@ class ConvertPFile():
     
     def get_file_data(self):
         print(f"Length: {len(self.df)}")
+        print(self.df)
 
 if __name__ == "__main__":
     converter = ConvertPFile()

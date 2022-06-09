@@ -3,6 +3,8 @@ fuzzywuzzy
 requests
 aiohttp
 geojson
+geopandas
+cleanco
 
 s3fs
 fsspec

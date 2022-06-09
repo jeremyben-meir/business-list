@@ -5,6 +5,9 @@ import pandas as pd
 import csv
 import boto3
 import numpy as np
+import geopandas
+from fuzzywuzzy import fuzz
+# from cleanco import cleanco
 
 class CreateTimeline():
 
@@ -13,6 +16,16 @@ class CreateTimeline():
         self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-assigned.p").get()['Body'].read())
         # self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-merged.p").get()['Body'].read())
         print(self.df.columns.tolist())
+
+    def generate_subway(self):
+        path = f"subway/source/DOITT_SUBWAY_STATION_01_13SEPT2010.csv"
+        df = pd.read_csv(f"{DirectoryFields.S3_PATH}{path}", sep=",",low_memory=False)
+        df = df.reset_index(drop=True)
+        df["longitude"] = df["the_geom"].apply(lambda cell: float(cell.split(" ")[1][1:]))
+        df["latitude"] = df["the_geom"].apply(lambda cell: float(cell.split(" ")[2][:-1]))
+        gdf = geopandas.GeoDataFrame(df, geometry=geopandas.points_from_xy(df.longitude, df.latitude))
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"subway/data.p", Body=pickle.dumps(gdf))
+        return gdf
 
     def get_lim_date_from_cols(self, curgrp,col_list,is_maximum):
         lim_date = [(curgrp[date].max() if is_maximum else curgrp[date].min()) for date in col_list]
@@ -154,9 +167,37 @@ class CreateTimeline():
         date_df = pd.DataFrame(res_list)
         cleaned_file_path = f"{DirectoryFields.S3_PATH}data/temp/timeline.csv"
         date_df.to_csv(cleaned_file_path, index=False, quoting=csv.QUOTE_ALL)
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key='data/temp/df-timeline-nosubway.p', Body=pickle.dumps(date_df))
+        return date_df
+    
+    def add_features(self, timeline_df):
+        self.count = 0
+        lendf = len(timeline_df)
 
-        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key='data/temp/df-timeline.p', Body=pickle.dumps(date_df))
+        brands = {"mcdonalds","starbucks","lululemon","walmart","apple","best buy","kohl's","nordstrom","bed bath & beyond"}
+        subway_df = self.generate_subway()
+
+        timeline_df["Subway"] = 0.0
+        timeline_df["Brand"] = 0
+
+        def add(row):
+            if self.count % 10000 == 0:
+                print(f"{self.count} / {lendf}")
+            self.count += 1
+            
+            row["Subway"] = min(subway_df['geometry'].distance(row["geometry"]))
+            row["Brand"] = 1 if max([ fuzz.WRatio(row["Name_clean"], brand) for brand in brands])>80 else 0
+            return row
+
+        gtimeline_df = geopandas.GeoDataFrame(timeline_df, geometry=geopandas.points_from_xy(timeline_df.Longitude, timeline_df.Latitude))
+        gtimeline_df["Name_clean"] = gtimeline_df["Name"].apply(lambda x: x.lower())
+        gtimeline_df = gtimeline_df.apply(lambda row: add(row),axis=1)
+        del gtimeline_df["Name_clean"]
+
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key='data/temp/df-timeline.p', Body=pickle.dumps(gtimeline_df))
 
 if __name__ == "__main__":
     industry_assign = CreateTimeline()
-    industry_assign.get_dates()
+    df = industry_assign.get_dates()
+    # df = temp_df = pickle.loads(industry_assign.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object('data/temp/df-timeline-nosubway.p').get()['Body'].read()) #DELETE
+    industry_assign.add_features(df)
