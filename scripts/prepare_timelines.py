@@ -6,7 +6,7 @@ import csv
 import boto3
 import numpy as np
 import geopandas
-from fuzzywuzzy import fuzz
+from thefuzz import fuzz
 # from cleanco import cleanco
 
 class CreateTimeline():
@@ -174,7 +174,7 @@ class CreateTimeline():
         self.count = 0
         lendf = len(timeline_df)
 
-        brands = {"mcdonalds","starbucks","lululemon","walmart","apple","best buy","kohl's","nordstrom","bed bath & beyond"}
+        brands = {"mcdonalds","starbucks","lululemon","walmart","apple","best buy","kohls","nordstrom","bed bath & beyond"}
         subway_df = self.generate_subway()
 
         timeline_df["Subway"] = 0.0
@@ -185,8 +185,16 @@ class CreateTimeline():
                 print(f"{self.count} / {lendf}")
             self.count += 1
             
+            def is_brand(name):
+                for brand in brands:
+                    r1 = fuzz.token_sort_ratio(name, brand) > 50
+                    r2 = fuzz.WRatio(name, brand) > 80
+                    if r1 and r2:  
+                        return 1
+                return 0
+
             row["Subway"] = min(subway_df['geometry'].distance(row["geometry"]))
-            row["Brand"] = 1 if max([ fuzz.WRatio(row["Name_clean"], brand) for brand in brands])>80 else 0
+            row["Brand"] = is_brand(row["Name_clean"])
             return row
 
         gtimeline_df = geopandas.GeoDataFrame(timeline_df, geometry=geopandas.points_from_xy(timeline_df.Longitude, timeline_df.Latitude))
@@ -194,10 +202,23 @@ class CreateTimeline():
         gtimeline_df = gtimeline_df.apply(lambda row: add(row),axis=1)
         del gtimeline_df["Name_clean"]
 
+        brand_df = gtimeline_df.copy()
+        brand_df = brand_df[brand_df["Brand"]==1]
+
+        self.count = 0
+        def add_brand_proximity(row):
+            if self.count % 10000 == 0:
+                print(f"{self.count} / {lendf}")
+            self.count += 1
+            prox = brand_df['geometry'].distance(row["geometry"])
+            return len(prox[prox<=.002])
+
+        gtimeline_df["Brand Proximity"] = gtimeline_df.apply(lambda row: add_brand_proximity(row),axis=1)
+
         self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key='data/temp/df-timeline.p', Body=pickle.dumps(gtimeline_df))
 
 if __name__ == "__main__":
     industry_assign = CreateTimeline()
     df = industry_assign.get_dates()
-    # df = temp_df = pickle.loads(industry_assign.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object('data/temp/df-timeline-nosubway.p').get()['Body'].read()) #DELETE
+    # df = pickle.loads(industry_assign.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object('data/temp/df-timeline-nosubway.p').get()['Body'].read()) #DELETE
     industry_assign.add_features(df)

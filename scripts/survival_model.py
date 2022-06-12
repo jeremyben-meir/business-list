@@ -9,7 +9,6 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import f1_score, accuracy_score, roc_auc_score, precision_score, recall_score
 from sklearn import svm, tree
 import statsmodels.api as sm
-from sklearn_pandas import DataFrameMapper
 from sklearn.impute import SimpleImputer
 import numpy as np
 from scripts.common import DirectoryFields
@@ -54,9 +53,9 @@ class SurvivalModel():
         binar_list = ['zonedist1', 'bldgclass', 'histdist', 'landmark']
         int_list = ['lotarea', 'bldgarea', 'comarea', 'resarea', 'officearea', 'retailarea', 'garagearea', 'strgearea', 'factryarea', 'otherarea', 'numfloors', 'unitsres', 'unitstotal',
                     'lotfront', 'lotdepth', 'bldgfront', 'bldgdepth', 'bsmtcode', 'assessland', 'assesstot', 'yearbuilt', 'yearalter1', 'builtfar', 'residfar', 'commfar', 'facilfar',
-                    "Months Active"]
+                    "Months Active",'Brand Proximity',"Brand"]
         flt_list = ['GCP (NYC)', 'GDP (USA)', ' Payroll-Jobs Growth, SAAR - NYC', 'Payroll-Jobs Growth, SAAR - USA', 'PIT Withheld, Growth, NSA - NYC', 'PIT Withheld, Growth, NSA - USA',
-                    'Inflation Rate, NSA - NYC', 'Inflation Rate, NSA - USA', 'Unemployment Rate, SA - NYC', 'Unemployment Rate, SA - USA']
+                    'Inflation Rate, NSA - NYC', 'Inflation Rate, NSA - USA', 'Unemployment Rate, SA - NYC', 'Unemployment Rate, SA - USA',"Subway"]
 
         # DATA CLEANING BASED ON FEATURES
 
@@ -83,15 +82,23 @@ class SurvivalModel():
 
             return to_df
 
-        df = fix_df(df)
+        df = fix_df(df, True)
 
-        mapper_list = [(col, None) for col in id_list] + [(col, sklearn.preprocessing.LabelBinarizer())
-                       for col in binar_list] + [(col, None) for col in int_list] + [(col, None) for col in flt_list]
-        mapper = DataFrameMapper(mapper_list)
+        # mapper_list = [(col, None) for col in id_list] + [(col, sklearn.preprocessing.LabelBinarizer())
+        #                for col in binar_list] + [(col, None) for col in int_list] + [(col, None) for col in flt_list]
+        # mapper = DataFrameMapper(mapper_list)
+        # X = mapper.fit_transform(df.copy())
 
-        
-        X = mapper.fit_transform(df.copy())
-        feature_names = mapper.transformed_names_[1:]
+        mapper_list = ([df[col].astype(int) for col in id_list] 
+                        + [pd.get_dummies(df[col],prefix=col,drop_first=True) for col in binar_list]
+                        + [df[col].astype(int) for col in int_list] 
+                        + [df[col].astype(float) for col in flt_list])
+       
+        X = pd.concat(mapper_list,axis=1)
+        X = sm.add_constant(X)
+        feature_names = X.columns.tolist()
+        # print(feature_names) #DELETE
+        # return #DELETE
         Y = df['Survive'].to_numpy()
 
         X_2021 = X[self.sample_size:,1:]

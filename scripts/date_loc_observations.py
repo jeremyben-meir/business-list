@@ -23,14 +23,11 @@ class DateLocObservations():
         return res_df
 
     def generate_pluto(self):
-
-        self.subway_df = self.generate_subway()
-
         for year in range(2010,2022):
             path = f"pluto/source/{year}/"
             df_list = list()
             summary_list = [obj.key for obj in self.s3.Bucket(DirectoryFields.S3_PATH_NAME).objects.filter(Prefix=path) if (obj.key != path and "/." not in obj.key and (".csv" in obj.key or ".txt" in obj.key))]
-            if len(summary_list) > 0:
+            if len(summary_list) > 0:   
                 if len(summary_list) > 1:
                     for key_val in summary_list:
                         df = pd.read_csv(f"{DirectoryFields.S3_PATH}{key_val}", sep=",",low_memory=False)
@@ -47,12 +44,12 @@ class DateLocObservations():
     def generate_comptroller(self):
         path = f"comptroller/source/key_indicators.csv"
         df = pd.read_csv(f"{DirectoryFields.S3_PATH}{path}", sep=",",low_memory=False)
-        # df.rename( columns={'Unnamed: 0':'year'}, inplace=True )
-        # df = df[pd.to_datetime(df['year']).dt.month == 1]
-        # df['year'] = pd.to_datetime(df['year']).dt.year
-        # df = df.reset_index(drop=True)
-        # df = df.applymap(lambda cell: float(cell[:-1])/100.0 if type(cell) == str and cell[-1] == "%" else cell)
-        # self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"comptroller/key_indicators.p", Body=pickle.dumps(df))
+        df.rename( columns={'Unnamed: 0':'year'}, inplace=True )
+        df = df[pd.to_datetime(df['year']).dt.month == 1]
+        df['year'] = pd.to_datetime(df['year']).dt.year
+        df = df.reset_index(drop=True)
+        df = df.applymap(lambda cell: float(cell[:-1])/100.0 if type(cell) == str and cell[-1] == "%" else cell)
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key=f"comptroller/key_indicators.p", Body=pickle.dumps(df))
 
 if __name__ == "__main__":
     date_loc_observations = DateLocObservations()

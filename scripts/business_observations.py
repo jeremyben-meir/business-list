@@ -32,8 +32,8 @@ class BusinessObservations():
             # one_obs = (self.df["End Date"].dt.year == self.df["Start Date"].dt.year) & (self.df["Start Date"].dt.year == year)
             # print(len(self.df[one_obs]))
             # temp_set = self.df[span_date|one_obs] # TODO WHY ARE THERE ONLY ONE OBS
-            span_date = (self.df["Start Date"] <= cur_date) & (self.df["End Date"] >= cur_date)
-            temp_set = self.df[span_date] # TODO WHY ARE THERE ONLY ONE OBS
+            temp_set = self.df.copy()
+            temp_set = temp_set[(temp_set["Start Date"] <= cur_date) & (temp_set["End Date"] >= cur_date)] # TODO WHY ARE THERE ONLY ONE OBS
             temp_set["Months Active"] = (cur_date - self.df["Start Date"]).astype('timedelta64[M]').astype(float).astype(int)
         else:
             temp_set = self.df[(self.df["Start Date"] < cur_date)]
@@ -135,8 +135,8 @@ class BusinessObservations():
 
 if __name__ == "__main__":
     business_observations = BusinessObservations()
-    # business_observations.classifier_models()
-    business_observations.survival_models()
+    business_observations.classifier_models()
+    # business_observations.survival_models()
 
 
 # mask_2021 = (self.df["Start Date"] <= cur_date) & (self.df["End Date"] >= cur_date)

@@ -1,5 +1,6 @@
 pandas
 fuzzywuzzy
+thefuzz
 requests
 aiohttp
 geojson
