@@ -15,6 +15,13 @@ class BusinessObservations():
         self.df = pickle.loads(self.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object("data/temp/df-timeline.p").get()['Body'].read())
         self.df["Max Businesses"] = 0
         print(len(self.df))
+
+    def get_nypd(self,year):
+        try:
+            return self.nypd_list[year]
+        except:
+            path = f"subway/source/DOITT_SUBWAY_ENTRANCE_01_13SEPT2010.csv"
+            df = pd.read_csv(f"{DirectoryFields.S3_PATH}{path}", sep=",",low_memory=False)
     
     def get_pluto(self,year):
         path = f'pluto/{year}.p'
@@ -135,8 +142,8 @@ class BusinessObservations():
 
 if __name__ == "__main__":
     business_observations = BusinessObservations()
-    business_observations.classifier_models()
-    # business_observations.survival_models()
+    # business_observations.classifier_models()
+    business_observations.survival_models()
 
 
 # mask_2021 = (self.df["Start Date"] <= cur_date) & (self.df["End Date"] >= cur_date)

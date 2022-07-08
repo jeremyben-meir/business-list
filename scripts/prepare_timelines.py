@@ -18,7 +18,7 @@ class CreateTimeline():
         print(self.df.columns.tolist())
 
     def generate_subway(self):
-        path = f"subway/source/DOITT_SUBWAY_STATION_01_13SEPT2010.csv"
+        path = f"subway/source/DOITT_SUBWAY_ENTRANCE_01_13SEPT2010.csv"
         df = pd.read_csv(f"{DirectoryFields.S3_PATH}{path}", sep=",",low_memory=False)
         df = df.reset_index(drop=True)
         df["longitude"] = df["the_geom"].apply(lambda cell: float(cell.split(" ")[1][1:]))

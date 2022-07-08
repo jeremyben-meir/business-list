@@ -74,7 +74,7 @@ class SurvivalModel():
                     to_df = to_df[~to_df[col].isna()]
                     to_df[col] = to_df[col].astype(float)
                 
-                print(f"DATA LOSS {starting_len} to {len(df)}")
+                print(f"DATA LOSS {starting_len} to {len(to_df)}")
 
             else:
                 for col in binar_list+flt_list+int_list:
@@ -82,33 +82,25 @@ class SurvivalModel():
 
             return to_df
 
-        df = fix_df(df, True)
-
-        # mapper_list = [(col, None) for col in id_list] + [(col, sklearn.preprocessing.LabelBinarizer())
-        #                for col in binar_list] + [(col, None) for col in int_list] + [(col, None) for col in flt_list]
-        # mapper = DataFrameMapper(mapper_list)
-        # X = mapper.fit_transform(df.copy())
+        df = fix_df(df)
 
         mapper_list = ([df[col].astype(int) for col in id_list] 
                         + [pd.get_dummies(df[col],prefix=col,drop_first=True) for col in binar_list]
                         + [df[col].astype(int) for col in int_list] 
-                        + [df[col].astype(float) for col in flt_list])
+                        + [df[col].astype(float) for col in flt_list]
+                        + [df['Survive']])
        
-        X = pd.concat(mapper_list,axis=1)
-        X = sm.add_constant(X)
+        comp_df = pd.concat(mapper_list,axis=1)
+        comp_df = sm.add_constant(comp_df)
+
+        Y_2021 = comp_df[comp_df["Year"]>2020]["Survive"]
+        Y = comp_df[comp_df["Year"]<2021]["Survive"]
+        del comp_df["Survive"]
+
+        X_2021 = comp_df[comp_df["Year"]>2020]
+        X = comp_df[comp_df["Year"]<2021]
+
         feature_names = X.columns.tolist()
-        # print(feature_names) #DELETE
-        # return #DELETE
-        Y = df['Survive'].to_numpy()
-
-        X_2021 = X[self.sample_size:,1:]
-        Y_2021 = Y[self.sample_size:]
-        X = X[:self.sample_size,1:]
-        Y = Y[:self.sample_size]
-
-        # print(X)
-        # print(X_2021)
-        print()
 
         X_train, X_test, Y_train, Y_test = train_test_split(
             X, Y, test_size=0.3, random_state=23)
@@ -116,8 +108,11 @@ class SurvivalModel():
         best_clf = {"clf":None,"f1":0}
 
         def decision_tree(clf):
-            text_representation = tree.export_text(clf,max_depth=5, feature_names=feature_names)
-            print(text_representation)
+            try:
+                text_representation = tree.export_text(clf,max_depth=5, feature_names=feature_names)
+                print(text_representation)
+            except:
+                pass
 
         def naive(zeros):
             if zeros:
@@ -152,7 +147,9 @@ class SurvivalModel():
             print(f"Precision {precision_score(Y_test, y_pred)}")
             print(f"Recall {recall_score(Y_test, y_pred)}")
             print()
-            # decision_tree(clf)
+
+            decision_tree(clf)
+
             if best_clf["f1"] < score:
                 best_clf["clf"] = clf
                 best_clf["f1"] = score
@@ -198,8 +195,8 @@ class SurvivalModel():
         print(df.columns.tolist())
 
         binar_list = ['zonedist1', 'bldgclass']
-        int_list = ['lotarea','garagearea', 'strgearea', 'numfloors', 'unitstotal', 'bldgdepth', 'yearbuilt', 'builtfar']
-        flt_list = ['GCP (NYC)', ' Payroll-Jobs Growth, SAAR - NYC', 'Inflation Rate, NSA - NYC',  'Unemployment Rate, SA - NYC']
+        int_list = ['lotarea','garagearea', 'strgearea', 'numfloors', 'unitstotal', 'bldgdepth', 'yearbuilt', 'builtfar','Brand Proximity',"Brand"]
+        flt_list = ['GCP (NYC)', ' Payroll-Jobs Growth, SAAR - NYC', 'Inflation Rate, NSA - NYC',  'Unemployment Rate, SA - NYC',"Subway"]
 
         for col in binar_list:
             df[col] = df[col].astype("category")
@@ -276,8 +273,8 @@ class SurvivalModel():
 
 if __name__ == "__main__":
     survival_model = SurvivalModel()
-    survival_model.classifier_models()
-    # survival_model.survival_models()
+    # survival_model.classifier_models()
+    survival_model.survival_models()
 
 # # df_num = encoder.transform(df)
 # # poly = PolynomialFeatures(interaction_only=True,include_bias = False).fit(df_num)
