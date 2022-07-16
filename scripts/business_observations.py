@@ -54,7 +54,7 @@ class BusinessObservations():
             temp_set.loc[(self.df["End Date"] >= cur_date), "Months Active"] = (cur_date - self.df["Start Date"]).astype('timedelta64[M]').astype(float).astype(int)
             temp_set.loc[(self.df["End Date"] < cur_date), "Months Active"] = (self.df["End Date"] - self.df["Start Date"]).astype('timedelta64[M]').astype(float).astype(int)
         temp_set['Year'] = year
-        temp_set['Crime'] = 0
+        # temp_set['Crime'] = 0
 
         return temp_set
 
@@ -66,13 +66,13 @@ class BusinessObservations():
         lbid_to_elim = set()
         comptroller_df = self.get_comptroller()
 
-        def add_crime(row,nypd_df):
-            distances = nypd_df["geometry"].distance(row["geometry"])
-            if self.merged_count % 100 == 0:
-                print(f"{self.merged_count} / {self.merged_len}")
-            self.merged_count += 1
-            row["Crime"] = len(distances[distances<.01])
-            return row
+        # def add_crime(row,nypd_df):
+        #     distances = nypd_df["geometry"].distance(row["geometry"])
+        #     if self.merged_count % 100 == 0:
+        #         print(f"{self.merged_count} / {self.merged_len}")
+        #     self.merged_count += 1
+        #     row["Crime"] = len(distances[distances<.01])
+        #     return row
 
         for year in year_list:
             
@@ -94,11 +94,11 @@ class BusinessObservations():
             merged = merged.loc[~merged.index.duplicated(keep='first')]
             merged = merged.reset_index(drop = True)
 
-            self.merged_count = 0
-            self.merged_len = len(merged)
-            nypd_df = self.get_nypd(year)
-            merged = geopandas.GeoDataFrame(merged, geometry=geopandas.points_from_xy(merged.Longitude, merged.Latitude))
-            merged = merged.apply(lambda row: add_crime(row,nypd_df),axis=1)
+            # self.merged_count = 0
+            # self.merged_len = len(merged)
+            # nypd_df = self.get_nypd(year)
+            # merged = geopandas.GeoDataFrame(merged, geometry=geopandas.points_from_xy(merged.Longitude, merged.Latitude))
+            # merged = merged.apply(lambda row: add_crime(row,nypd_df),axis=1)
 
             del pluto_df
             del temp_set
