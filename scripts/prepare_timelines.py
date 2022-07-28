@@ -202,50 +202,49 @@ class CreateTimeline():
         gtimeline_df = gtimeline_df.apply(lambda row: add(row),axis=1)
         del gtimeline_df["Name_clean"]
 
-        brand_df = gtimeline_df.copy()
-        brand_df = brand_df[brand_df["Brand"]==1]
+        # brand_df = gtimeline_df.copy()
+        # brand_df = brand_df[brand_df["Brand"]==1]
 
-        self.count = 0
-        def add_brand_proximity(row):
-            if self.count % 10000 == 0:
-                print(f"{self.count} / {lendf}")
-            self.count += 1
-            prox = brand_df['geometry'].distance(row["geometry"])
-            return len(prox[prox<=.002])
+        # self.count = 0
+        # def add_brand_proximity(row):
+        #     if self.count % 10000 == 0:
+        #         print(f"{self.count} / {lendf}")
+        #     self.count += 1
+        #     prox = brand_df['geometry'].distance(row["geometry"])
+        #     return len(prox[prox<=.002])
 
-        gtimeline_df["Brand Proximity"] = gtimeline_df.apply(lambda row: add_brand_proximity(row),axis=1)
+        # gtimeline_df["Brand Proximity"] = gtimeline_df.apply(lambda row: add_brand_proximity(row),axis=1)
 
-        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key='data/temp/df-timeline-nocrime.p', Body=pickle.dumps(gtimeline_df))
+        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key='data/temp/df-timeline.p', Body=pickle.dumps(gtimeline_df))
 
-    def add_crime(self, df):
+    # def add_crime(self, df):
 
-        path = f"nypd/source/NYPD_Complaint_Data_Historic.csv"
-        nypd_df = pd.read_csv(f"{DirectoryFields.S3_PATH}{path}", sep=",",low_memory=False)
-        nypd_df['year'] = pd.to_datetime(nypd_df['CMPLNT_FR_DT'], errors = 'coerce').dt.year
-        nypd_df = nypd_df[~nypd_df['year'].isna()]
-        nypd_df['year'] = nypd_df['year'].astype(int)
-        nypd_df=nypd_df[nypd_df["year"]>2010].sample(frac=.01)
-        self.gnypd = geopandas.GeoDataFrame(nypd_df, geometry=geopandas.points_from_xy(nypd_df.Longitude, nypd_df.Latitude))
-        print(len(nypd_df))
-        def crime(row):
-            distances = self.gnypd["geometry"].distance(row["geometry"])
-            if self.merged_count % 100 == 0:
-                print(f"{self.merged_count} / {self.merged_len}")
-            self.merged_count += 1
-            # print(len(distances[distances<.001])) ``
-            row["Crime"] = len(distances[distances<.01])
-            return row
+    #     path = f"nypd/source/NYPD_Complaint_Data_Historic.csv"
+    #     nypd_df = pd.read_csv(f"{DirectoryFields.S3_PATH}{path}", sep=",",low_memory=False)
+    #     nypd_df['year'] = pd.to_datetime(nypd_df['CMPLNT_FR_DT'], errors = 'coerce').dt.year
+    #     nypd_df = nypd_df[~nypd_df['year'].isna()]
+    #     nypd_df['year'] = nypd_df['year'].astype(int)
+    #     nypd_df=nypd_df[nypd_df["year"]>2010].sample(frac=.01)
+    #     self.gnypd = geopandas.GeoDataFrame(nypd_df, geometry=geopandas.points_from_xy(nypd_df.Longitude, nypd_df.Latitude))
+    #     print(len(nypd_df))
+    #     def crime(row):
+    #         distances = self.gnypd["geometry"].distance(row["geometry"])
+    #         if self.merged_count % 100 == 0:
+    #             print(f"{self.merged_count} / {self.merged_len}")
+    #         self.merged_count += 1
+    #         # print(len(distances[distances<.001])) ``
+    #         row["Crime"] = len(distances[distances<.01])
+    #         return row
 
-        df['Crime'] = 0
-        self.merged_count = 0
-        self.merged_len = len(df)
-        df = df.apply(lambda row: crime(row),axis=1)
-        self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key='data/temp/df-timeline.p', Body=pickle.dumps(df))
-        return df
+    #     df['Crime'] = 0
+    #     self.merged_count = 0
+    #     self.merged_len = len(df)
+    #     df = df.apply(lambda row: crime(row),axis=1)
+    #     self.s3.Bucket(DirectoryFields.S3_PATH_NAME).put_object(Key='data/temp/df-timeline.p', Body=pickle.dumps(df))
+    #     return df
 
 if __name__ == "__main__":
     industry_assign = CreateTimeline()
-    # df = industry_assign.get_dates()
-    # industry_assign.add_features(df)
-    df = pickle.loads(industry_assign.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object('data/temp/df-timeline-nocrime.p').get()['Body'].read()) #DELETE
-    industry_assign.add_crime(df)
+    df = industry_assign.get_dates()
+    industry_assign.add_features(df)
+    # df = pickle.loads(industry_assign.s3.Bucket(DirectoryFields.S3_PATH_NAME).Object('data/temp/df-timeline-nocrime.p').get()['Body'].read()) #DELETE

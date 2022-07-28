@@ -53,7 +53,7 @@ class SurvivalModel():
         binar_list = ['zonedist1', 'bldgclass', 'histdist', 'landmark']
         int_list = ['lotarea', 'bldgarea', 'comarea', 'resarea', 'officearea', 'retailarea', 'garagearea', 'strgearea', 'factryarea', 'otherarea', 'numfloors', 'unitsres', 'unitstotal',
                     'lotfront', 'lotdepth', 'bldgfront', 'bldgdepth', 'bsmtcode', 'assessland', 'assesstot', 'yearbuilt', 'yearalter1', 'builtfar', 'residfar', 'commfar', 'facilfar',
-                    "Months Active",'Brand Proximity',"Brand"]
+                    "Months Active",'Brand Proximity',"Brand","Crime"]
         flt_list = ['GCP (NYC)', 'GDP (USA)', ' Payroll-Jobs Growth, SAAR - NYC', 'Payroll-Jobs Growth, SAAR - USA', 'PIT Withheld, Growth, NSA - NYC', 'PIT Withheld, Growth, NSA - USA',
                     'Inflation Rate, NSA - NYC', 'Inflation Rate, NSA - USA', 'Unemployment Rate, SA - NYC', 'Unemployment Rate, SA - USA',"Subway"]
 
@@ -156,11 +156,11 @@ class SurvivalModel():
             return best_clf
         
         clf_list = [
-            (MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1, max_iter=400), {}),
-            (svm.SVC(), {}),
-            (SGDClassifier(loss="hinge", penalty="l2", max_iter=100), {}),
-            (tree.DecisionTreeClassifier(), {"criterion":['gini', 'entropy'],"splitter":['best', 'random']}),
-            (tree.DecisionTreeClassifier(criterion='gini',splitter='best'), {}),
+            # (MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1, max_iter=400), {}),
+            # (svm.SVC(), {}),
+            # (SGDClassifier(loss="hinge", penalty="l2", max_iter=100), {}),
+            # (tree.DecisionTreeClassifier(), {"criterion":['gini', 'entropy'],"splitter":['best', 'random']}),
+            # (tree.DecisionTreeClassifier(criterion='gini',splitter='best'), {}),
             (RandomForestClassifier(), {"criterion":['gini', 'entropy'],"max_depth":range(10,20)})
         ]
 
@@ -195,15 +195,24 @@ class SurvivalModel():
         print(df.columns.tolist())
 
         binar_list = ['zonedist1', 'bldgclass']
-        int_list = ['lotarea','garagearea', 'strgearea', 'numfloors', 'unitstotal', 'bldgdepth', 'yearbuilt', 'builtfar','Brand Proximity',"Brand"]
+        int_list = ['lotarea','garagearea', 'strgearea', 'numfloors', 'unitstotal', 'bldgdepth', 'yearbuilt', 'builtfar','Brand Proximity',"Brand","Crime"]
         flt_list = ['GCP (NYC)', ' Payroll-Jobs Growth, SAAR - NYC', 'Inflation Rate, NSA - NYC',  'Unemployment Rate, SA - NYC',"Subway"]
 
+        binar_list = []
+        int_list = ["Brand","Crime"]
+        flt_list = ['GCP (NYC)',"Subway"," Payroll-Jobs Growth, SAAR - NYC","Brand Proximity"]
+
         for col in binar_list:
+            # df = df[df[col].notna()]
             df[col] = df[col].astype("category")
             df[col].fillna(df[col].mode()[0], inplace=True)
         for col in int_list+flt_list:
+            # df = df[df[col].notna()]
             df[col] = df[col].astype(float)
             df[col].fillna(df[col].mode()[0], inplace=True)
+
+        # df = df[df["Status"].notna()]
+        # df = df[df["Months Active"].notna()]
 
         va_x = df[binar_list + int_list + flt_list]
         va_y = Surv.from_dataframe("Status","Months Active",df)
