@@ -67,6 +67,7 @@ class CreateTimeline():
     def type_cast(self, df, all_date_list):
         df["Business Name"] = df["Business Name"].fillna("")
         df["Business Name 2"] = df["Business Name 2"].fillna("")
+        df["Business Name 3"] = df["Business Name 3"].fillna("")
         df["Building Number"] = df["Building Number"].fillna("")
         df["Contact Phone"] = df["Contact Phone"].fillna("")
         df["INSP Result"] = df["INSP Result"].fillna("")
@@ -94,7 +95,10 @@ class CreateTimeline():
         lbid_group = df.groupby("LBID")
         for lbid , out_group in lbid_group:
 
-            name = max(out_group["Business Name"].max(),out_group["Business Name 2"].max())
+            name1 = out_group["Business Name"].max()
+            name2 = out_group["Business Name 2"].max()
+            name3 = out_group["Business Name 3"].max()
+            name = max(name1,name2,name3)
             naics_code = out_group["NAICS"].max()
             naics_title = out_group["NAICS Title"].max()
 
@@ -114,7 +118,7 @@ class CreateTimeline():
                     maxdate += pd.Timedelta(days=365)
 
                 if latitude != 0.0 and longitude != 0.0:
-                    new_row = {'Name': name, 'LBID': lbid, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude,'NAICS Title': naics_title, 'NAICS': naics_code}
+                    new_row = {'Name': name, 'Name 1': name1, 'Name 2': name2, 'Name 3': name3, 'LBID': lbid, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude,'NAICS Title': naics_title, 'NAICS': naics_code}
                     res_list.append(new_row)
                     # date_df = date_df.append(new_row, ignore_index = True)
 
@@ -158,7 +162,7 @@ class CreateTimeline():
                     prevmin = mindate
 
                     if latitude != 0.0 and longitude != 0.0:
-                        new_row = {'Name': name, 'LBID': lbid, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude, 'NAICS Title': naics_title, 'NAICS': naics_code}
+                        new_row = {'Name': name, 'Name 1': name1, 'Name 2': name2, 'Name 3': name3, 'LBID': lbid, 'LLID': llid, "BBL": bbl, "Contact Phone": phone_num, "Address": address, 'Start Date': mindate, 'End Date': maxdate, 'Longitude': longitude, 'Latitude': latitude, 'NAICS Title': naics_title, 'NAICS': naics_code}
                         # date_df = date_df.append(new_row, ignore_index = True)
                         res_list.append(new_row)
             ticker += 1
